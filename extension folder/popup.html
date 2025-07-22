@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobStalker Importer</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="container">
+    <div id="message"></div>
+    <button id="login-btn" style="display:none;">Log in to JobStalker</button>
+    <form id="job-form" style="display:none;">
+      <label>Job Title: <input type="text" id="title" required></label><br>
+      <label>Company: <input type="text" id="company" required></label><br>
+      <label>Location: <input type="text" id="location"></label><br>
+      <label>Salary: <input type="text" id="salary"></label><br>
+      <label>Job Link: <input type="text" id="url" required></label><br>
+      <label>Stage:
+        <select id="stage">
+          <option>Bookmarked</option>
+          <option>Applied</option>
+          <option>Interviewing</option>
+          <option>Offer</option>
+          <option>Rejected</option>
+        </select>
+      </label><br>
+      <label>Excitement:
+        <select id="excitement">
+          <option value="1">★</option>
+          <option value="2">★★</option>
+          <option value="3">★★★</option>
+          <option value="4">★★★★</option>
+          <option value="5">★★★★★</option>
+        </select>
+      </label><br>
+      <label>Notes:<br><textarea id="notes" rows="3"></textarea></label><br>
+      <button type="submit">Save Job</button>
+    </form>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 
