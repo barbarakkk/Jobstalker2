@@ -2,6 +2,7 @@ import { Header } from './Layout/Header';
 import { Hero } from './Landing/Hero';
 import { Features } from './Landing/Features';
 import { StatsSection } from './Landing/StatsSection';
+import { PricingSection } from './Landing/PricingSection';
 import { CallToAction } from './Landing/CallToAction';
 
 export function LandingPage() {
@@ -11,6 +12,7 @@ export function LandingPage() {
       <Hero />
       <Features />
       <StatsSection />
+      <PricingSection />
       <CallToAction />
       {/* Footer will be handled in the AppShell/Layout */}
     </div>
