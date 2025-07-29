@@ -1,152 +1,154 @@
-let excitement = 0;
+// Constants
+const API_BASE_URL = 'https://jobstalker.com/api';
+const AUTH_URL = 'https://jobstalker.com/login';
 
-window.addEventListener('DOMContentLoaded', () => {
-  const loginBtn = document.getElementById('login-btn');
-  const mainUi = document.getElementById('main-ui');
-  const addBtn = document.getElementById('add-btn');
-  const statusDiv = document.getElementById('status');
-  const notesInput = document.getElementById('notes');
-  const statusSelect = document.getElementById('job-status');
-  const stars = document.querySelectorAll('#star-rating .star');
-  const excitementValue = document.getElementById('excitement-value');
+// DOM Elements
+const authContainer = document.getElementById('auth-container');
+const notAuthenticatedDiv = document.getElementById('not-authenticated');
+const authenticatedDiv = document.getElementById('authenticated');
+const userEmailSpan = document.getElementById('user-email');
+const jobForm = document.getElementById('job-form');
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const statusMessage = document.getElementById('status-message');
 
-  // Hide both by default until check is done
-  loginBtn.style.display = 'none';
-  mainUi.style.display = 'none';
+// Check authentication status when popup opens
+document.addEventListener('DOMContentLoaded', async () => {
+  await checkAuthStatus();
+  await getCurrentTab();
+});
 
-  // Check for JobStalker tab and token
-  chrome.tabs.query({url: 'https://jobstalker.netlify.app/*'}, (jobstalkerTabs) => {
-    if (jobstalkerTabs.length === 0) {
-      // No JobStalker tab open, show login button
-      loginBtn.style.display = 'block';
-      mainUi.style.display = 'none';
-      statusDiv.innerText =
-        'You need to register or log in to use this feature. Click the button above to register or log in. After registering, return to LinkedIn and try again.';
+// Event Listeners
+loginBtn.addEventListener('click', handleLogin);
+logoutBtn.addEventListener('click', handleLogout);
+document.getElementById('save-job-form').addEventListener('submit', handleSubmit);
+
+// Authentication Functions
+async function checkAuthStatus() {
+  try {
+    const token = await chrome.storage.local.get('authToken');
+    if (token.authToken) {
+      const userInfo = await chrome.storage.local.get('userEmail');
+      showAuthenticatedUI(userInfo.userEmail);
+      return true;
+    } else {
+      showNotAuthenticatedUI();
+      return false;
+    }
+  } catch (error) {
+    console.error('Error checking auth status:', error);
+    showNotAuthenticatedUI();
+    return false;
+  }
+}
+
+function showAuthenticatedUI(email) {
+  notAuthenticatedDiv.style.display = 'none';
+  authenticatedDiv.style.display = 'block';
+  jobForm.style.display = 'block';
+  userEmailSpan.textContent = email;
+}
+
+function showNotAuthenticatedUI() {
+  notAuthenticatedDiv.style.display = 'block';
+  authenticatedDiv.style.display = 'none';
+  jobForm.style.display = 'none';
+}
+
+async function handleLogin() {
+  const authUrl = AUTH_URL;
+  await chrome.tabs.create({ url: authUrl });
+  window.close();
+}
+
+async function handleLogout() {
+  await chrome.storage.local.remove(['authToken', 'userEmail']);
+  showNotAuthenticatedUI();
+}
+
+// Form Handling
+async function handleSubmit(event) {
+  event.preventDefault();
+  
+  try {
+    const formData = {
+      title: document.getElementById('title').value,
+      company: document.getElementById('company').value,
+      location: document.getElementById('location').value,
+      salary: document.getElementById('salary').value,
+      url: document.getElementById('url').value,
+      stage: document.getElementById('stage').value,
+      excitement: getSelectedRating(),
+      notes: document.getElementById('notes').value
+    };
+
+    const token = await chrome.storage.local.get('authToken');
+    if (!token.authToken) {
+      showError('Not authenticated. Please sign in.');
       return;
     }
-    const jobstalkerTab = jobstalkerTabs[0];
-    // Inject script to get access_token from localStorage/sessionStorage
-    chrome.scripting.executeScript({
-      target: {tabId: jobstalkerTab.id},
-      func: () => ({
-        access_token: localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
-      })
-    }, (tokenResults) => {
-      const result = tokenResults && tokenResults[0] && tokenResults[0].result;
-      const accessToken = result && result.access_token;
-      if (!accessToken) {
-        // Not logged in
-        loginBtn.style.display = 'block';
-        mainUi.style.display = 'none';
-        statusDiv.innerText =
-          'You need to register or log in to use this feature. Click the button above to register or log in. After registering, return to LinkedIn and try again.';
-      } else {
-        // Logged in
-        loginBtn.style.display = 'none';
-        mainUi.style.display = 'block';
-        statusDiv.innerText = '';
-        // Enable Add button
-        addBtn.disabled = false;
-        // Add click handler for Add button
-        addBtn.onclick = async () => {
-          statusDiv.innerText = 'Extracting job data...';
-          // Get current tab (should be LinkedIn job page)
-          chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            const tab = tabs[0];
-            // Ask content script for job data
-            chrome.tabs.sendMessage(tab.id, { action: 'get_job_data' }, async (response) => {
-              let job = response && response.job ? response.job : null;
-              // If job data is missing or incomplete, get full HTML and send to backend for LLM extraction
-              if (!job || !job.title || !job.company) {
-                statusDiv.innerText = 'Extracting full page HTML for AI parsing...';
-                chrome.scripting.executeScript({
-                  target: {tabId: tab.id},
-                  func: () => document.documentElement.outerHTML
-                }, async (results) => {
-                  if (results && results[0] && results[0].result) {
-                    const html = results[0].result;
-                    try {
-                      statusDiv.innerText = 'Sending to backend for AI extraction...';
-                      const parseRes = await fetch('https://jobstalker.netlify.app/api/parse-job', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${accessToken}`
-                        },
-                        body: JSON.stringify({ jobHtml: html })
-                      });
-                      const parseData = await parseRes.json();
-                      job = parseData;
-                    } catch (err) {
-                      statusDiv.innerText = 'Error extracting job fields with AI.';
-                      return;
-                    }
-                  } else {
-                    statusDiv.innerText = 'Could not extract page HTML.';
-                    return;
-                  }
-                  submitJob(job, accessToken);
-                });
-                return;
-              }
-              submitJob(job, accessToken);
-            });
-          });
-        };
-      }
+
+    const response = await fetch(`${API_BASE_URL}/jobs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token.authToken}`
+      },
+      body: JSON.stringify(formData)
     });
-  });
 
-  // Login button click handler
-  loginBtn.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'https://jobstalker.netlify.app/login' });
-  });
-
-  // Star rating UI logic
-  stars.forEach(star => {
-    star.addEventListener('click', () => {
-      excitement = parseInt(star.getAttribute('data-value'));
-      // Fill stars up to selected
-      stars.forEach(s => {
-        s.innerHTML = parseInt(s.getAttribute('data-value')) <= excitement ? '\u2605' : '\u2606';
-      });
-      excitementValue.textContent = excitement;
-    });
-  });
-
-  // Helper to submit job to backend
-  async function submitJob(job, accessToken) {
-    const notes = notesInput.value;
-    const statusVal = statusSelect.value;
-    const jobData = {
-      title: job.title || '',
-      company: job.company || '',
-      location: job.location || '',
-      salary: job.salary || '',
-      url: job.url || job.job_url || '',
-      description: job.description || '',
-      notes,
-      excitement,
-      stage: statusVal
-    };
-    statusDiv.innerText = 'Sending job to JobStalker...';
-    try {
-      const res = await fetch('https://jobstalker.netlify.app/api/jobs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify(jobData)
-      });
-      const data = await res.json();
-      if (data.success) {
-        statusDiv.innerText = 'Job saved successfully!';
-      } else {
-        statusDiv.innerText = 'Error: ' + (data.error || 'Could not save job.');
-      }
-    } catch (err) {
-      statusDiv.innerText = 'Network error: ' + err.message;
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccess('Job saved successfully!');
+      setTimeout(() => window.close(), 2000);
+    } else {
+      showError(data.error || 'Failed to save job.');
     }
+  } catch (error) {
+    console.error('Error saving job:', error);
+    showError('An error occurred while saving the job.');
   }
-}); 
+}
+
+// Helper Functions
+function getSelectedRating() {
+  const selectedStar = document.querySelector('input[name="excitement"]:checked');
+  return selectedStar ? selectedStar.value : '3';
+}
+
+async function getCurrentTab() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.url?.includes('linkedin.com/jobs')) {
+      // Send message to content script to get job details
+      chrome.tabs.sendMessage(tab.id, { action: 'getJobDetails' }, (response) => {
+        if (response && !chrome.runtime.lastError) {
+          fillFormWithJobDetails(response);
+        }
+      });
+    }
+    document.getElementById('url').value = tab?.url || '';
+  } catch (error) {
+    console.error('Error getting current tab:', error);
+  }
+}
+
+function fillFormWithJobDetails(details) {
+  if (details.title) document.getElementById('title').value = details.title;
+  if (details.company) document.getElementById('company').value = details.company;
+  if (details.location) document.getElementById('location').value = details.location;
+  if (details.salary) document.getElementById('salary').value = details.salary;
+}
+
+function showSuccess(message) {
+  statusMessage.textContent = message;
+  statusMessage.className = 'status-message success';
+  statusMessage.style.display = 'block';
+}
+
+function showError(message) {
+  statusMessage.textContent = message;
+  statusMessage.className = 'status-message error';
+  statusMessage.style.display = 'block';
+} 
