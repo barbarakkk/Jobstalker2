@@ -1,43 +1,90 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JobStalker Importer</title>
+  <title>JobStalker</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="container">
-    <div id="message"></div>
-    <button id="login-btn" style="display:none;">Log in to JobStalker</button>
-    <form id="job-form" style="display:none;">
-      <label>Job Title: <input type="text" id="title" required></label><br>
-      <label>Company: <input type="text" id="company" required></label><br>
-      <label>Location: <input type="text" id="location"></label><br>
-      <label>Salary: <input type="text" id="salary"></label><br>
-      <label>Job Link: <input type="text" id="url" required></label><br>
-      <label>Stage:
-        <select id="stage">
-          <option>Bookmarked</option>
-          <option>Applied</option>
-          <option>Interviewing</option>
-          <option>Offer</option>
-          <option>Rejected</option>
+  <div id="auth-container">
+    <div id="not-authenticated" style="display: none;">
+      <h2>Sign In Required</h2>
+      <p>Please sign in to JobStalker to save jobs.</p>
+      <button id="login-btn" class="primary-btn">Sign In</button>
+    </div>
+    
+    <div id="authenticated" style="display: none;">
+      <div class="user-info">
+        <span id="user-email"></span>
+        <button id="logout-btn" class="text-btn">Sign Out</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="job-form" style="display: none;">
+    <h2>Save Job</h2>
+    <form id="save-job-form">
+      <div class="form-group">
+        <label for="title">Job Title</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+
+      <div class="form-group">
+        <label for="company">Company</label>
+        <input type="text" id="company" name="company" required>
+      </div>
+
+      <div class="form-group">
+        <label for="location">Location</label>
+        <input type="text" id="location" name="location" required>
+      </div>
+
+      <div class="form-group">
+        <label for="salary">Salary</label>
+        <input type="text" id="salary" name="salary">
+      </div>
+
+      <div class="form-group">
+        <label for="stage">Stage</label>
+        <select id="stage" name="stage" required>
+          <option value="Bookmarked">Bookmarked</option>
+          <option value="Applied">Applied</option>
+          <option value="Interview">Interview</option>
+          <option value="Offer">Offer</option>
+          <option value="Rejected">Rejected</option>
         </select>
-      </label><br>
-      <label>Excitement:
-        <select id="excitement">
-          <option value="1">★</option>
-          <option value="2">★★</option>
-          <option value="3">★★★</option>
-          <option value="4">★★★★</option>
-          <option value="5">★★★★★</option>
-        </select>
-      </label><br>
-      <label>Notes:<br><textarea id="notes" rows="3"></textarea></label><br>
-      <button type="submit">Save Job</button>
+      </div>
+
+      <div class="form-group">
+        <label for="excitement">Excitement</label>
+        <div class="star-rating">
+          <input type="radio" id="star5" name="excitement" value="5">
+          <label for="star5">★</label>
+          <input type="radio" id="star4" name="excitement" value="4">
+          <label for="star4">★</label>
+          <input type="radio" id="star3" name="excitement" value="3">
+          <label for="star3">★</label>
+          <input type="radio" id="star2" name="excitement" value="2">
+          <label for="star2">★</label>
+          <input type="radio" id="star1" name="excitement" value="1">
+          <label for="star1">★</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="3"></textarea>
+      </div>
+
+      <input type="hidden" id="url" name="url">
+      
+      <div class="form-actions">
+        <button type="submit" class="primary-btn">Save Job</button>
+      </div>
     </form>
   </div>
+
+  <div id="status-message" class="status-message" style="display: none;"></div>
+
   <script src="popup.js"></script>
 </body>
 </html> 
