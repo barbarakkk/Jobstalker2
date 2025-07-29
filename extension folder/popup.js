@@ -1,6 +1,4 @@
-// Constants
-const API_BASE_URL = 'https://jobstalker.com/api';
-const AUTH_URL = 'https://jobstalker.com/login';
+import { API_BASE_URL, AUTH_URL } from './config.js';
 
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
