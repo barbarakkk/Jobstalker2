@@ -10,7 +10,8 @@
   ],
   "host_permissions": [
     "https://*.linkedin.com/*",
-    "https://jobstalker.com/*"
+    "https://jobstalker.com/*",
+    "http://localhost:3000/*"
   ],
   "action": {
     "default_popup": "popup.html",
