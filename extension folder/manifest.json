@@ -16,7 +16,7 @@
   "content_scripts": [
     {
       "matches": ["https://*.linkedin.com/jobs/*"],
-      "js": ["config.js", "content.js"],
+      "js": ["config.js", "ai-config.js", "content.js"],
       "run_at": "document_idle"
     },
     {
@@ -26,7 +26,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["config.js", "auth-check.js"],
+      "resources": ["config.js", "ai-config.js", "auth-check.js"],
       "matches": ["https://*.linkedin.com/*", "https://jobstalker.netlify.app/*"]
     }
   ],
