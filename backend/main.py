@@ -1,34 +1,37 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
+from fastapi.middleware.cors import CORSMiddleware
 from supabase_client import supabase
-from models import Job
+from models import Job, CreateJob
 from uuid import UUID
-from typing import List
+from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
-from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
 import os
-from fastapi import status, Depends
 
 app = FastAPI()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET")
-ALGORITHM = "HS256"
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-def verify_jwt_token(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
+async def get_current_user(authorization: Optional[str] = Header(None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    
+    token = authorization.replace("Bearer ", "")
+    
     try:
-        payload = jwt.decode(token, SUPABASE_JWT_SECRET, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            raise credentials_exception
-        return user_id
-    except JWTError:
-        raise credentials_exception
+        # Use Supabase to verify the token
+        user = supabase.auth.get_user(token)
+        if not user.user:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return user.user.id
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Could not validate credentials")
 
 @app.get("/ping")
 def ping():
@@ -44,7 +47,7 @@ def supabase_test():
         return {"success": False, "error": str(e)}
 
 @app.post("/jobs", response_model=Job)
-def create_job(job: Job, user_id: str = Depends(verify_jwt_token)):
+def create_job(job: CreateJob, user_id: str = Depends(get_current_user)):
     data = jsonable_encoder(job, exclude_unset=True)
     data["user_id"] = user_id
     response = supabase.table("jobs").insert(data).execute()
@@ -53,19 +56,19 @@ def create_job(job: Job, user_id: str = Depends(verify_jwt_token)):
     raise HTTPException(status_code=400, detail="Job creation failed")
 
 @app.get("/jobs", response_model=List[Job])
-def get_jobs(user_id: str = Depends(verify_jwt_token)):
+def get_jobs(user_id: str = Depends(get_current_user)):
     response = supabase.table("jobs").select("*").eq("user_id", str(user_id)).execute()
     return response.data
 
 @app.get("/jobs/{job_id}", response_model=Job)
-def get_job(job_id: UUID, user_id: str = Depends(verify_jwt_token)):
+def get_job(job_id: UUID, user_id: str = Depends(get_current_user)):
     response = supabase.table("jobs").select("*").eq("id", str(job_id)).eq("user_id", str(user_id)).single().execute()
     if response.data:
         return response.data
     raise HTTPException(status_code=404, detail="Job not found")
 
 @app.put("/jobs/{job_id}", response_model=Job)
-def update_job(job_id: UUID, job: Job, user_id: str = Depends(verify_jwt_token)):
+def update_job(job_id: UUID, job: Job, user_id: str = Depends(get_current_user)):
     data = jsonable_encoder(job, exclude_unset=True)
     response = supabase.table("jobs").update(data).eq("id", str(job_id)).eq("user_id", str(user_id)).execute()
     if response.data:
@@ -73,7 +76,7 @@ def update_job(job_id: UUID, job: Job, user_id: str = Depends(verify_jwt_token))
     raise HTTPException(status_code=400, detail="Job update failed")
 
 @app.delete("/jobs/{job_id}")
-def delete_job(job_id: UUID, user_id: str = Depends(verify_jwt_token)):
+def delete_job(job_id: UUID, user_id: str = Depends(get_current_user)):
     response = supabase.table("jobs").delete().eq("id", str(job_id)).eq("user_id", str(user_id)).execute()
     if response.data:
         return {"success": True}

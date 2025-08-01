@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const jobs = [
   { company: 'TechCorp', title: 'Senior Developer', status: 'Interview', statusColor: 'bg-blue-100 text-blue-700' },
@@ -7,6 +8,12 @@ const jobs = [
 ];
 
 export function Hero() {
+  const navigate = useNavigate();
+
+  const handleStartFreeTrial = () => {
+    navigate('/register');
+  };
+
   return (
     <section className="w-full py-16 bg-gradient-to-br from-blue-100 to-blue-50">
       <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-12 px-4">
@@ -20,7 +27,12 @@ export function Hero() {
             Streamline your job search with intelligent tracking, interview prep, and personalized analytics. Built for experienced professionals and tech industry workers.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg">Start Free Trial</Button>
+            <Button 
+              onClick={handleStartFreeTrial}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-lg"
+            >
+              Start Free Trial
+            </Button>
             <Button variant="outline" className="border-blue-600 text-blue-600 px-8 py-3 text-lg font-semibold">Watch Demo</Button>
           </div>
           <div className="flex gap-6 mb-2">

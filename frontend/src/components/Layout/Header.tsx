@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 const navLinks = [
   { label: 'Features', href: '#features' },
@@ -29,7 +30,9 @@ export function Header() {
         </div>
         {/* Auth Buttons */}
         <div className="flex gap-2">
-          <Button variant="ghost" className="text-gray-700">Log In</Button>
+          <Link to="/login">
+            <Button variant="ghost" className="text-gray-700">Log In</Button>
+          </Link>
           <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold">Sign Up Free</Button>
         </div>
       </nav>
