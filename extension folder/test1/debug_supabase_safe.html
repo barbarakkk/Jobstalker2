@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Supabase Connection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .result {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>Debug Supabase Connection</h1>
+    
+    <div>
+        <button onclick="testConnection()">Test Connection</button>
+        <button onclick="checkColumns()">Check Table Columns</button>
+        <button onclick="testSimpleInsert()">Test Simple Insert</button>
+        <button onclick="testFullInsert()">Test Full Insert</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const SUPABASE_URL = 'https://aomsclctttvetqpdzwyj.supabase.co';
+        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE'; // Replace with your actual Supabase anon key
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        async function testConnection() {
+            try {
+                log('Testing Supabase connection...');
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'apikey': SUPABASE_KEY
+                    }
+                });
+                
+                if (response.ok) {
+                    log('✅ Connection successful!', 'success');
+                } else {
+                    log(`❌ Connection failed: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Connection error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkColumns() {
+            try {
+                log('Checking table columns...');
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/jobs?select=*&limit=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'apikey': SUPABASE_KEY
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ Table accessible!', 'success');
+                    log(`Columns in response: ${Object.keys(data[0] || {}).join(', ')}`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Error: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testSimpleInsert() {
+            try {
+                log('Testing simple insert (without ai_analysis)...');
+                
+                const simpleJob = {
+                    description: 'Test Job at Test Company - Remote position',
+                    job_url: 'https://linkedin.com/jobs/test',
+                    status: 'bookmarked',
+                    excitement_level: 5,
+                    date_applied: null,
+                    deadline: null,
+                    salary: null
+                };
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/jobs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'apikey': SUPABASE_KEY,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(simpleJob)
+                });
+                
+                if (response.ok) {
+                    log('✅ Simple insert successful!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Simple insert failed: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFullInsert() {
+            try {
+                log('Testing full insert (with ai_analysis)...');
+                
+                const fullJob = {
+                    description: 'Test Job with AI at Test Company - Remote position',
+                    job_url: 'https://linkedin.com/jobs/test-ai',
+                    status: 'bookmarked',
+                    excitement_level: 5,
+                    date_applied: null,
+                    deadline: null,
+                    salary: 80000
+                };
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/jobs`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_KEY}`,
+                        'apikey': SUPABASE_KEY,
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(fullJob)
+                });
+                
+                if (response.ok) {
+                    log('✅ Full insert successful!', 'success');
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Full insert failed: ${response.status} - ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 
