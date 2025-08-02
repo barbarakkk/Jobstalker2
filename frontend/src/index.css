@@ -49,8 +49,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.68 0.15 239);
+  --primary-foreground: oklch(0.98 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -74,6 +74,18 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Status Color Design Tokens - Minimalistic & User-Friendly */
+  --status-bookmarked-bg: hsl(210 20% 98%);
+  --status-bookmarked-text: hsl(210 25% 35%);
+  --status-applying-bg: hsl(45 20% 98%);
+  --status-applying-text: hsl(45 25% 35%);
+  --status-applied-bg: hsl(220 20% 98%);
+  --status-applied-text: hsl(220 25% 35%);
+  --status-interviewing-bg: hsl(270 20% 98%);
+  --status-interviewing-text: hsl(270 25% 35%);
+  --status-accepted-bg: hsl(140 20% 98%);
+  --status-accepted-text: hsl(140 25% 35%);
 }
 
 .dark {
