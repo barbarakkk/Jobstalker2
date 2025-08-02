@@ -29,4 +29,16 @@ class CreateJob(BaseModel):
     excitement_level: Optional[int] = Field(None, ge=1, le=5)
     date_applied: Optional[date] = None
     deadline: Optional[date] = None
+    description: Optional[str] = None
+
+class UpdateJob(BaseModel):
+    job_title: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    salary: Optional[str] = None
+    job_url: Optional[str] = None
+    status: Optional[str] = None
+    excitement_level: Optional[int] = Field(None, ge=1, le=5)
+    date_applied: Optional[date] = None
+    deadline: Optional[date] = None
     description: Optional[str] = None 

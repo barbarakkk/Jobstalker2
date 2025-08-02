@@ -6,7 +6,7 @@ export interface Job {
   location: string;
   salary: string;
   job_url: string;
-  status: 'bookmarked' | 'applying' | 'applied' | 'interviewing' | 'accepted' | 'rejected';
+  status: 'Bookmarked' | 'Applying' | 'Applied' | 'Interviewing' | 'Accepted';
   excitement_level: number; // 1-5 star rating
   date_applied: string;
   deadline: string;
@@ -21,7 +21,7 @@ export interface CreateJobData {
   location: string | null;
   salary: string | null;
   job_url: string | null;
-  status: 'bookmarked' | 'applying' | 'applied' | 'interviewing' | 'accepted' | 'rejected';
+  status: 'Bookmarked' | 'Applying' | 'Applied' | 'Interviewing' | 'Accepted';
   excitement_level: number | null;
   date_applied: string | null;
   deadline: string | null;
@@ -29,7 +29,6 @@ export interface CreateJobData {
 }
 
 export interface UpdateJobData extends Partial<CreateJobData> {
-  id: string;
 }
 
 export interface User {

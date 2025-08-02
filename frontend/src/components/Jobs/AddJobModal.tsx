@@ -1,28 +1,30 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { X } from 'lucide-react';
-import { CreateJobData } from '@/lib/types';
+import { CreateJobData, Job } from '@/lib/types';
 import { jobApi } from '@/lib/api';
 
-interface AddJobModalProps {
+interface JobModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onJobAdded: (job: any) => void;
+  onJobSaved: (job: Job) => void;
+  jobToEdit?: Job | null;
+  mode: 'add' | 'edit';
 }
 
-export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
+export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobModalProps) {
   const [formData, setFormData] = useState<CreateJobData>({
     job_title: '',
     company: '',
     location: '',
     salary: '',
     job_url: '',
-    status: 'bookmarked',
+    status: 'Bookmarked',
     excitement_level: 3,
     date_applied: '',
     deadline: '',
@@ -30,6 +32,38 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load job data when editing
+  useEffect(() => {
+    if (mode === 'edit' && jobToEdit) {
+      setFormData({
+        job_title: jobToEdit.job_title || '',
+        company: jobToEdit.company || '',
+        location: jobToEdit.location || '',
+        salary: jobToEdit.salary || '',
+        job_url: jobToEdit.job_url || '',
+        status: jobToEdit.status || 'Bookmarked',
+        excitement_level: jobToEdit.excitement_level || 3,
+        date_applied: jobToEdit.date_applied || '',
+        deadline: jobToEdit.deadline || '',
+        description: jobToEdit.description || ''
+      });
+    } else {
+      // Reset form for add mode
+      setFormData({
+        job_title: '',
+        company: '',
+        location: '',
+        salary: '',
+        job_url: '',
+        status: 'Bookmarked',
+        excitement_level: 3,
+        date_applied: '',
+        deadline: '',
+        description: ''
+      });
+    }
+  }, [mode, jobToEdit, isOpen]);
 
   const handleInputChange = (field: keyof CreateJobData, value: string | number) => {
     setFormData(prev => ({
@@ -57,26 +91,25 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
       };
 
       console.log('Sending job data:', cleanedData);
-      const newJob = await jobApi.createJob(cleanedData);
-      console.log('Job created successfully:', newJob);
-      onJobAdded(newJob);
+      
+      let savedJob: Job;
+      if (mode === 'edit' && jobToEdit) {
+        // Update existing job
+        savedJob = await jobApi.updateJob(jobToEdit.id, cleanedData);
+        console.log('Job updated successfully:', savedJob);
+      } else {
+        // Create new job
+        savedJob = await jobApi.createJob(cleanedData);
+        console.log('Job created successfully:', savedJob);
+      }
+      
+      console.log('Calling onJobSaved with:', savedJob);
+      onJobSaved(savedJob);
+      console.log('Modal closing...');
       onClose();
-      // Reset form
-      setFormData({
-        job_title: '',
-        company: '',
-        location: '',
-        salary: '',
-        job_url: '',
-        status: 'bookmarked',
-        excitement_level: 3,
-        date_applied: '',
-        deadline: '',
-        description: ''
-      });
     } catch (err) {
-      console.error('Error creating job:', err);
-      setError(err instanceof Error ? err.message : 'Failed to add job');
+      console.error('Error saving job:', err);
+      setError(err instanceof Error ? err.message : `Failed to ${mode} job`);
     } finally {
       setLoading(false);
     }
@@ -87,7 +120,9 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
       <DialogContent className="sm:max-w-[600px] p-0">
         <DialogHeader className="p-6 pb-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold">Add New Job</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">
+              {mode === 'edit' ? 'Edit Job' : 'Add New Job'}
+            </DialogTitle>
             <Button
               variant="ghost"
               size="sm"
@@ -97,6 +132,9 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
               <X className="h-4 w-4" />
             </Button>
           </div>
+          <DialogDescription>
+            Fill out the form below to add a new job application to track.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
@@ -136,7 +174,7 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
               <Label htmlFor="location">Location</Label>
               <Input
                 id="location"
-                value={formData.location}
+                value={formData.location || ''}
                 onChange={(e) => handleInputChange('location', e.target.value)}
                 placeholder="Enter location"
               />
@@ -145,7 +183,7 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
               <Label htmlFor="salary">Salary</Label>
               <Input
                 id="salary"
-                value={formData.salary}
+                value={formData.salary || ''}
                 onChange={(e) => handleInputChange('salary', e.target.value)}
                 placeholder="Enter salary"
               />
@@ -157,7 +195,7 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
             <Label htmlFor="job_url">Job URL</Label>
             <Input
               id="job_url"
-              value={formData.job_url}
+              value={formData.job_url || ''}
               onChange={(e) => handleInputChange('job_url', e.target.value)}
               placeholder="https://"
               type="url"
@@ -176,19 +214,18 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bookmarked">Bookmarked</SelectItem>
-                  <SelectItem value="applying">Applying</SelectItem>
-                  <SelectItem value="applied">Applied</SelectItem>
-                  <SelectItem value="interviewing">Interviewing</SelectItem>
-                  <SelectItem value="accepted">Accepted</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
+                                <SelectItem value="Bookmarked">Bookmarked</SelectItem>
+              <SelectItem value="Applying">Applying</SelectItem>
+              <SelectItem value="Applied">Applied</SelectItem>
+              <SelectItem value="Interviewing">Interviewing</SelectItem>
+              <SelectItem value="Accepted">Accepted</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="excitement_level">Excitement Level</Label>
               <Select
-                value={formData.excitement_level.toString()}
+                value={formData.excitement_level?.toString() || '3'}
                 onValueChange={(value) => handleInputChange('excitement_level', parseInt(value))}
               >
                 <SelectTrigger>
@@ -212,7 +249,7 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
               <Input
                 id="date_applied"
                 type="date"
-                value={formData.date_applied}
+                value={formData.date_applied || ''}
                 onChange={(e) => handleInputChange('date_applied', e.target.value)}
               />
             </div>
@@ -221,7 +258,7 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
               <Input
                 id="deadline"
                 type="date"
-                value={formData.deadline}
+                value={formData.deadline || ''}
                 onChange={(e) => handleInputChange('deadline', e.target.value)}
               />
             </div>
@@ -232,7 +269,7 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="Add a job description..."
               rows={4}
@@ -246,7 +283,7 @@ export function AddJobModal({ isOpen, onClose, onJobAdded }: AddJobModalProps) {
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {loading ? 'Adding...' : 'Add Job'}
+              {loading ? (mode === 'edit' ? 'Updating...' : 'Adding...') : (mode === 'edit' ? 'Update Job' : 'Add Job')}
             </Button>
           </div>
         </form>
