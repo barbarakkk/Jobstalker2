@@ -459,33 +459,7 @@ export function Dashboard({ }: DashboardProps) {
                 </div>
         </div>
 
-        {/* Enhanced Stats Summary */}
-        <div className="bg-card rounded-2xl border border-border p-6 shadow-lg">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-foreground mb-1">{jobs.length}</div>
-              <div className="text-sm text-muted-foreground">Total Jobs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 mb-1">
-                {jobs.filter(job => job.status === 'Accepted').length}
-              </div>
-              <div className="text-sm text-muted-foreground">Accepted</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-1">
-                {jobs.filter(job => job.status === 'Interviewing').length}
-              </div>
-              <div className="text-sm text-muted-foreground">In Interviews</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600 mb-1">
-                {jobs.filter(job => job.excitement_level && job.excitement_level >= 4).length}
-              </div>
-              <div className="text-sm text-muted-foreground">High Priority</div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Control Bar */}
         <div className="bg-card rounded-2xl border border-border p-6 shadow-lg">
