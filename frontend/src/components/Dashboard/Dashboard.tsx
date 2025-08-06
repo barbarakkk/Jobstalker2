@@ -399,7 +399,7 @@ export function Dashboard({ }: DashboardProps) {
               >
                 Statistics
               </a>
-              <a href="#" className="text-muted-foreground hover:text-blue-600 transition-colors font-medium">Job Matcher</a>
+  
               <a 
                 href="/resume-builder" 
                 className="text-muted-foreground hover:text-blue-600 transition-colors font-medium"
