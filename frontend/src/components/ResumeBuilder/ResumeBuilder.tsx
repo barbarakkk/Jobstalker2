@@ -73,7 +73,7 @@ For now, this demonstrates the frontend interface.`);
               >
                 Statistics
               </a>
-              <a href="#" className="text-muted-foreground hover:text-blue-600 transition-colors font-medium">Job Matcher</a>
+  
               <a href="#" className="text-blue-600 font-semibold relative group">
                 AI Resume Builder
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
