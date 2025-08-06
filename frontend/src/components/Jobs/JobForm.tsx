@@ -20,7 +20,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
     location: '',
     salary: '',
     job_url: '',
-    status: 'bookmarked',
+    status: 'Bookmarked',
     excitement_level: 3,
     date_applied: '',
     deadline: '',
@@ -37,7 +37,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
         location: job.location || '',
         salary: job.salary || '',
         job_url: job.job_url || '',
-        status: job.status || 'bookmarked',
+        status: job.status || 'Bookmarked',
         excitement_level: job.excitement_level || 3,
         date_applied: job.date_applied || '',
         deadline: job.deadline || '',
@@ -50,7 +50,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
         location: '',
         salary: '',
         job_url: '',
-        status: 'bookmarked',
+        status: 'Bookmarked',
         excitement_level: 3,
         date_applied: '',
         deadline: '',
@@ -161,7 +161,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
                 </label>
                 <input
                   type="text"
-                  value={formData.location}
+                  value={formData.location || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., San Francisco, CA"
@@ -173,7 +173,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
                 </label>
                 <input
                   type="text"
-                  value={formData.salary}
+                  value={formData.salary || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, salary: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., $120,000"
@@ -186,13 +186,13 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Job URL
               </label>
-              <input
-                type="url"
-                value={formData.job_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, job_url: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://..."
-              />
+                              <input
+                  type="url"
+                  value={formData.job_url || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, job_url: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="https://..."
+                />
             </div>
 
             {/* Status */}
@@ -201,7 +201,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
                 Status *
               </label>
               <div className="flex flex-wrap gap-2">
-                {['bookmarked', 'applying', 'applied', 'interviewing', 'accepted', 'rejected'].map((status) => (
+                {['Bookmarked', 'Applying', 'Applied', 'Interviewing', 'Accepted'].map((status) => (
                   <Badge
                     key={status}
                     className={`cursor-pointer px-3 py-1 ${
@@ -238,7 +238,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
                 </label>
                 <input
                   type="date"
-                  value={formData.date_applied}
+                  value={formData.date_applied || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, date_applied: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -249,7 +249,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
                 </label>
                 <input
                   type="date"
-                  value={formData.deadline}
+                  value={formData.deadline || ''}
                   onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -262,7 +262,7 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
                 Description
               </label>
               <textarea
-                value={formData.description}
+                value={formData.description || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
