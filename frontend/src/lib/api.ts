@@ -92,6 +92,7 @@ export const jobApi = {
 
   // Update an existing job
   updateJob: async (id: string, jobData: UpdateJobData): Promise<Job> => {
+    console.log('Frontend sending update request:', { id, jobData });
     return apiCall<Job>(`/api/jobs-test/${id}`, {
       method: 'PUT',
       body: JSON.stringify(jobData),

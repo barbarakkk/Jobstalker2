@@ -41,7 +41,7 @@ export function RecentJobs({ jobs, limit = 5 }: RecentJobsProps) {
             <div key={job.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
-                  <h4 className="font-medium text-gray-900">{job.title}</h4>
+                  <h4 className="font-medium text-gray-900">{job.job_title}</h4>
                   <Badge className={getStatusBadgeColor(job.status)}>
                     {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                   </Badge>
@@ -51,13 +51,13 @@ export function RecentJobs({ jobs, limit = 5 }: RecentJobsProps) {
                   <span className="text-xs text-gray-500">{job.location}</span>
                   <span className="text-xs text-gray-500">{job.salary}</span>
                   <div className="flex space-x-1">
-                    {renderStars(job.excitement)}
+                    {renderStars(job.excitement_level)}
                   </div>
                 </div>
               </div>
               <div className="text-right">
                 <div className="text-xs text-gray-500">Applied</div>
-                <div className="text-sm font-medium">{job.dateApplied}</div>
+                <div className="text-sm font-medium">{job.date_applied}</div>
               </div>
             </div>
           ))}

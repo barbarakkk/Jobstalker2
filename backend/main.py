@@ -339,12 +339,19 @@ def get_jobs_test():
 def update_job_test(job_id: UUID, job: UpdateJob):
     """Test API endpoint without authentication - updates a job"""
     try:
+        print(f"Received update request for job {job_id}")
+        print(f"Raw job data: {job}")
+        print(f"Job status: {job.status}")
+        print(f"Job status type: {type(job.status)}")
+        
         data = jsonable_encoder(job, exclude_unset=True)
+        print(f"Encoded data: {data}")
+        
         # Remove user_id from data to avoid foreign key constraint
         if "user_id" in data:
             del data["user_id"]
         
-        print(f"Updating job {job_id} with data: {data}")  # Debug log
+        print(f"Final update data: {data}")  # Debug log
         response = supabase.table("jobs").update(data).eq("id", str(job_id)).execute()
         print(f"Update response: {response.data}")  # Debug log
         if response.data:
