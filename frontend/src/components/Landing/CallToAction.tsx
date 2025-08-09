@@ -18,7 +18,7 @@ export function CallToAction() {
       <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
         <Button 
           onClick={handleStartFreeTrial}
-          className="bg-white text-blue-700 font-semibold px-8 py-3 text-lg flex items-center gap-2 shadow-md hover:bg-blue-50"
+          variant="trial"
         >
           Start Free Trial <ArrowRight className="w-5 h-5" />
         </Button>
