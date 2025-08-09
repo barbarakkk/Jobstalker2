@@ -119,19 +119,9 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] p-0">
         <DialogHeader className="p-6 pb-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold">
-              {mode === 'edit' ? 'Edit Job' : 'Add New Job'}
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="h-8 w-8 p-0"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-xl font-semibold">
+            {mode === 'edit' ? 'Edit Job' : 'Add New Job'}
+          </DialogTitle>
           <DialogDescription>
             Fill out the form below to add a new job application to track.
           </DialogDescription>
