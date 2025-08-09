@@ -687,7 +687,6 @@ export function Dashboard({ }: DashboardProps) {
                           >
                             <SelectTrigger className={`w-auto border-0 p-0 h-auto ${getStatusBadgeColor(job.status)} rounded-md px-3 py-1 font-semibold text-sm hover:opacity-80 transition-opacity`}>
                               <SelectValue />
-                              <ChevronDown className="w-3 h-3 ml-2" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="Bookmarked">Bookmarked</SelectItem>
