@@ -34,6 +34,7 @@ export function Dashboard({ }: DashboardProps) {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filterBy, setFilterBy] = useState<'company' | 'job_title' | null>(null);
   const [filterValue, setFilterValue] = useState<string>('');
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
 
   // Load jobs from API
@@ -52,6 +53,12 @@ export function Dashboard({ }: DashboardProps) {
 
   useEffect(() => {
     loadJobs();
+    // Get current user
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
   }, []);
 
   // Handle job save (create or update)
@@ -404,10 +411,45 @@ export function Dashboard({ }: DashboardProps) {
                 AI Resume Builder
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
               </a>
-              <a href="#" className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group">
-                Profile
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
-              </a>
+              <div className="relative group">
+                <a href="#" className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group">
+                  Profile
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                </a>
+                {user && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="flex items-center space-x-3 mb-3">
+                      {user.user_metadata?.avatar_url ? (
+                        <img 
+                          src={user.user_metadata.avatar_url} 
+                          alt="Profile" 
+                          className="w-10 h-10 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-sm">
+                            {user.email?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-semibold text-slate-900">
+                          {user.user_metadata?.full_name || user.user_metadata?.name || user.email}
+                        </div>
+                        <div className="text-sm text-slate-500">{user.email}</div>
+                      </div>
+                    </div>
+                    {user.user_metadata?.provider === 'github' && (
+                      <div className="text-xs text-slate-500 mb-2">
+                        Signed in with GitHub
+                      </div>
+                    )}
+                    <div className="text-xs text-slate-400">
+                      User ID: {user.id}
+                    </div>
+                  </div>
+                )}
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
