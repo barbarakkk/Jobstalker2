@@ -14,10 +14,11 @@ app = FastAPI(title="JobStalker API", version="1.0.0")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Security middleware for adding security headers
@@ -166,18 +167,7 @@ def cors_test():
     """Test endpoint to verify CORS is working"""
     return {"message": "CORS is working!", "timestamp": "2024-01-01T00:00:00Z"}
 
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    """Handle OPTIONS requests for CORS preflight"""
-    from fastapi.responses import Response
-    return Response(
-        status_code=200,
-        headers={
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            "Access-Control-Allow-Headers": "*",
-        }
-    )
+# CORS preflight requests are handled automatically by the CORS middleware
 
 @app.post("/test-jobs")
 def test_create_job(job: CreateJob):
