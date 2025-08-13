@@ -82,8 +82,8 @@ export function Register() {
     <div className="min-h-screen flex items-center justify-center bg-[#f5f8ff] px-2">
       <Card className="w-full max-w-md mx-auto p-8 shadow-lg border-none">
         <div className="flex flex-col items-center mb-6">
-          <img src="/logo.png" alt="JobStalker" className="h-8 mb-4" />
-          <h2 className="text-2xl font-bold mb-1 text-center">Sign Up for JobStalker</h2>
+          <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-8 mb-4" />
+          <h2 className="text-2xl font-bold mb-1 text-center">Sign Up</h2>
         </div>
         {error && <div className="text-red-500 text-center mb-4">{error}</div>}
         

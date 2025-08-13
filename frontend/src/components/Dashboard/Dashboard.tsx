@@ -286,14 +286,8 @@ export function Dashboard({ }: DashboardProps) {
           <div className="w-full px-8 py-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">JS</span>
-                </div>
+                <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-10" />
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900">
-                    JobStalker
-                  </h1>
-                  <p className="text-sm text-slate-500 font-medium">Professional Job Tracking Platform</p>
                 </div>
               </div>
             </div>
@@ -321,14 +315,8 @@ export function Dashboard({ }: DashboardProps) {
           <div className="w-full px-8 py-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">JS</span>
-                </div>
+                <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-10" />
                 <div>
-                  <h1 className="text-3xl font-bold text-slate-900">
-                    JobStalker
-                  </h1>
-                  <p className="text-sm text-slate-500 font-medium">Professional Job Tracking Platform</p>
                 </div>
               </div>
             </div>
@@ -372,17 +360,11 @@ export function Dashboard({ }: DashboardProps) {
       <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
         <div className="w-full px-8 py-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">JS</span>
+                          <div className="flex items-center space-x-4">
+                <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-10" />
+                <div>
+                </div>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900">
-                  JobStalker
-                </h1>
-                <p className="text-sm text-slate-500 font-medium">Professional Job Tracking Platform</p>
-              </div>
-            </div>
             <nav className="flex items-center space-x-8">
               <a href="#" className="text-blue-700 font-semibold relative group">
                 Jobs
