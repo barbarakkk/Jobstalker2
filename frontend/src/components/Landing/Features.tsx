@@ -6,48 +6,48 @@ const features = [
     title: 'Smart Application Tracking',
     description: 'Keep track of all your job applications with intelligent status updates, automated reminders, and progress insights.',
     icon: <Target className="w-8 h-8 text-white" />,
-    gradient: 'from-blue-500 to-indigo-500',
-    bgGradient: 'from-blue-50 to-indigo-50',
+    gradient: 'from-blue-500 to-blue-600',
+    bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'AI-powered insights'
   },
   {
     title: 'Interview Preparation',
     description: 'Get personalized interview prep with company-specific questions, behavioral coaching, and mock interview sessions.',
     icon: <User className="w-8 h-8 text-white" />,
-    gradient: 'from-purple-500 to-pink-500',
-    bgGradient: 'from-purple-50 to-pink-50',
+    gradient: 'from-blue-600 to-blue-700',
+    bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'Company-specific prep'
   },
   {
     title: 'Advanced Analytics',
     description: 'Track your job search performance with detailed analytics, success metrics, and personalized recommendations.',
     icon: <BarChart2 className="w-8 h-8 text-white" />,
-    gradient: 'from-emerald-500 to-teal-500',
-    bgGradient: 'from-emerald-50 to-teal-50',
+    gradient: 'from-blue-700 to-blue-800',
+    bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'Performance insights'
   },
   {
     title: 'AI Job Matching',
     description: 'Our AI algorithms match you with relevant opportunities based on your skills, experience, and career goals.',
     icon: <Search className="w-8 h-8 text-white" />,
-    gradient: 'from-orange-500 to-red-500',
-    bgGradient: 'from-orange-50 to-red-50',
+    gradient: 'from-blue-500 to-blue-600',
+    bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'Smart matching'
   },
   {
     title: 'Schedule Management',
     description: 'Organize interviews, follow-ups, and deadlines with integrated calendar management and smart notifications.',
     icon: <Calendar className="w-8 h-8 text-white" />,
-    gradient: 'from-indigo-500 to-blue-500',
-    bgGradient: 'from-indigo-50 to-blue-50',
+    gradient: 'from-blue-600 to-blue-700',
+    bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'Smart scheduling'
   },
   {
     title: 'Resume Optimization',
     description: 'AI-powered resume analysis and optimization for better ATS compatibility and maximum impact.',
     icon: <FileText className="w-8 h-8 text-white" />,
-    gradient: 'from-cyan-500 to-blue-500',
-    bgGradient: 'from-cyan-50 to-blue-50',
+    gradient: 'from-blue-700 to-blue-800',
+    bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'ATS optimized'
   },
 ];
@@ -68,13 +68,13 @@ export function Features() {
       <div className="relative container mx-auto px-4 lg:px-8">
         {/* Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-200 text-blue-700 font-semibold text-sm">
+          <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 text-blue-700 font-semibold text-sm">
             <Sparkles className="w-4 h-4" />
             Powerful Features
           </div>
           <h2 className="text-4xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight">
             Everything you need to{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
               land your dream job
             </span>
           </h2>
@@ -89,7 +89,7 @@ export function Features() {
           {stats.map((stat, index) => (
             <div key={index} className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
               <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center text-blue-600">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-blue-200 rounded-xl flex items-center justify-center text-blue-600">
                   {stat.icon}
                 </div>
               </div>
@@ -135,7 +135,7 @@ export function Features() {
                 </div>
 
                 {/* Hover Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-blue-700/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-lg"></div>
               </CardContent>
             </Card>
           ))}
@@ -143,7 +143,7 @@ export function Features() {
 
         {/* Bottom CTA */}
         <div className="mt-20 text-center">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-3xl p-8 lg:p-12 border border-blue-200/50">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-3xl p-8 lg:p-12 border border-blue-200/50">
             <div className="flex items-center justify-center gap-3 mb-6">
               <Award className="w-8 h-8 text-blue-600" />
               <h3 className="text-2xl lg:text-3xl font-bold text-slate-900">Ready to accelerate your career?</h3>
@@ -152,7 +152,7 @@ export function Features() {
               Join thousands of professionals who have transformed their job search with JobStalker's AI-powered platform.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+              <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                 Start Free Trial
               </button>
               <button className="border-2 border-slate-300 text-slate-700 hover:border-blue-600 hover:text-blue-600 px-8 py-4 rounded-xl font-semibold bg-white transition-all duration-300">

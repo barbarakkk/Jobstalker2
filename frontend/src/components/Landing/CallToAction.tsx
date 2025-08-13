@@ -12,7 +12,7 @@ export function CallToAction() {
   return (
     <section className="relative w-full py-20 lg:py-32 overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800"></div>
       
       {/* Background Elements */}
       <div className="absolute inset-0">
@@ -32,7 +32,7 @@ export function CallToAction() {
           {/* Main Heading */}
           <h2 className="text-4xl lg:text-7xl font-bold text-white mb-6 leading-tight">
             Ready to accelerate your{' '}
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-200 to-blue-300 bg-clip-text text-transparent">
               job search?
             </span>
           </h2>
@@ -54,7 +54,7 @@ export function CallToAction() {
             </Button>
             <Button 
               variant="outline" 
-              className="border-2 border-white text-black hover:bg-white hover:text-blue-600 backdrop-blur-sm px-10 py-5 text-xl font-bold rounded-2xl transition-all duration-300 transform hover:scale-105"
+              className="border-2 border-white text-white hover:bg-white hover:text-blue-600 backdrop-blur-sm px-10 py-5 text-xl font-bold rounded-2xl transition-all duration-300 transform hover:scale-105"
             >
               <Play className="w-6 h-6 mr-3" />
               Watch Demo
@@ -64,15 +64,15 @@ export function CallToAction() {
           {/* Trust Indicators */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-12">
             <div className="flex items-center gap-2 text-blue-100 text-lg font-medium">
-              <CheckCircle className="w-6 h-6 text-green-300" />
+              <CheckCircle className="w-6 h-6 text-blue-200" />
               14-day free trial
             </div>
             <div className="flex items-center gap-2 text-blue-100 text-lg font-medium">
-              <CheckCircle className="w-6 h-6 text-green-300" />
+              <CheckCircle className="w-6 h-6 text-blue-200" />
               No credit card required
             </div>
             <div className="flex items-center gap-2 text-blue-100 text-lg font-medium">
-              <CheckCircle className="w-6 h-6 text-green-300" />
+              <CheckCircle className="w-6 h-6 text-blue-200" />
               Cancel anytime
             </div>
           </div>
@@ -84,7 +84,7 @@ export function CallToAction() {
                 <div className="flex items-center justify-center lg:justify-start gap-2 mb-4">
                   <div className="flex -space-x-2">
                     {['👩‍💻', '👨‍💻', '👩‍💼', '👨‍💼'].map((avatar, index) => (
-                      <div key={index} className="w-12 h-12 rounded-full border-2 border-white bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-xl shadow-sm">
+                      <div key={index} className="w-12 h-12 rounded-full border-2 border-white bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-xl shadow-sm">
                         {avatar}
                       </div>
                     ))}
@@ -99,7 +99,7 @@ export function CallToAction() {
               <div className="flex items-center gap-6">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-white mb-1">4.9★</div>
-                  <div className="text-blue-100 text-sm">User Rating</div>
+                  <div className="text-blue-100 text-sm">Average Rating</div>
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-bold text-white mb-1">85%</div>
@@ -111,11 +111,6 @@ export function CallToAction() {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* Bottom Text */}
-          <div className="mt-8 text-blue-100 text-lg">
-            <span className="font-semibold">Free trial includes:</span> Full access to all features • AI-powered insights • Interview prep • Resume optimization
           </div>
         </div>
       </div>
