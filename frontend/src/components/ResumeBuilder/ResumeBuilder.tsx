@@ -49,18 +49,9 @@ For now, this demonstrates the frontend interface.`);
         <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg sm:text-xl">JS</span>
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-                  JobStalker
-                </h1>
-                <p className="text-sm text-slate-500 font-medium">Professional Job Tracking Platform</p>
-              </div>
-              <div className="sm:hidden">
-                <h1 className="text-xl font-bold text-slate-900">JobStalker</h1>
-              </div>
+                             <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-8 sm:h-10" />
+               <div className="hidden sm:block">
+               </div>
             </div>
             
             {/* Desktop Navigation */}

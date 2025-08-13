@@ -77,12 +77,8 @@ export function Statistics() {
       <div className="w-full px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-lg">JS</span>
-            </div>
+            <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-8" />
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">JobStalker</h1>
-              <p className="text-sm text-gray-600 font-medium">Job Tracking Made Simple</p>
             </div>
           </div>
           <nav className="flex items-center space-x-8">

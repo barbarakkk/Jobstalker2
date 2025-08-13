@@ -44,10 +44,7 @@ export function Footer() {
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">JS</span>
-              </div>
-              <span className="font-bold text-xl">JobStalker</span>
+              <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-8" />
             </div>
             <p className="text-slate-400 mb-6 leading-relaxed">
               The AI-powered job search platform that helps professionals accelerate their careers 
@@ -141,7 +138,7 @@ export function Footer() {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             <div className="text-center lg:text-left">
               <h3 className="text-2xl font-bold text-white mb-2">
-                Stay updated with JobStalker
+                Stay updated
               </h3>
               <p className="text-slate-400">
                 Get the latest job search tips, industry insights, and platform updates.
@@ -164,7 +161,7 @@ export function Footer() {
         <div className="border-t border-slate-800 pt-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-slate-400 text-sm">
-              © 2024 JobStalker. All rights reserved.
+              © 2024. All rights reserved.
             </div>
             <div className="flex items-center gap-2 text-slate-400 text-sm">
               Made with <Heart className="w-4 h-4 text-red-500" /> for job seekers

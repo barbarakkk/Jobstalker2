@@ -17,10 +17,7 @@ export function Header() {
       <nav className="container mx-auto flex items-center justify-between py-4 px-4 lg:px-8">
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-white font-bold text-lg">JS</span>
-          </div>
-          <span className="font-bold text-xl text-slate-900">JobStalker</span>
+          <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-8" />
         </div>
 
         {/* Desktop Nav Links */}
