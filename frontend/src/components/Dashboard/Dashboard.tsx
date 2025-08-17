@@ -122,14 +122,31 @@ export function Dashboard({ }: DashboardProps) {
 
   // Handle status update
   const handleStatusUpdate = async (jobId: string, newStatus: string) => {
+    console.log(`=== STATUS UPDATE DEBUG ===`);
+    console.log(`Updating job ${jobId} to status: ${newStatus}`);
+    console.log(`Current jobs:`, jobs);
+    
     setUpdatingJobId(jobId);
     try {
-      const updatedJob = await jobApi.updateJob(jobId, { status: newStatus as 'Bookmarked' | 'Applying' | 'Applied' | 'Interviewing' | 'Accepted' });
-      setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? updatedJob : job));
+      const updateData = { status: newStatus as 'Bookmarked' | 'Applying' | 'Applied' | 'Interviewing' | 'Accepted' };
+      console.log(`Sending update data:`, updateData);
+      
+      const updatedJob = await jobApi.updateJob(jobId, updateData);
+      console.log(`Received updated job:`, updatedJob);
+      
+      setJobs(prevJobs => {
+        const newJobs = prevJobs.map(job => job.id === jobId ? updatedJob : job);
+        console.log(`Updated jobs state:`, newJobs);
+        return newJobs;
+      });
+      
+      console.log(`Status update successful`);
     } catch (err) {
+      console.error(`Status update failed:`, err);
       setError(err instanceof Error ? err.message : 'Failed to update job status');
     } finally {
       setUpdatingJobId(null);
+      console.log(`=== END STATUS UPDATE DEBUG ===`);
     }
   };
 
@@ -232,7 +249,16 @@ export function Dashboard({ }: DashboardProps) {
   // Handle sign out
   const handleSignOut = async () => {
     try {
+      // Clear local state
+      setJobs([]);
+      setSelectedJobs([]);
+      setUser(null);
+      setError(null);
+      
+      // Sign out from Supabase
       await supabase.auth.signOut();
+      
+      // Navigate to home page
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);

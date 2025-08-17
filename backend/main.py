@@ -263,14 +263,20 @@ def get_job_api(job_id: UUID, user_id: str = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail=f"Failed to get job: {str(e)}")
 
 @app.put("/api/jobs/{job_id}", response_model=Job)
-def update_job_api(job_id: UUID, job: CreateJob, user_id: str = Depends(get_current_user)):
+def update_job_api(job_id: UUID, job: UpdateJob, user_id: str = Depends(get_current_user)):
     """Update a job by ID for the authenticated user"""
     try:
-        data = jsonable_encoder(job, exclude_unset=True)
+        print(f"=== UPDATE JOB DEBUG ===")
+        print(f"Updating job {job_id} for user: {user_id}")
+        print(f"Update data received: {job}")
         
-        print(f"Updating job {job_id} with data: {data}")  # Debug log
+        data = jsonable_encoder(job, exclude_unset=True)
+        print(f"Encoded data: {data}")
+        
+        # Ensure we're only updating the current user's job
         response = supabase.table("jobs").update(data).eq("id", str(job_id)).eq("user_id", user_id).execute()
-        print(f"Update response: {response.data}")  # Debug log
+        print(f"Update response: {response.data}")
+        print(f"=== END DEBUG ===")
         
         if response.data:
             return response.data[0]

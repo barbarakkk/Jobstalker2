@@ -133,6 +133,8 @@ export function Login() {
             )}
           </Button>
 
+          {/* GitHub login temporarily disabled - enable in Supabase first */}
+          {/*
           <Button 
             onClick={handleGitHubLogin}
             disabled={loading || githubLoading || linkedinLoading}
@@ -153,7 +155,10 @@ export function Login() {
               </>
             )}
           </Button>
+          */}
 
+          {/* LinkedIn login temporarily disabled - enable in Supabase first */}
+          {/*
           <Button 
             onClick={handleLinkedInLogin}
             disabled={loading || githubLoading || linkedinLoading}
@@ -174,6 +179,12 @@ export function Login() {
               </>
             )}
           </Button>
+          */}
+          
+          <div className="text-center text-sm text-gray-500 mt-4">
+            <p>GitHub and LinkedIn login temporarily disabled</p>
+            <p>Enable OAuth providers in Supabase to use them</p>
+          </div>
         </div>
       </Card>
     </div>
