@@ -34,3 +34,13 @@ backend/.env.local
 
 # Misc
 coverage/
+
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
