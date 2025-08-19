@@ -13,11 +13,12 @@ export function RecentJobs({ jobs, limit = 5 }: RecentJobsProps) {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'interviewing': return 'bg-purple-100 text-purple-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'applied': return 'bg-yellow-100 text-yellow-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'Bookmarked': return 'status-badge status-bookmarked';
+      case 'Applying': return 'status-badge status-applying';
+      case 'Applied': return 'status-badge status-applied';
+      case 'Interviewing': return 'status-badge status-interviewing';
+      case 'Accepted': return 'status-badge status-accepted';
+      default: return 'status-badge bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -31,39 +32,39 @@ export function RecentJobs({ jobs, limit = 5 }: RecentJobsProps) {
   };
 
   return (
-    <Card>
+    <Card className="bg-card shadow-sm border border-border">
       <CardHeader>
-        <CardTitle className="text-lg font-semibold">Recent Jobs</CardTitle>
+        <CardTitle className="text-lg font-semibold text-foreground">Recent Jobs</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           {recentJobs.map((job) => (
-            <div key={job.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+            <div key={job.id} className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-accent transition-colors">
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-1">
-                  <h4 className="font-medium text-gray-900">{job.job_title}</h4>
+                  <h4 className="font-medium text-foreground">{job.job_title}</h4>
                   <Badge className={getStatusBadgeColor(job.status)}>
                     {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                   </Badge>
                 </div>
-                <p className="text-sm text-gray-600">{job.company}</p>
+                <p className="text-sm text-muted-foreground">{job.company}</p>
                 <div className="flex items-center space-x-4 mt-2">
-                  <span className="text-xs text-gray-500">{job.location}</span>
-                  <span className="text-xs text-gray-500">{job.salary}</span>
+                  <span className="text-xs text-muted-foreground">{job.location}</span>
+                  <span className="text-xs text-muted-foreground">{job.salary}</span>
                   <div className="flex space-x-1">
                     {renderStars(job.excitement_level)}
                   </div>
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-xs text-gray-500">Applied</div>
-                <div className="text-sm font-medium">{job.date_applied}</div>
+                <div className="text-xs text-muted-foreground">Applied</div>
+                <div className="text-sm font-medium text-foreground">{job.date_applied}</div>
               </div>
             </div>
           ))}
         </div>
         {jobs.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             No jobs found. Add your first job application to get started!
           </div>
         )}

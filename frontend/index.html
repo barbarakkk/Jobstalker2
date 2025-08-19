@@ -6,6 +6,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="JobStalker - AI-powered job search platform that helps professionals accelerate their careers and land their dream jobs faster." />
     <title>JobStalker - AI-Powered Job Search Platform</title>
+    <script>
+      // Prevent flash of unstyled content (FOUC)
+      (function() {
+        try {
+          const theme = localStorage.getItem('theme');
+          if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+        } catch (e) {
+          // Fallback to system preference
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { FileText, FilePlus, Sparkles, ArrowLeft, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export function ResumeBuilder() {
   const [jobDescription, setJobDescription] = useState('');
@@ -43,107 +44,111 @@ For now, this demonstrates the frontend interface.`);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Professional Header */}
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
+      <header className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3 sm:space-x-4">
-                             <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-8 sm:h-10" />
-               <div className="hidden sm:block">
-               </div>
+              <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-8 sm:h-10" />
+              <div className="hidden sm:block">
+              </div>
             </div>
             
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-6 lg:space-x-8">
               <a 
                 href="/dashboard" 
-                className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group"
+                className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"
                 onClick={(e) => {
                   e.preventDefault();
                   navigate('/dashboard');
                 }}
               >
                 Jobs
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
               </a>
               <a 
                 href="/statistics" 
-                className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group"
+                className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"
                 onClick={(e) => {
                   e.preventDefault();
                   navigate('/statistics');
                 }}
               >
                 Statistics
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
               </a>
-              <a href="#" className="text-blue-700 font-semibold relative group">
+              <a href="#" className="text-primary font-semibold relative group">
                 AI Resume Builder
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
               </a>
-              <a href="#" className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group">
+              <a href="#" className="text-muted-foreground hover:text-primary transition-colors font-medium relative group">
                 Profile
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
               </a>
+              <ThemeToggle />
             </nav>
 
             {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors relative z-50"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle mobile menu"
-            >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5 text-slate-600" />
-              ) : (
-                <Menu className="w-5 h-5 text-slate-600" />
-              )}
-            </button>
+            <div className="md:hidden flex items-center gap-2">
+              <ThemeToggle />
+              <button
+                className="p-2 rounded-lg hover:bg-accent transition-colors relative z-50"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                aria-label="Toggle mobile menu"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="w-5 h-5 text-foreground" />
+                ) : (
+                  <Menu className="w-5 h-5 text-foreground" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Mobile Navigation Menu */}
           <div className={`md:hidden transition-all duration-300 ease-in-out overflow-hidden ${
             isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
           }`}>
-            <nav className="mt-4 pb-4 border-t border-slate-200 bg-white rounded-lg shadow-lg">
+            <nav className="mt-4 pb-4 border-t border-border bg-card rounded-lg shadow-lg">
               <div className="flex flex-col space-y-1 pt-4 px-4">
                 <a 
                   href="/dashboard" 
-                  className="text-slate-700 hover:text-blue-700 transition-colors font-medium py-3 px-4 rounded-lg hover:bg-slate-50 flex items-center space-x-3 group"
+                  className="text-foreground hover:text-primary transition-colors font-medium py-3 px-4 rounded-lg hover:bg-accent flex items-center space-x-3 group"
                   onClick={(e) => {
                     e.preventDefault();
                     navigate('/dashboard');
                     closeMobileMenu();
                   }}
                 >
-                  <div className="w-2 h-2 bg-slate-300 rounded-full group-hover:bg-blue-500 transition-colors"></div>
+                  <div className="w-2 h-2 bg-muted-foreground rounded-full group-hover:bg-primary transition-colors"></div>
                   <span>Jobs Dashboard</span>
                 </a>
                 <a 
                   href="/statistics" 
-                  className="text-slate-700 hover:text-blue-700 transition-colors font-medium py-3 px-4 rounded-lg hover:bg-slate-50 flex items-center space-x-3 group"
+                  className="text-foreground hover:text-primary transition-colors font-medium py-3 px-4 rounded-lg hover:bg-accent flex items-center space-x-3 group"
                   onClick={(e) => {
                     e.preventDefault();
                     navigate('/statistics');
                     closeMobileMenu();
                   }}
                 >
-                  <div className="w-2 h-2 bg-slate-300 rounded-full group-hover:bg-blue-500 transition-colors"></div>
+                  <div className="w-2 h-2 bg-muted-foreground rounded-full group-hover:bg-primary transition-colors"></div>
                   <span>Statistics</span>
                 </a>
                 <a 
                   href="#" 
-                  className="text-blue-700 font-semibold py-3 px-4 rounded-lg bg-blue-50 border border-blue-200 flex items-center space-x-3"
+                  className="text-primary font-semibold py-3 px-4 rounded-lg bg-primary/10 border border-primary/20 flex items-center space-x-3"
                 >
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div className="w-2 h-2 bg-primary rounded-full"></div>
                   <span>AI Resume Builder</span>
                 </a>
                 <a 
                   href="#" 
-                  className="text-slate-700 hover:text-blue-700 transition-colors font-medium py-3 px-4 rounded-lg hover:bg-slate-50 flex items-center space-x-3 group"
+                  className="text-foreground hover:text-primary transition-colors font-medium py-3 px-4 rounded-lg hover:bg-accent flex items-center space-x-3 group"
                 >
-                  <div className="w-2 h-2 bg-slate-300 rounded-full group-hover:bg-blue-500 transition-colors"></div>
+                  <div className="w-2 h-2 bg-muted-foreground rounded-full group-hover:bg-primary transition-colors"></div>
                   <span>Profile</span>
                 </a>
               </div>
@@ -161,28 +166,28 @@ For now, this demonstrates the frontend interface.`);
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/dashboard')}
-                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                className="text-muted-foreground hover:text-foreground hover:bg-accent"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Back to Dashboard</span>
                 <span className="sm:hidden">Back</span>
               </Button>
             </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 px-4">AI Resume Builder</h1>
-            <p className="text-base sm:text-lg text-slate-600 max-w-2xl mx-auto px-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground px-4">AI Resume Builder</h1>
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
               Paste your resume and job description below to generate an ATS-optimized resume tailored for your application.
             </p>
           </div>
 
           <div className="space-y-6 sm:space-y-8">
             {/* Job Description Section */}
-            <Card className="bg-white border border-slate-200 shadow-sm">
+            <Card className="bg-card border border-border shadow-sm">
               <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
-                <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl font-semibold text-slate-900">
-                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
+                <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl font-semibold text-foreground">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
                   <span>Job Description / Requirements</span>
                 </CardTitle>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Paste the job description or requirements to help optimize your resume.
                 </p>
               </CardHeader>
@@ -191,22 +196,22 @@ For now, this demonstrates the frontend interface.`);
                   placeholder="Paste the job description or requirements here..."
                   value={jobDescription}
                   onChange={(e) => setJobDescription(e.target.value)}
-                  className="min-h-[150px] sm:min-h-[200px] resize-none border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base"
+                  className="min-h-[150px] sm:min-h-[200px] resize-none border-border focus:border-primary focus:ring-primary text-sm sm:text-base bg-background text-foreground"
                 />
-                <p className="text-sm text-slate-500 mt-3">
+                <p className="text-sm text-muted-foreground mt-3">
                   Only text is supported. Please copy and paste the job description here.
                 </p>
               </CardContent>
             </Card>
 
             {/* Current Resume Section */}
-            <Card className="bg-white border border-slate-200 shadow-sm">
+            <Card className="bg-card border border-border shadow-sm">
               <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
-                <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl font-semibold text-slate-900">
-                  <FilePlus className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
+                <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl font-semibold text-foreground">
+                  <FilePlus className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
                   <span>Your Current Resume</span>
                 </CardTitle>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Paste your current resume content to be enhanced by our AI.
                 </p>
               </CardHeader>
@@ -215,9 +220,9 @@ For now, this demonstrates the frontend interface.`);
                   placeholder="Paste your current resume here..."
                   value={currentResume}
                   onChange={(e) => setCurrentResume(e.target.value)}
-                  className="min-h-[150px] sm:min-h-[200px] resize-none border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base"
+                  className="min-h-[150px] sm:min-h-[200px] resize-none border-border focus:border-primary focus:ring-primary text-sm sm:text-base bg-background text-foreground"
                 />
-                <p className="text-sm text-slate-500 mt-3">
+                <p className="text-sm text-muted-foreground mt-3">
                   Only text is supported. Please copy and paste your resume here.
                 </p>
               </CardContent>
@@ -228,11 +233,11 @@ For now, this demonstrates the frontend interface.`);
               <Button
                 onClick={handleGenerateResume}
                 disabled={isGenerating || !jobDescription.trim() || !currentResume.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-lg px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
               >
                 {isGenerating ? (
                   <div className="flex items-center space-x-2 sm:space-x-3">
-                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
                     <span className="text-sm sm:text-base">Generating Resume...</span>
                   </div>
                 ) : (
@@ -245,13 +250,13 @@ For now, this demonstrates the frontend interface.`);
             </div>
 
             {/* Generated Resume Section */}
-            <Card className="bg-white border border-slate-200 shadow-sm">
+            <Card className="bg-card border border-border shadow-sm">
               <CardHeader className="pb-4 sm:pb-6 px-4 sm:px-6">
-                <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl font-semibold text-slate-900">
-                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
+                <CardTitle className="flex items-center space-x-2 sm:space-x-3 text-lg sm:text-xl font-semibold text-foreground">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
                   <span>Generated Resume</span>
                 </CardTitle>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Your AI-enhanced resume optimized for the job description.
                 </p>
               </CardHeader>
@@ -260,7 +265,7 @@ For now, this demonstrates the frontend interface.`);
                   placeholder="No resume generated yet. Enter your data and click 'Generate Resume' above."
                   value={generatedResume}
                   onChange={(e) => setGeneratedResume(e.target.value)}
-                  className="min-h-[200px] sm:min-h-[300px] resize-none border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base"
+                  className="min-h-[200px] sm:min-h-[300px] resize-none border-border focus:border-primary focus:ring-primary text-sm sm:text-base bg-background text-foreground"
                   readOnly={!generatedResume}
                 />
                 {generatedResume && (
@@ -268,7 +273,7 @@ For now, this demonstrates the frontend interface.`);
                     <Button
                       variant="outline"
                       onClick={() => setGeneratedResume('')}
-                      className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 w-full sm:w-auto"
+                      className="border-border text-foreground hover:bg-accent hover:border-border/80 w-full sm:w-auto"
                     >
                       Clear
                     </Button>
@@ -277,7 +282,7 @@ For now, this demonstrates the frontend interface.`);
                         navigator.clipboard.writeText(generatedResume);
                         alert('Resume copied to clipboard!');
                       }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm w-full sm:w-auto"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm w-full sm:w-auto"
                     >
                       Copy to Clipboard
                     </Button>

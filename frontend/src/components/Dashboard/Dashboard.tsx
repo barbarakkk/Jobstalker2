@@ -12,6 +12,7 @@ import { JobModal } from '@/components/Jobs/AddJobModal';
 import { KanbanBoard } from './KanbanBoard';
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface DashboardProps {
   // Add props as needed
@@ -270,27 +271,27 @@ export function Dashboard({ }: DashboardProps) {
     return jobs.filter(job => job.status === status).length;
   };
 
-  // Get status color - Updated for professional theme
+  // Get status color - Theme-aware status colors
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Bookmarked': return 'bg-blue-100 border border-blue-300 text-blue-900';
-      case 'Applied': return 'bg-purple-50 border border-purple-200 text-purple-900';
-      case 'Interviewing': return 'bg-orange-50 border border-orange-200 text-orange-900';
-      case 'Accepted': return 'bg-green-50 border border-green-200 text-green-900';
-      case 'Applying': return 'bg-indigo-50 border border-indigo-200 text-indigo-900';
-      default: return 'bg-white border border-slate-200 text-slate-900';
+      case 'Bookmarked': return 'status-badge status-bookmarked';
+      case 'Applied': return 'status-badge status-applied';
+      case 'Interviewing': return 'status-badge status-interviewing';
+      case 'Accepted': return 'status-badge status-accepted';
+      case 'Applying': return 'status-badge status-applying';
+      default: return 'status-badge bg-muted text-muted-foreground border-border';
     }
   };
 
-  // Get status badge color - Updated for professional theme
+  // Get status badge color - Theme-aware status colors
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'Bookmarked': return 'bg-blue-200 text-blue-900 border border-blue-300';
-      case 'Applied': return 'bg-purple-100 text-purple-800 border border-purple-200';
-      case 'Interviewing': return 'bg-orange-100 text-orange-800 border border-orange-200';
-      case 'Accepted': return 'bg-green-100 text-green-800 border border-green-200';
-      case 'Applying': return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
-      default: return 'bg-slate-100 text-slate-800 border border-slate-200';
+      case 'Bookmarked': return 'status-badge status-bookmarked';
+      case 'Applied': return 'status-badge status-applied';
+      case 'Interviewing': return 'status-badge status-interviewing';
+      case 'Accepted': return 'status-badge status-accepted';
+      case 'Applying': return 'status-badge status-applying';
+      default: return 'status-badge bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -306,9 +307,9 @@ export function Dashboard({ }: DashboardProps) {
   // Enhanced loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background">
         {/* Professional Header */}
-        <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
+        <header className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
           <div className="w-full px-8 py-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-4">
@@ -322,9 +323,9 @@ export function Dashboard({ }: DashboardProps) {
         
         <div className="flex justify-center items-center h-96">
           <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-slate-200 border-t-blue-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-muted border-t-primary mx-auto"></div>
             <div>
-              <p className="text-slate-600 font-semibold">Loading your jobs...</p>
+              <p className="text-muted-foreground font-semibold">Loading your jobs...</p>
             </div>
           </div>
         </div>
@@ -335,9 +336,9 @@ export function Dashboard({ }: DashboardProps) {
   // Enhanced error state with retry functionality
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-background">
         {/* Professional Header */}
-        <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
+        <header className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
           <div className="w-full px-8 py-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center space-x-4">
@@ -351,22 +352,22 @@ export function Dashboard({ }: DashboardProps) {
         
         <div className="flex justify-center items-center h-96">
           <div className="text-center space-y-4 max-w-md">
-            <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center mx-auto border border-red-200">
-              <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 bg-destructive/10 rounded-lg flex items-center justify-center mx-auto border border-destructive/20">
+              <svg className="w-6 h-6 text-destructive" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Failed to load jobs</h3>
-              <p className="text-slate-500 text-base mb-4">{error}</p>
+              <h3 className="text-xl font-bold text-foreground mb-2">Failed to load jobs</h3>
+              <p className="text-muted-foreground text-base mb-4">{error}</p>
               <Button 
                 onClick={loadJobs} 
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg px-6 py-3"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-lg px-6 py-3"
                 disabled={loading}
               >
                 {loading ? (
                   <>
-                    <div className="animate-spin rounded-full h-3 w-3 border border-white border-t-transparent mr-2"></div>
+                    <div className="animate-spin rounded-full h-3 w-3 border border-primary-foreground border-t-transparent mr-2"></div>
                     Retrying...
                   </>
                 ) : (
@@ -381,51 +382,51 @@ export function Dashboard({ }: DashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-background">
       {/* Professional Header */}
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50">
+      <header className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
         <div className="w-full px-8 py-6">
           <div className="flex justify-between items-center">
-                          <div className="flex items-center space-x-4">
-                <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-10" />
-                <div>
-                </div>
+            <div className="flex items-center space-x-4">
+              <img src="/src/assets/ColoredLogoHorizontal.svg" alt="JobStalker" className="h-10" />
+              <div>
               </div>
+            </div>
             <nav className="flex items-center space-x-8">
-              <a href="#" className="text-blue-700 font-semibold relative group">
+              <a href="#" className="text-primary font-semibold relative group">
                 Jobs
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
               </a>
               <a 
                 href="/statistics" 
-                className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group"
+                className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"
                 onClick={(e) => {
                   e.preventDefault();
                   navigate('/statistics');
                 }}
               >
                 Statistics
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
               </a>
   
               <a 
                 href="/resume-builder" 
-                className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group"
+                className="text-muted-foreground hover:text-primary transition-colors font-medium relative group"
                 onClick={(e) => {
                   e.preventDefault();
                   navigate('/resume-builder');
                 }}
               >
                 AI Resume Builder
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
               </a>
               <div className="relative group">
-                <a href="#" className="text-slate-600 hover:text-blue-700 transition-colors font-medium relative group">
+                <a href="#" className="text-muted-foreground hover:text-primary transition-colors font-medium relative group">
                   Profile
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full"></span>
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
                 </a>
                 {user && (
-                  <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-card border border-border rounded-lg shadow-lg p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="flex items-center space-x-3 mb-3">
                       {user.user_metadata?.avatar_url ? (
                         <img 
@@ -434,34 +435,35 @@ export function Dashboard({ }: DashboardProps) {
                           className="w-10 h-10 rounded-full"
                         />
                       ) : (
-                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                          <span className="text-white font-bold text-sm">
+                        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                          <span className="text-primary-foreground font-bold text-sm">
                             {user.email?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         </div>
                       )}
                       <div>
-                        <div className="font-semibold text-slate-900">
+                        <div className="font-semibold text-foreground">
                           {user.user_metadata?.full_name || user.user_metadata?.name || user.email}
                         </div>
-                        <div className="text-sm text-slate-500">{user.email}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
                       </div>
                     </div>
                     {user.user_metadata?.provider === 'github' && (
-                      <div className="text-xs text-slate-500 mb-2">
+                      <div className="text-xs text-muted-foreground mb-2">
                         Signed in with GitHub
                       </div>
                     )}
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-muted-foreground/60">
                       User ID: {user.id}
                     </div>
                   </div>
                 )}
               </div>
+              <ThemeToggle />
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400"
+                className="border-border text-foreground hover:bg-accent hover:border-border/80"
                 onClick={handleSignOut}
               >
                 Sign Out
@@ -474,40 +476,40 @@ export function Dashboard({ }: DashboardProps) {
       <div className="w-full px-8 py-12 space-y-10">
         {/* Professional Status Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-          <div className={`${getStatusColor('Bookmarked')} rounded-lg p-6 border hover:shadow-md transition-all duration-200`}>
+          <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200">
             <div className="text-center">
-              <div className="text-3xl font-bold mb-2 text-blue-900">{getStatusCount('Bookmarked')}</div>
-              <div className="text-sm font-semibold uppercase tracking-wider text-blue-700">Bookmarked</div>
+              <div className="text-3xl font-bold mb-2 text-primary">{getStatusCount('Bookmarked')}</div>
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Bookmarked</div>
             </div>
           </div>
-          <div className={`${getStatusColor('Applying')} rounded-lg p-6 border hover:shadow-md transition-all duration-200`}>
+          <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200">
             <div className="text-center">
-              <div className="text-3xl font-bold mb-2 text-indigo-900">{getStatusCount('Applying')}</div>
-              <div className="text-sm font-semibold uppercase tracking-wider text-indigo-700">Applying</div>
+              <div className="text-3xl font-bold mb-2 text-primary">{getStatusCount('Applying')}</div>
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Applying</div>
             </div>
           </div>
-          <div className={`${getStatusColor('Applied')} rounded-lg p-6 border hover:shadow-md transition-all duration-200`}>
+          <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200">
             <div className="text-center">
-              <div className="text-3xl font-bold mb-2 text-purple-900">{getStatusCount('Applied')}</div>
-              <div className="text-sm font-semibold uppercase tracking-wider text-purple-700">Applied</div>
+              <div className="text-3xl font-bold mb-2 text-primary">{getStatusCount('Applied')}</div>
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Applied</div>
             </div>
           </div>
-          <div className={`${getStatusColor('Interviewing')} rounded-lg p-6 border hover:shadow-md transition-all duration-200`}>
+          <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200">
             <div className="text-center">
-              <div className="text-3xl font-bold mb-2 text-orange-900">{getStatusCount('Interviewing')}</div>
-              <div className="text-sm font-semibold uppercase tracking-wider text-orange-700">Interviewing</div>
+              <div className="text-3xl font-bold mb-2 text-primary">{getStatusCount('Interviewing')}</div>
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Interviewing</div>
             </div>
           </div>
-          <div className={`${getStatusColor('Accepted')} rounded-lg p-6 border hover:shadow-md transition-all duration-200`}>
+          <div className="bg-card border border-border rounded-lg p-6 hover:shadow-md transition-all duration-200">
             <div className="text-center">
-              <div className="text-3xl font-bold mb-2 text-green-900">{getStatusCount('Accepted')}</div>
-              <div className="text-sm font-semibold uppercase tracking-wider text-green-700">Accepted</div>
+              <div className="text-3xl font-bold mb-2 text-primary">{getStatusCount('Accepted')}</div>
+              <div className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Accepted</div>
             </div>
           </div>
         </div>
 
         {/* Professional Control Bar */}
-        <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
+        <div className="bg-card rounded-lg border border-border p-6 shadow-sm">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-4">
@@ -517,7 +519,7 @@ export function Dashboard({ }: DashboardProps) {
                   checked={selectedJobs.length === jobs.length && jobs.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
-                <label htmlFor="select-all" className="text-sm font-semibold text-slate-700">
+                <label htmlFor="select-all" className="text-sm font-semibold text-foreground">
                   {selectedJobs.length} selected
                 </label>
                 {selectedJobs.length > 0 && (
@@ -525,7 +527,7 @@ export function Dashboard({ }: DashboardProps) {
                     variant="outline"
                     size="sm"
                     onClick={handleBulkDelete}
-                    className="ml-4 border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300"
+                    className="ml-4 border-destructive/20 text-destructive hover:bg-destructive/10 hover:border-destructive/30"
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Delete Selected
@@ -535,12 +537,12 @@ export function Dashboard({ }: DashboardProps) {
               
               {/* Filter Dropdown */}
               <div className="flex items-center space-x-3">
-                <span className="text-sm font-semibold text-slate-600">Filter by:</span>
+                <span className="text-sm font-semibold text-muted-foreground">Filter by:</span>
                 <Select
                   value={filterBy || 'none'}
                   onValueChange={(value) => handleFilterChange(value === 'none' ? null : value as 'company' | 'job_title', filterValue)}
                 >
-                  <SelectTrigger className="w-36 border-slate-200 bg-white">
+                  <SelectTrigger className="w-36 border-border bg-background">
                     <SelectValue placeholder="Select field" />
                   </SelectTrigger>
                   <SelectContent>
@@ -555,7 +557,7 @@ export function Dashboard({ }: DashboardProps) {
                     placeholder="Enter value..."
                     value={filterValue}
                     onChange={(e) => handleFilterChange(filterBy, e.target.value)}
-                    className="px-4 py-2 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    className="px-4 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent bg-background text-foreground"
                   />
                 )}
               </div>
@@ -563,12 +565,12 @@ export function Dashboard({ }: DashboardProps) {
             
             <div className="flex items-center space-x-6">
               {/* View Mode Toggle */}
-              <div className="flex items-center space-x-1 bg-slate-100 rounded-lg p-1">
+              <div className="flex items-center space-x-1 bg-muted rounded-lg p-1">
                 <Button
                   variant={viewMode === 'list' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('list')}
-                  className={`${viewMode === 'list' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'} rounded-md font-medium`}
+                  className={`${viewMode === 'list' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} rounded-md font-medium`}
                 >
                   List
                 </Button>
@@ -576,7 +578,7 @@ export function Dashboard({ }: DashboardProps) {
                   variant={viewMode === 'kanban' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setViewMode('kanban')}
-                  className={`${viewMode === 'kanban' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'} rounded-md font-medium`}
+                  className={`${viewMode === 'kanban' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} rounded-md font-medium`}
                 >
                   Kanban
                 </Button>
@@ -585,7 +587,7 @@ export function Dashboard({ }: DashboardProps) {
               {/* Add Job Button */}
               <Button 
                 onClick={handleAddJob}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg px-6 py-3"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-lg px-6 py-3"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 Add Job
@@ -596,100 +598,100 @@ export function Dashboard({ }: DashboardProps) {
 
         {/* Job List or Kanban Board */}
         {viewMode === 'list' ? (
-          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-card rounded-lg border border-border overflow-hidden shadow-sm">
             <div className="w-full overflow-x-auto">
               <table className="w-full min-w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Selection
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       <div className="flex items-center space-x-3">
                         <span>Job Title</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleSort('job_title')}
-                          className="h-6 w-6 p-0 hover:bg-blue-100 rounded"
+                          className="h-6 w-6 p-0 hover:bg-accent rounded"
                         >
                           {sortBy === 'job_title' ? (
                             sortDirection === 'asc' ? (
-                              <ArrowUp className="w-3 h-3 text-blue-600" />
+                              <ArrowUp className="w-3 h-3 text-primary" />
                             ) : (
-                              <ArrowDown className="w-3 h-3 text-blue-600" />
+                              <ArrowDown className="w-3 h-3 text-primary" />
                             )
                           ) : (
-                            <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
                           )}
                         </Button>
                       </div>
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       <div className="flex items-center space-x-3">
                         <span>Company</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleSort('company')}
-                          className="h-6 w-6 p-0 hover:bg-indigo-100 rounded"
+                          className="h-6 w-6 p-0 hover:bg-accent rounded"
                         >
                           {sortBy === 'company' ? (
                             sortDirection === 'asc' ? (
-                              <ArrowUp className="w-3 h-3 text-indigo-600" />
+                              <ArrowUp className="w-3 h-3 text-primary" />
                             ) : (
-                              <ArrowDown className="w-3 h-3 text-indigo-600" />
+                              <ArrowDown className="w-3 h-3 text-primary" />
                             )
                           ) : (
-                            <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                            <ArrowUpDown className="w-3 h-3 text-muted-foreground" />
                           )}
                         </Button>
                       </div>
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Salary
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Location
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Date Saved
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Deadline
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Date Applied
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Excitement
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-slate-700 uppercase tracking-wider">
+                    <th className="px-8 py-6 text-left text-sm font-bold text-foreground uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-border">
                   {getFilteredAndSortedJobs().length === 0 ? (
                     <tr>
                       <td colSpan={11} className="px-8 py-16 text-center">
                         <div className="space-y-4">
-                          <div className="w-16 h-16 bg-slate-200 rounded-lg flex items-center justify-center mx-auto">
-                            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto">
+                            <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.815-9-2.145M21 13.255A23.931 23.931 0 0012 15c-3.183 0-6.22-.815-9-2.145M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.815-9-2.145" />
                             </svg>
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-slate-900 mb-2">No jobs yet</h3>
-                            <p className="text-slate-500 text-base mb-4 max-w-md mx-auto">
+                            <h3 className="text-xl font-bold text-foreground mb-2">No jobs yet</h3>
+                            <p className="text-muted-foreground text-base mb-4 max-w-md mx-auto">
                               Start tracking your job applications by adding your first job
                             </p>
                             <Button 
                               onClick={handleAddJob}
-                              className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg px-6 py-3"
+                              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-lg px-6 py-3"
                             >
                               <Plus className="w-4 h-4 mr-2" />
                               Add Your First Job
@@ -700,7 +702,7 @@ export function Dashboard({ }: DashboardProps) {
                     </tr>
                   ) : (
                     getFilteredAndSortedJobs().map((job) => (
-                      <tr key={job.id} className="hover:bg-slate-50 transition-colors duration-200">
+                      <tr key={job.id} className="hover:bg-muted/50 transition-colors duration-200">
                         <td className="px-8 py-6 whitespace-nowrap">
                           <div className="flex items-center space-x-4">
                             <Checkbox 
@@ -708,24 +710,24 @@ export function Dashboard({ }: DashboardProps) {
                               checked={selectedJobs.includes(job.id)}
                               onCheckedChange={(checked) => handleJobSelection(job.id, checked as boolean)}
                             />
-                            <MoreHorizontal className="w-4 h-4 text-slate-400 hover:text-blue-600 cursor-pointer transition-colors" />
+                            <MoreHorizontal className="w-4 h-4 text-muted-foreground hover:text-primary cursor-pointer transition-colors" />
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
+                          <div className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
                             {job.job_title}
                           </div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-slate-800">{job.company}</div>
+                          <div className="text-sm font-semibold text-foreground">{job.company}</div>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <span className="text-sm font-semibold text-slate-900 bg-slate-100 px-3 py-1 rounded-md">
+                          <span className="text-sm font-semibold text-foreground bg-muted px-3 py-1 rounded-md">
                             {job.salary || 'N/A'}
                           </span>
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
-                          <span className="text-sm font-semibold text-slate-900 bg-slate-100 px-3 py-1 rounded-md">
+                          <span className="text-sm font-semibold text-foreground bg-muted px-3 py-1 rounded-md">
                             {job.location || 'N/A'}
                           </span>
                         </td>
@@ -735,7 +737,7 @@ export function Dashboard({ }: DashboardProps) {
                             onValueChange={(value) => handleStatusUpdate(job.id, value as 'Bookmarked' | 'Applying' | 'Applied' | 'Interviewing' | 'Accepted')}
                             disabled={updatingJobId === job.id}
                           >
-                            <SelectTrigger className={`w-auto border-0 p-0 h-auto ${getStatusBadgeColor(job.status)} rounded-md px-3 py-1 font-semibold text-sm hover:opacity-80 transition-opacity`}>
+                            <SelectTrigger className={`w-auto border-0 p-0 h-auto bg-muted text-foreground rounded-md px-3 py-1 font-semibold text-sm hover:opacity-80 transition-opacity`}>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -747,13 +749,13 @@ export function Dashboard({ }: DashboardProps) {
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-slate-600">
+                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-muted-foreground">
                           {job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-slate-600">
+                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-muted-foreground">
                           {job.deadline || 'N/A'}
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-slate-600">
+                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-muted-foreground">
                           {job.date_applied || 'N/A'}
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap">
@@ -766,7 +768,7 @@ export function Dashboard({ }: DashboardProps) {
                                 className={`p-1 rounded transition-colors ${
                                   star <= (job.excitement_level || 0)
                                     ? 'text-amber-400 hover:text-amber-500'
-                                    : 'text-slate-300 hover:text-slate-400'
+                                    : 'text-muted-foreground hover:text-foreground'
                                 } ${updatingJobId === job.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                               >
                                 <Star className={`w-4 h-4 ${star <= (job.excitement_level || 0) ? 'fill-current' : ''}`} />
@@ -780,17 +782,17 @@ export function Dashboard({ }: DashboardProps) {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleEditJob(job)}
-                              className="h-8 w-8 p-0 hover:bg-blue-100 rounded"
+                              className="h-8 w-8 p-0 hover:bg-accent rounded"
                             >
-                              <Edit className="h-3 w-3 text-blue-600 hover:text-blue-700" />
+                              <Edit className="h-3 w-3 text-primary hover:text-primary/80" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => handleJobDelete(job)}
-                              className="h-8 w-8 p-0 hover:bg-red-50 rounded"
+                              className="h-8 w-8 p-0 hover:bg-destructive/10 rounded"
                             >
-                              <Trash2 className="h-3 w-3 text-red-600 hover:text-red-700" />
+                              <Trash2 className="h-3 w-3 text-destructive hover:text-destructive/80" />
                             </Button>
                           </div>
                         </td>
@@ -802,23 +804,23 @@ export function Dashboard({ }: DashboardProps) {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-card rounded-lg border border-border overflow-hidden shadow-sm">
             {getFilteredAndSortedJobs().length === 0 ? (
               <div className="px-8 py-16 text-center">
                 <div className="space-y-4">
-                  <div className="w-16 h-16 bg-slate-200 rounded-lg flex items-center justify-center mx-auto">
-                    <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center mx-auto">
+                    <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.815-9-2.145M21 13.255A23.931 23.931 0 0012 15c-3.183 0-6.22-.815-9-2.145M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.815-9-2.145" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">No jobs yet</h3>
-                    <p className="text-slate-500 text-base mb-4 max-w-md mx-auto">
+                    <h3 className="text-xl font-bold text-foreground mb-2">No jobs yet</h3>
+                    <p className="text-muted-foreground text-base mb-4 max-w-md mx-auto">
                       Start tracking your job applications by adding your first job
                     </p>
                     <Button 
                       onClick={handleAddJob}
-                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg px-6 py-3"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm rounded-lg px-6 py-3"
                     >
                       <Plus className="w-4 h-4 mr-2" />
                       Add Your First Job

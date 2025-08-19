@@ -73,8 +73,8 @@ const JobCard: React.FC<JobCardProps> = ({
             disabled={updatingJobId === job.id}
             className={`p-1 rounded transition-colors ${
               star <= (job.excitement_level || 0)
-                ? 'text-yellow-500 hover:text-yellow-600'
-                : 'text-gray-300 hover:text-gray-400'
+                ? 'text-amber-400 hover:text-amber-500'
+                : 'text-muted-foreground hover:text-foreground'
             } ${updatingJobId === job.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             <Star className={`w-3 h-3 ${star <= (job.excitement_level || 0) ? 'fill-current' : ''}`} />
@@ -87,17 +87,17 @@ const JobCard: React.FC<JobCardProps> = ({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Bookmarked':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return 'status-badge status-bookmarked';
       case 'Applying':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
+        return 'status-badge status-applying';
       case 'Applied':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return 'status-badge status-applied';
       case 'Interviewing':
-        return 'bg-purple-100 text-purple-800 border-purple-200';
+        return 'status-badge status-interviewing';
       case 'Accepted':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+        return 'status-badge status-accepted';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'status-badge bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -107,7 +107,7 @@ const JobCard: React.FC<JobCardProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className={`bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing ${
+      className={`bg-card rounded-lg border border-border p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing ${
         isDragging ? 'opacity-50 rotate-2' : ''
       }`}
     >
@@ -115,27 +115,27 @@ const JobCard: React.FC<JobCardProps> = ({
         {/* Header */}
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-sm truncate">
+            <h3 className="font-semibold text-foreground text-sm truncate">
               {job.job_title}
             </h3>
-            <p className="text-gray-600 text-xs truncate">{job.company}</p>
+            <p className="text-muted-foreground text-xs truncate">{job.company}</p>
           </div>
           <div className="flex items-center space-x-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onEdit(job)}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
+              className="h-6 w-6 p-0 hover:bg-accent"
             >
-              <Edit className="h-3 w-3 text-gray-500" />
+              <Edit className="h-3 w-3 text-muted-foreground" />
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => onDelete(job)}
-              className="h-6 w-6 p-0 hover:bg-red-100"
+              className="h-6 w-6 p-0 hover:bg-destructive/10"
             >
-              <Trash2 className="h-3 w-3 text-gray-500 hover:text-red-500" />
+              <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
             </Button>
           </div>
         </div>
@@ -143,22 +143,22 @@ const JobCard: React.FC<JobCardProps> = ({
         {/* Details */}
         <div className="space-y-2">
           {job.location && (
-            <div className="flex items-center text-xs text-gray-600">
+            <div className="flex items-center text-xs text-muted-foreground">
               <span className="truncate">📍 {job.location}</span>
             </div>
           )}
           {job.salary && (
-            <div className="flex items-center text-xs text-gray-600">
+            <div className="flex items-center text-xs text-muted-foreground">
               <span className="truncate">💰 {job.salary}</span>
             </div>
           )}
           {job.deadline && (
-            <div className="flex items-center text-xs text-gray-600">
+            <div className="flex items-center text-xs text-muted-foreground">
               <span className="truncate">📅 Due: {job.deadline}</span>
             </div>
           )}
           {job.date_applied && (
-            <div className="flex items-center text-xs text-gray-600">
+            <div className="flex items-center text-xs text-muted-foreground">
               <span className="truncate">📝 Applied: {job.date_applied}</span>
             </div>
           )}
@@ -202,10 +202,10 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className="bg-gray-50 rounded-lg p-4 min-h-[600px] w-80"
+      className="bg-muted/30 rounded-lg p-4 min-h-[600px] w-80"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
+        <h3 className="font-semibold text-foreground">{title}</h3>
         <Badge variant="secondary" className="text-xs">
           {jobs.length}
         </Badge>
@@ -213,7 +213,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
       
       <div className="space-y-3">
         {jobs.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 text-sm">
+          <div className="text-center py-8 text-muted-foreground text-sm">
             No jobs in this status
           </div>
         ) : (
@@ -359,30 +359,30 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
         <DragOverlay>
           {activeJob ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-lg opacity-90">
+            <div className="bg-card rounded-lg border border-border p-4 shadow-lg opacity-90">
               <div className="space-y-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 text-sm truncate">
+                    <h3 className="font-semibold text-foreground text-sm truncate">
                       {activeJob.job_title}
                     </h3>
-                    <p className="text-gray-600 text-xs truncate">{activeJob.company}</p>
+                    <p className="text-muted-foreground text-xs truncate">{activeJob.company}</p>
                   </div>
                 </div>
                 <div className="space-y-2">
                   {activeJob.location && (
-                    <div className="flex items-center text-xs text-gray-600">
+                    <div className="flex items-center text-xs text-muted-foreground">
                       <span className="truncate">📍 {activeJob.location}</span>
                     </div>
                   )}
                   {activeJob.salary && (
-                    <div className="flex items-center text-xs text-gray-600">
+                    <div className="flex items-center text-xs text-muted-foreground">
                       <span className="truncate">💰 {activeJob.salary}</span>
                     </div>
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <Badge className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                  <Badge className={`text-xs ${getStatusColor(activeJob.status)}`}>
                     {activeJob.status}
                   </Badge>
                   <div className="flex items-center space-x-1">
@@ -391,8 +391,8 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         key={star}
                         className={`w-3 h-3 ${
                           star <= (activeJob.excitement_level || 0)
-                            ? 'text-yellow-500 fill-current'
-                            : 'text-gray-300'
+                            ? 'text-amber-400 fill-current'
+                            : 'text-muted-foreground'
                         }`}
                       />
                     ))}

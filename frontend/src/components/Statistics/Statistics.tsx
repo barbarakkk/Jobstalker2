@@ -4,6 +4,8 @@ import { StatCard } from '@/components/ui/stat-card';
 import { jobApi } from '@/lib/api';
 import { Job } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useTheme } from '@/lib/theme';
 import {
   getStatusDistribution,
   getApplicationsOverTime,
@@ -54,6 +56,7 @@ export function Statistics() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -73,7 +76,7 @@ export function Statistics() {
 
   // Common header component to avoid duplication
   const renderHeader = () => (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-card shadow-sm border-b border-border sticky top-0 z-50">
       <div className="w-full px-6 py-4">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-4">
@@ -84,7 +87,7 @@ export function Statistics() {
           <nav className="flex items-center space-x-8">
             <a 
               href="/dashboard" 
-              className="text-muted-foreground hover:text-blue-600 transition-colors font-medium"
+              className="text-muted-foreground hover:text-primary transition-colors font-medium"
               onClick={(e) => {
                 e.preventDefault();
                 navigate('/dashboard');
@@ -92,13 +95,13 @@ export function Statistics() {
             >
               Jobs
             </a>
-            <a href="#" className="text-blue-600 font-semibold relative group">
+            <a href="#" className="text-primary font-semibold relative group">
               Statistics
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
             </a>
             <a 
               href="/resume-builder" 
-              className="text-muted-foreground hover:text-blue-600 transition-colors font-medium"
+              className="text-muted-foreground hover:text-primary transition-colors font-medium"
               onClick={(e) => {
                 e.preventDefault();
                 navigate('/resume-builder');
@@ -106,7 +109,8 @@ export function Statistics() {
             >
               AI Resume Builder
             </a>
-            <a href="#" className="text-muted-foreground hover:text-blue-600 transition-colors font-medium">Profile</a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors font-medium">Profile</a>
+            <ThemeToggle />
           </nav>
         </div>
       </div>
@@ -115,21 +119,21 @@ export function Statistics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         {renderHeader()}
         
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+              <div className="h-8 bg-muted rounded w-1/4 mb-6"></div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="h-32 bg-gray-200 rounded"></div>
+                  <div key={i} className="h-32 bg-muted rounded"></div>
                 ))}
               </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-80 bg-gray-200 rounded"></div>
+                  <div key={i} className="h-80 bg-muted rounded"></div>
                 ))}
               </div>
             </div>
@@ -141,14 +145,14 @@ export function Statistics() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         {renderHeader()}
         
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <div className="text-center py-12">
-              <div className="text-red-600 text-lg font-medium mb-2">Error Loading Statistics</div>
-              <div className="text-gray-600">{error}</div>
+              <div className="text-destructive text-lg font-medium mb-2">Error Loading Statistics</div>
+              <div className="text-muted-foreground">{error}</div>
             </div>
           </div>
         </div>
@@ -158,15 +162,15 @@ export function Statistics() {
 
   if (jobs.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         {renderHeader()}
         
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Job Application Statistics</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-6">Job Application Statistics</h1>
             <div className="text-center py-12">
-              <div className="text-gray-600 text-lg mb-2">No job data available</div>
-              <div className="text-gray-500">Start adding jobs to see your statistics</div>
+              <div className="text-muted-foreground text-lg mb-2">No job data available</div>
+              <div className="text-muted-foreground/60">Start adding jobs to see your statistics</div>
             </div>
           </div>
         </div>
@@ -188,7 +192,13 @@ export function Statistics() {
     datasets: [
       {
         data: statusDistribution.map(item => item.count),
-        backgroundColor: statusDistribution.map(item => STATUS_COLORS[item.status as keyof typeof STATUS_COLORS]),
+        backgroundColor: [
+          '#3B82F6', // Blue for Bookmarked
+          '#F59E0B', // Amber for Applying
+          '#8B5CF6', // Purple for Applied
+          '#F97316', // Orange for Interviewing
+          '#10B981', // Emerald for Accepted
+        ],
         borderWidth: 0,
       },
     ],
@@ -204,6 +214,12 @@ export function Statistics() {
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         fill: true,
         tension: 0.4,
+        borderWidth: 3,
+        pointBackgroundColor: '#3B82F6',
+        pointBorderColor: isDarkMode ? '#1f2937' : '#ffffff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
       },
     ],
   };
@@ -214,9 +230,32 @@ export function Statistics() {
       {
         label: 'Applications',
         data: topCompanies.map(item => item.count),
-        backgroundColor: '#3B82F6',
-        borderColor: '#2563EB',
-        borderWidth: 1,
+        backgroundColor: [
+          '#3B82F6', // Blue
+          '#8B5CF6', // Purple
+          '#F59E0B', // Amber
+          '#10B981', // Emerald
+          '#F97316', // Orange
+          '#EF4444', // Red
+          '#06B6D4', // Cyan
+          '#84CC16', // Lime
+          '#F472B6', // Pink
+          '#A855F7', // Violet
+        ],
+        borderColor: [
+          '#2563EB', // Darker Blue
+          '#7C3AED', // Darker Purple
+          '#D97706', // Darker Amber
+          '#059669', // Darker Emerald
+          '#EA580C', // Darker Orange
+          '#DC2626', // Darker Red
+          '#0891B2', // Darker Cyan
+          '#65A30D', // Darker Lime
+          '#E11D48', // Darker Pink
+          '#9333EA', // Darker Violet
+        ],
+        borderWidth: 2,
+        borderRadius: 4,
       },
     ],
   };
@@ -228,25 +267,38 @@ export function Statistics() {
         label: 'Applied',
         data: monthlyActivity.map(item => item.applied),
         backgroundColor: '#10B981',
+        borderColor: '#059669',
+        borderWidth: 2,
+        borderRadius: 4,
       },
       {
         label: 'Interviewing',
         data: monthlyActivity.map(item => item.interviewing),
-        backgroundColor: '#8B5CF6',
+        backgroundColor: '#F97316',
+        borderColor: '#EA580C',
+        borderWidth: 2,
+        borderRadius: 4,
       },
       {
         label: 'Accepted',
         data: monthlyActivity.map(item => item.accepted),
-        backgroundColor: '#059669',
+        backgroundColor: '#3B82F6',
+        borderColor: '#2563EB',
+        borderWidth: 2,
+        borderRadius: 4,
       },
       {
         label: 'Rejected',
         data: monthlyActivity.map(item => item.rejected),
         backgroundColor: '#EF4444',
+        borderColor: '#DC2626',
+        borderWidth: 2,
+        borderRadius: 4,
       },
     ],
   };
 
+  // Theme-aware chart options
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -256,14 +308,28 @@ export function Statistics() {
         labels: {
           usePointStyle: true,
           padding: 20,
+          color: isDarkMode ? '#ffffff' : '#000000',
+          font: {
+            size: 12,
+            weight: 'normal' as const,
+          },
         },
       },
       tooltip: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        titleColor: 'white',
-        bodyColor: 'white',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: isDarkMode ? '#374151' : '#ffffff',
+        titleColor: isDarkMode ? '#ffffff' : '#000000',
+        bodyColor: isDarkMode ? '#ffffff' : '#000000',
+        borderColor: isDarkMode ? '#4b5563' : '#e5e7eb',
         borderWidth: 1,
+        cornerRadius: 8,
+        displayColors: true,
+        titleFont: {
+          size: 14,
+          weight: 'bold' as const,
+        },
+        bodyFont: {
+          size: 13,
+        },
       },
     },
   };
@@ -275,11 +341,51 @@ export function Statistics() {
         grid: {
           display: false,
         },
+        ticks: {
+          color: isDarkMode ? '#ffffff' : '#000000',
+          font: {
+            size: 12,
+          },
+        },
+        border: {
+          color: isDarkMode ? '#4b5563' : '#e5e7eb',
+        },
       },
       y: {
         beginAtZero: true,
         grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
+          color: isDarkMode ? '#4b5563' : '#e5e7eb',
+          drawBorder: false,
+        },
+        ticks: {
+          color: isDarkMode ? '#ffffff' : '#000000',
+          font: {
+            size: 12,
+          },
+        },
+        border: {
+          color: isDarkMode ? '#4b5563' : '#e5e7eb',
+        },
+      },
+    },
+    plugins: {
+      ...chartOptions.plugins,
+      legend: {
+        ...chartOptions.plugins.legend,
+        labels: {
+          ...chartOptions.plugins.legend.labels,
+          generateLabels: (chart: any) => {
+            const datasets = chart.data.datasets;
+            return datasets.map((dataset: any, i: number) => ({
+              text: dataset.label,
+              fillStyle: dataset.backgroundColor,
+              strokeStyle: dataset.borderColor,
+              lineWidth: 2,
+              pointStyle: 'circle',
+              hidden: !chart.isDatasetVisible(i),
+              index: i,
+            }));
+          },
         },
       },
     },
@@ -293,22 +399,62 @@ export function Statistics() {
         grid: {
           display: false,
         },
+        ticks: {
+          color: isDarkMode ? '#ffffff' : '#000000',
+          font: {
+            size: 12,
+          },
+        },
+        border: {
+          color: isDarkMode ? '#4b5563' : '#e5e7eb',
+        },
       },
       y: {
         grid: {
-          color: 'rgba(0, 0, 0, 0.1)',
+          color: isDarkMode ? '#4b5563' : '#e5e7eb',
+          drawBorder: false,
+        },
+        ticks: {
+          color: isDarkMode ? '#ffffff' : '#000000',
+          font: {
+            size: 12,
+          },
+        },
+        border: {
+          color: isDarkMode ? '#4b5563' : '#e5e7eb',
+        },
+      },
+    },
+    plugins: {
+      ...chartOptions.plugins,
+      legend: {
+        ...chartOptions.plugins.legend,
+        labels: {
+          ...chartOptions.plugins.legend.labels,
+          generateLabels: (chart: any) => {
+            const datasets = chart.data.datasets;
+            return datasets.map((dataset: any, i: number) => ({
+              text: dataset.label,
+              fillStyle: dataset.backgroundColor,
+              strokeStyle: dataset.borderColor,
+              lineWidth: 2,
+              pointStyle: 'rect',
+              hidden: !chart.isDatasetVisible(i),
+              index: i,
+            }));
+          },
         },
       },
     },
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {renderHeader()}
       
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Job Application Statistics</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-6">Job Application Statistics</h1>
           
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -354,9 +500,12 @@ export function Statistics() {
           {/* Charts Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Job Status Distribution */}
-            <Card className="bg-white shadow-sm border-0">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">Job Status Distribution</CardTitle>
+            <Card className="bg-card shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                  Job Status Distribution
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-80">
@@ -366,9 +515,12 @@ export function Statistics() {
             </Card>
 
             {/* Applications Over Time */}
-            <Card className="bg-white shadow-sm border-0">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">Applications Over Time</CardTitle>
+            <Card className="bg-card shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
+                  Applications Over Time
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-80">
@@ -378,9 +530,12 @@ export function Statistics() {
             </Card>
 
             {/* Top Companies */}
-            <Card className="bg-white shadow-sm border-0">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">Top Companies</CardTitle>
+            <Card className="bg-card shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full"></div>
+                  Top Companies
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-80">
@@ -396,9 +551,12 @@ export function Statistics() {
             </Card>
 
             {/* Monthly Activity */}
-            <Card className="bg-white shadow-sm border-0">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-900">Monthly Activity</CardTitle>
+            <Card className="bg-card shadow-lg border border-border hover:shadow-xl transition-all duration-300">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-3 h-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"></div>
+                  Monthly Activity
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="h-80">
