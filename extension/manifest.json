@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "JobStalker Job Search Companion",
+  "version": "1.0.4",
+  "description": "Save job postings from LinkedIn directly to your JobStalker dashboard with one click.",
+  
+  "permissions": [
+    "activeTab",
+    "storage",
+    "identity",
+    "scripting",
+    "sidePanel"
+  ],
+  
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost:5173/*",
+    "http://localhost:8000/*",
+    "https://*.jobstalker.com/*"
+  ],
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  
+  "action": {
+    "default_title": "JobStalker",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["auth.html", "auth.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

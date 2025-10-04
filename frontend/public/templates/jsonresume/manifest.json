@@ -1,0 +1,56 @@
+[
+  {
+    "id": "jsonresume-theme-modern",
+    "label": "Modern",
+    "category": "Modern & Clean",
+    "preview": "/templates/jsonresume/modern.png"
+  },
+  {
+    "id": "jsonresume-theme-flat",
+    "label": "Flat",
+    "category": "Modern & Clean",
+    "preview": "/templates/jsonresume/flat.png"
+  },
+  {
+    "id": "jsonresume-theme-elegant",
+    "label": "Elegant",
+    "category": "Modern & Clean",
+    "preview": "/templates/jsonresume/elegant.png"
+  },
+  {
+    "id": "jsonresume-theme-classy",
+    "label": "Classy",
+    "category": "Professional & Corporate",
+    "preview": "/templates/jsonresume/classy.png"
+  },
+  {
+    "id": "jsonresume-theme-kendall",
+    "label": "Kendall",
+    "category": "Professional & Corporate",
+    "preview": "/templates/jsonresume/kendall.png"
+  },
+  {
+    "id": "jsonresume-theme-stackoverflow",
+    "label": "StackOverflow",
+    "category": "Professional & Corporate",
+    "preview": "/templates/jsonresume/stackoverflow.png"
+  },
+  {
+    "id": "jsonresume-theme-paper",
+    "label": "Paper",
+    "category": "Creative & Unique",
+    "preview": "/templates/jsonresume/paper.png"
+  },
+  {
+    "id": "jsonresume-theme-short",
+    "label": "Short",
+    "category": "Creative & Unique",
+    "preview": "/templates/jsonresume/short.png"
+  },
+  {
+    "id": "jsonresume-theme-spartan",
+    "label": "Spartan",
+    "category": "Creative & Unique",
+    "preview": "/templates/jsonresume/spartan.png"
+  }
+]
