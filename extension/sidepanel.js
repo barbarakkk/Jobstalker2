@@ -34,13 +34,13 @@ async function init() {
   console.log('Initializing side panel');
   
   // Add event listeners
-  signInBtn.addEventListener('click', handleSignIn);
-  signOutBtn.addEventListener('click', handleSignOut);
-  openDashboardBtn.addEventListener('click', handleOpenDashboard);
-  saveJobBtn.addEventListener('click', handleSaveJob);
-  closePanelBtn.addEventListener('click', closePanel);
-  searchBtn.addEventListener('click', handleSearch);
-  menuBtn.addEventListener('click', handleMenu);
+  if (signInBtn) signInBtn.addEventListener('click', handleSignIn);
+  if (signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
+  if (openDashboardBtn) openDashboardBtn.addEventListener('click', handleOpenDashboard);
+  if (saveJobBtn) saveJobBtn.addEventListener('click', handleSaveJob);
+  if (closePanelBtn) closePanelBtn.addEventListener('click', closePanel);
+  if (searchBtn) searchBtn.addEventListener('click', handleSearch);
+  if (menuBtn) menuBtn.addEventListener('click', handleMenu);
   
   // Removed test backend and manual refresh buttons
   
@@ -155,7 +155,7 @@ async function setupJobSaveInterface() {
     console.log('🎯 STEP 2.1: Current tab for job save:', tab?.url);
     
     if (tab?.url) {
-      jobLinkInput.value = tab.url;
+      if (jobLinkInput) jobLinkInput.value = tab.url;
       console.log('🎯 STEP 2.2: Job URL pre-filled:', tab.url);
     } else {
       console.warn('⚠️ STEP 2.3: No tab URL found for job save');
@@ -185,9 +185,11 @@ function setupStarRating() {
   });
   
   // Reset stars on mouse leave
-  starsContainer.addEventListener('mouseleave', () => {
-    highlightStars(currentRating);
-  });
+  if (starsContainer) {
+    starsContainer.addEventListener('mouseleave', () => {
+      highlightStars(currentRating);
+    });
+  }
 }
 
 function setStarRating(rating) {
@@ -292,18 +294,20 @@ async function handleSaveJob() {
     console.log('💾 STEP 3: Starting job save process...');
     
     // Show loading state with progress
-    saveJobBtn.textContent = '⏳ Extracting...';
-    saveJobBtn.disabled = true;
+    if (saveJobBtn) {
+      saveJobBtn.textContent = '⏳ Extracting...';
+      saveJobBtn.disabled = true;
+    }
     console.log('💾 STEP 3.1: UI updated to loading state');
     
     // Extract HTML content and basic data from the current page
     console.log('💾 STEP 3.2: Starting page data extraction...');
-    saveJobBtn.textContent = '🔍 Analyzing page...';
+    if (saveJobBtn) saveJobBtn.textContent = '🔍 Analyzing page...';
     
     const pageData = await extractJobDataFromPage();
     console.log('💾 STEP 3.3: Page data extraction complete:', pageData);
     
-    saveJobBtn.textContent = '🤖 Processing...';
+    if (saveJobBtn) saveJobBtn.textContent = '🤖 Processing...';
     
     // Debug: Check if we got actual job content or login page
     if (pageData.html_content) {
@@ -320,19 +324,21 @@ async function handleSaveJob() {
     // If we are not on a job page, stop early and guide the user
     if (pageData && pageData.is_job_page === false) {
       console.warn('⚠️ STEP 3.6: Not on a LinkedIn job details page. Aborting save.');
-      saveJobBtn.textContent = '📁+ Save Link to JobStalker';
-      saveJobBtn.disabled = false;
+      if (saveJobBtn) {
+        saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+        saveJobBtn.disabled = false;
+      }
       alert('Please open a LinkedIn job details view (click a job so the details panel loads) before saving.');
       return;
     }
 
     // Prepare job data for AI processing
     console.log('💾 STEP 3.6: Preparing job data for AI processing...');
-    const preferredUrl = pageData?.canonical_url || jobLinkInput.value;
+    const preferredUrl = pageData?.canonical_url || jobLinkInput?.value;
     const jobData = {
       url: preferredUrl,
       canonical_url: pageData?.canonical_url || null,
-      stage: stageSelect.value,
+      stage: stageSelect?.value,
       excitement: currentRating,
       html_content: pageData.html_content,
       fallback_data: pageData.fallback_data
@@ -350,11 +356,11 @@ async function handleSaveJob() {
     // Show extracted data immediately if we have it
     if (pageData.fallback_data && pageData.fallback_data.job_title !== 'Unknown Job Title') {
       console.log('💾 STEP 3.7.1: Found job data:', pageData.fallback_data);
-      saveJobBtn.textContent = `📋 Found: ${pageData.fallback_data.job_title} at ${pageData.fallback_data.company}`;
+      if (saveJobBtn) saveJobBtn.textContent = `📋 Found: ${pageData.fallback_data.job_title} at ${pageData.fallback_data.company}`;
     }
     
     // Update button to show processing
-    saveJobBtn.textContent = '🤖 AI Processing...';
+    if (saveJobBtn) saveJobBtn.textContent = '🤖 AI Processing...';
     console.log('💾 STEP 3.8: UI updated to AI processing state');
     
     // Save job via background script
@@ -375,24 +381,26 @@ async function handleSaveJob() {
         const jobData = response.data.extracted_data;
         const jobTitle = jobData.job_title || 'Job';
         const company = jobData.company || 'Company';
-        saveJobBtn.textContent = `✅ Saved: ${jobTitle} at ${company}`;
+        if (saveJobBtn) saveJobBtn.textContent = `✅ Saved: ${jobTitle} at ${company}`;
         console.log('✅ STEP 3.11.2: Showing job details:', jobTitle, company);
       } else {
-        saveJobBtn.textContent = '✅ Saved!';
+        if (saveJobBtn) saveJobBtn.textContent = '✅ Saved!';
       }
-      saveJobBtn.style.background = '#28a745';
+      if (saveJobBtn) saveJobBtn.style.background = '#28a745';
       console.log('✅ STEP 3.12: UI updated to success state');
       
       // Show dashboard reload message with countdown
       let countdown = 2; // Reduced to 2 seconds since we have the data
       const countdownInterval = setInterval(() => {
-        saveJobBtn.textContent = `🔄 Reloading in ${countdown}s...`;
-        saveJobBtn.style.background = '#17a2b8';
+        if (saveJobBtn) {
+          saveJobBtn.textContent = `🔄 Reloading in ${countdown}s...`;
+          saveJobBtn.style.background = '#17a2b8';
+        }
         countdown--;
         
         if (countdown < 0) {
           clearInterval(countdownInterval);
-          saveJobBtn.textContent = '🔄 Reloading Dashboard...';
+          if (saveJobBtn) saveJobBtn.textContent = '🔄 Reloading Dashboard...';
           console.log('🔄 STEP 3.12.1: Showing dashboard reload message');
         }
       }, 1000);
@@ -401,10 +409,12 @@ async function handleSaveJob() {
       setTimeout(() => {
         clearInterval(countdownInterval);
         console.log('✅ STEP 3.13: Resetting form after success...');
-        saveJobBtn.textContent = '📁+ Save Link to JobStalker';
-        saveJobBtn.style.background = '#0a66c2';
-        saveJobBtn.disabled = false;
-        stageSelect.value = 'Bookmarked';
+        if (saveJobBtn) {
+          saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+          saveJobBtn.style.background = '#0a66c2';
+          saveJobBtn.disabled = false;
+        }
+        if (stageSelect) stageSelect.value = 'Bookmarked';
         currentRating = 1;
         highlightStars(1);
         console.log('✅ STEP 3.14: Form reset complete');
@@ -412,8 +422,10 @@ async function handleSaveJob() {
     } else {
       console.log('❌ STEP 3.15: Job save failed, handling error...');
       // Reset button state
-      saveJobBtn.textContent = '📁+ Save Link to JobStalker';
-      saveJobBtn.disabled = false;
+      if (saveJobBtn) {
+        saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+        saveJobBtn.disabled = false;
+      }
       
       // Check if it's a token expiry error
       if (response && response.error && response.error.includes('expired')) {
@@ -435,8 +447,10 @@ async function handleSaveJob() {
     console.error('❌ STEP 3.19: Critical error in job save process:', error);
     
     // Reset button state
-    saveJobBtn.textContent = '📁+ Save Link to JobStalker';
-    saveJobBtn.disabled = false;
+    if (saveJobBtn) {
+      saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+      saveJobBtn.disabled = false;
+    }
     console.log('❌ STEP 3.20: UI reset after critical error');
     
     alert('Error saving job: ' + error.message);
