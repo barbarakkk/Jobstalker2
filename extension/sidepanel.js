@@ -467,9 +467,29 @@ function handleMenu() {
   chrome.runtime.sendMessage({ action: 'openDashboard' });
 }
 
-function closePanel() {
-  // Close the side panel
-  chrome.sidePanel.close();
+async function closePanel() {
+  try {
+    // Prefer calling with windowId per API signature; fall back to no-arg.
+    const currentWindow = await chrome.windows.getCurrent();
+    if (chrome?.sidePanel?.close) {
+      try {
+        if (currentWindow && typeof currentWindow.id === 'number') {
+          await chrome.sidePanel.close({ windowId: currentWindow.id });
+        } else {
+          await chrome.sidePanel.close({});
+        }
+      } catch (err) {
+        // Some Chrome versions accept no-args
+        await chrome.sidePanel.close();
+      }
+    } else {
+      // Fallback: close the panel window
+      window.close();
+    }
+  } catch (error) {
+    console.error('Error closing side panel:', error);
+    try { window.close(); } catch (_) {}
+  }
 }
 
 // Removed handlers for test backend and manual refresh
