@@ -3,7 +3,7 @@ console.log('JobStalker extension background script loaded');
 
 // Configuration
 const CONFIG = {
-  WEB_APP_URL: 'http://localhost:5173',
+  WEB_APP_URL: 'http://localhost:3000',
   API_BASE_URL: 'http://localhost:8000',
   TOKEN_KEY: 'jobstalker_auth_token',
   TOKEN_EXPIRY_KEY: 'jobstalker_token_expiry',
@@ -43,6 +43,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'authCompleted':
       // no-op for now; sidepanel will re-check auth on next open
       sendResponse({ success: true });
+      return true;
+      
+    case 'testBackend':
+      handleTestBackend(sendResponse);
+      return true;
+      
+    case 'refreshDashboard':
+      handleRefreshDashboard(sendResponse);
       return true;
       
     default:
@@ -87,7 +95,7 @@ async function handleCheckAuth(sendResponse) {
     // Verify token with backend
     console.log('Verifying token with backend...');
     try {
-      const response = await fetch(`${CONFIG.API_BASE_URL}/api/profile`, {
+      const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/verify`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -95,18 +103,30 @@ async function handleCheckAuth(sendResponse) {
       });
       
       if (response.ok) {
-        const userData = await response.json();
-        console.log('Token is valid, user authenticated');
-        sendResponse({ 
-          authenticated: true, 
-          user: userData 
-        });
+        const authData = await response.json();
+        if (authData.valid) {
+          console.log('Token is valid, user authenticated');
+          sendResponse({ 
+            authenticated: true, 
+            user: { 
+              id: authData.user_id, 
+              email: authData.email 
+            }
+          });
+        } else {
+          console.log('Token invalid, removing...');
+          await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
+          sendResponse({ 
+            authenticated: false, 
+            error: authData.error || 'Invalid authentication token' 
+          });
+        }
       } else {
-        console.log('Token invalid, removing...');
+        console.log('Token verification failed, removing...');
         await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
         sendResponse({ 
           authenticated: false, 
-          error: 'Invalid authentication token' 
+          error: 'Token verification failed' 
         });
       }
     } catch (error) {
@@ -280,6 +300,13 @@ async function handleSaveJob(data, sendResponse) {
       console.log('✅ STEP 5.9: Backend request successful, parsing response...');
       const result = await response.json();
       console.log('✅ STEP 5.10: Backend response data:', result);
+      
+      // Auto-reload dashboard tabs after successful job save (with delay for backend processing)
+      console.log('🔄 STEP 5.10.1: Auto-reloading dashboard tabs in 2 seconds...');
+      setTimeout(async () => {
+        await reloadDashboardTabs();
+      }, 2000); // Wait 2 seconds for backend to process the job
+      
       sendResponse({ success: true, data: result });
     } else {
       console.log('❌ STEP 5.11: Backend request failed, handling error...');
@@ -311,6 +338,24 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
+// Listen for messages from content scripts (web app)
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'authCompleted') {
+    console.log('Auth completed message received, checking for token...');
+    // Check if we have a token in storage
+    chrome.storage.local.get([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]).then((result) => {
+      if (result[CONFIG.TOKEN_KEY]) {
+        console.log('Token found in storage after auth completion');
+        sendResponse({ success: true, hasToken: true });
+      } else {
+        console.log('No token found after auth completion');
+        sendResponse({ success: true, hasToken: false });
+      }
+    });
+    return true;
+  }
+});
+
 // Handle setting auth token (called from web app)
 async function handleSetAuthToken(token, expiry, sendResponse) {
   try {
@@ -327,6 +372,113 @@ async function handleSetAuthToken(token, expiry, sendResponse) {
   } catch (error) {
     console.error('Set auth token error:', error);
     sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Test backend connectivity
+async function handleTestBackend(sendResponse) {
+  try {
+    console.log('Testing backend connectivity...');
+    
+    // Test health endpoint first
+    const healthResponse = await fetch(`${CONFIG.API_BASE_URL}/health`);
+    const healthData = await healthResponse.json();
+    
+    console.log('Health check response:', healthData);
+    
+    // Test auth verify endpoint
+    const authResponse = await fetch(`${CONFIG.API_BASE_URL}/api/auth/verify`, {
+      headers: {
+        'Authorization': 'Bearer test-token',
+        'Content-Type': 'application/json'
+      }
+    });
+    const authData = await authResponse.json();
+    
+    console.log('Auth verify response:', authData);
+    
+    sendResponse({ 
+      success: true, 
+      health: healthData,
+      auth: authData,
+      backendUrl: CONFIG.API_BASE_URL
+    });
+  } catch (error) {
+    console.error('Backend test error:', error);
+    sendResponse({ 
+      success: false, 
+      error: error.message,
+      backendUrl: CONFIG.API_BASE_URL
+    });
+  }
+}
+
+// Handle manual dashboard refresh
+async function handleRefreshDashboard(sendResponse) {
+  try {
+    console.log('Manual dashboard refresh requested...');
+    await reloadDashboardTabs();
+    sendResponse({ success: true });
+  } catch (error) {
+    console.error('Error in manual dashboard refresh:', error);
+    sendResponse({ success: false, error: error.message });
+  }
+}
+
+// Auto-reload dashboard tabs after job save
+async function reloadDashboardTabs() {
+  try {
+    console.log('🔄 Starting dashboard reload process...');
+    
+    // Find all tabs
+    const tabs = await chrome.tabs.query({});
+    console.log(`🔄 Found ${tabs.length} total tabs`);
+    
+    // Log all tab URLs for debugging
+    tabs.forEach((tab, index) => {
+      console.log(`🔄 Tab ${index}: ${tab.url || 'No URL'}`);
+    });
+    
+    // Find JobStalker tabs (more flexible matching)
+    const jobstalkerTabs = tabs.filter(tab => 
+      tab.url && (
+        tab.url.includes('localhost:3000') || 
+        tab.url.includes('127.0.0.1:3000') ||
+        tab.url.includes('localhost:5173') ||
+        tab.url.includes('127.0.0.1:5173')
+      )
+    );
+    
+    console.log(`🔄 Found ${jobstalkerTabs.length} JobStalker tabs:`, jobstalkerTabs.map(t => t.url));
+    
+    if (jobstalkerTabs.length === 0) {
+      console.log('⚠️ No JobStalker tabs found to reload');
+      return;
+    }
+    
+    // Reload each JobStalker tab
+    for (const tab of jobstalkerTabs) {
+      try {
+        console.log(`🔄 Attempting to reload tab ${tab.id}: ${tab.url}`);
+        await chrome.tabs.reload(tab.id);
+        console.log(`✅ Successfully reloaded tab: ${tab.url}`);
+      } catch (error) {
+        console.error(`❌ Failed to reload tab ${tab.id} (${tab.url}):`, error);
+        
+        // Fallback: Try to send a refresh message to the tab
+        try {
+          console.log(`🔄 Fallback: Sending refresh message to tab ${tab.id}`);
+          await chrome.tabs.sendMessage(tab.id, { action: 'refreshDashboard' });
+          console.log(`✅ Fallback message sent to tab: ${tab.url}`);
+        } catch (messageError) {
+          console.error(`❌ Fallback message also failed for tab ${tab.id}:`, messageError);
+        }
+      }
+    }
+    
+    console.log('✅ Dashboard reload process complete');
+  } catch (error) {
+    console.error('❌ Error in dashboard reload process:', error);
   }
 }
 

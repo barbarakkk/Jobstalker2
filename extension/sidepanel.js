@@ -42,6 +42,8 @@ async function init() {
   searchBtn.addEventListener('click', handleSearch);
   menuBtn.addEventListener('click', handleMenu);
   
+  // Removed test backend and manual refresh buttons
+  
   // Check status
   await checkStatus();
   
@@ -63,16 +65,17 @@ async function checkStatus() {
     console.log('📍 STEP 1.2: Is LinkedIn job details page:', isLinkedInJobDetails);
     
     if (isLinkedInJobDetails || isGenericPage) {
-      console.log('🔐 STEP 1.3: LinkedIn job page detected, checking authentication...');
+      console.log('🔐 STEP 1.3: Job page detected, checking authentication...');
       // Check if user is authenticated
       const authResponse = await chrome.runtime.sendMessage({ action: 'checkAuth' });
       console.log('🔐 STEP 1.4: Auth response:', authResponse);
       
-      if (authResponse.authenticated) {
+      if (authResponse && authResponse.authenticated) {
         console.log('✅ STEP 1.5: User authenticated, showing save job interface');
         showLinkedInJob();
       } else {
         console.log('❌ STEP 1.6: User not authenticated, showing sign-in prompt');
+        console.log('❌ Auth error:', authResponse?.error || 'No response');
         showNotSignedIn();
       }
     } else {
@@ -81,11 +84,12 @@ async function checkStatus() {
       const authResponse = await chrome.runtime.sendMessage({ action: 'checkAuth' });
       console.log('🔐 STEP 1.8: Auth response:', authResponse);
       
-      if (authResponse.authenticated) {
+      if (authResponse && authResponse.authenticated) {
         console.log('✅ STEP 1.9: User authenticated, showing dashboard');
         showDashboard();
       } else {
         console.log('❌ STEP 1.10: User not authenticated, showing sign-in prompt');
+        console.log('❌ Auth error:', authResponse?.error || 'No response');
         showNotSignedIn();
       }
     }
@@ -287,15 +291,19 @@ async function handleSaveJob() {
   try {
     console.log('💾 STEP 3: Starting job save process...');
     
-    // Show loading state
+    // Show loading state with progress
     saveJobBtn.textContent = '⏳ Extracting...';
     saveJobBtn.disabled = true;
     console.log('💾 STEP 3.1: UI updated to loading state');
     
     // Extract HTML content and basic data from the current page
     console.log('💾 STEP 3.2: Starting page data extraction...');
+    saveJobBtn.textContent = '🔍 Analyzing page...';
+    
     const pageData = await extractJobDataFromPage();
     console.log('💾 STEP 3.3: Page data extraction complete:', pageData);
+    
+    saveJobBtn.textContent = '🤖 Processing...';
     
     // Debug: Check if we got actual job content or login page
     if (pageData.html_content) {
@@ -339,6 +347,12 @@ async function handleSaveJob() {
       fallback_data: jobData.fallback_data
     });
     
+    // Show extracted data immediately if we have it
+    if (pageData.fallback_data && pageData.fallback_data.job_title !== 'Unknown Job Title') {
+      console.log('💾 STEP 3.7.1: Found job data:', pageData.fallback_data);
+      saveJobBtn.textContent = `📋 Found: ${pageData.fallback_data.job_title} at ${pageData.fallback_data.company}`;
+    }
+    
     // Update button to show processing
     saveJobBtn.textContent = '🤖 AI Processing...';
     console.log('💾 STEP 3.8: UI updated to AI processing state');
@@ -354,13 +368,38 @@ async function handleSaveJob() {
     
     if (response && response.success) {
       console.log('✅ STEP 3.11: Job saved successfully!');
-      // Show success message
-      saveJobBtn.textContent = '✅ Saved!';
+      console.log('✅ STEP 3.11.1: Response data:', response.data);
+      
+      // Show success message with job details if available
+      if (response.data && response.data.extracted_data) {
+        const jobData = response.data.extracted_data;
+        const jobTitle = jobData.job_title || 'Job';
+        const company = jobData.company || 'Company';
+        saveJobBtn.textContent = `✅ Saved: ${jobTitle} at ${company}`;
+        console.log('✅ STEP 3.11.2: Showing job details:', jobTitle, company);
+      } else {
+        saveJobBtn.textContent = '✅ Saved!';
+      }
       saveJobBtn.style.background = '#28a745';
       console.log('✅ STEP 3.12: UI updated to success state');
       
-      // Reset form after a short delay
+      // Show dashboard reload message with countdown
+      let countdown = 2; // Reduced to 2 seconds since we have the data
+      const countdownInterval = setInterval(() => {
+        saveJobBtn.textContent = `🔄 Reloading in ${countdown}s...`;
+        saveJobBtn.style.background = '#17a2b8';
+        countdown--;
+        
+        if (countdown < 0) {
+          clearInterval(countdownInterval);
+          saveJobBtn.textContent = '🔄 Reloading Dashboard...';
+          console.log('🔄 STEP 3.12.1: Showing dashboard reload message');
+        }
+      }, 1000);
+      
+      // Reset form after reload completes
       setTimeout(() => {
+        clearInterval(countdownInterval);
         console.log('✅ STEP 3.13: Resetting form after success...');
         saveJobBtn.textContent = '📁+ Save Link to JobStalker';
         saveJobBtn.style.background = '#0a66c2';
@@ -369,7 +408,7 @@ async function handleSaveJob() {
         currentRating = 1;
         highlightStars(1);
         console.log('✅ STEP 3.14: Form reset complete');
-      }, 2000);
+      }, 4000); // Reduced to 4 seconds
     } else {
       console.log('❌ STEP 3.15: Job save failed, handling error...');
       // Reset button state
@@ -419,6 +458,8 @@ function closePanel() {
   chrome.sidePanel.close();
 }
 
+// Removed handlers for test backend and manual refresh
+
 // Set up URL change detection
 function setupUrlChangeDetection() {
   console.log('Setting up URL change detection');
@@ -452,6 +493,11 @@ async function extractJobDataFromPage() {
   try {
     console.log('🔍 STEP 4: Starting page data extraction...');
     
+    // Set a timeout to prevent extraction from taking too long
+    const extractionTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Extraction timeout after 5 seconds')), 5000)
+    );
+    
     // Get the current tab
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     console.log('🔍 STEP 4.1: Current tab found:', tab?.id, tab?.url);
@@ -472,7 +518,8 @@ async function extractJobDataFromPage() {
     
     // Inject a content script to get the HTML content for AI processing
     console.log('🔍 STEP 4.3: Injecting content script into tab:', tab.id);
-    const results = await chrome.scripting.executeScript({
+    
+    const contentScriptPromise = chrome.scripting.executeScript({
       target: { tabId: tab.id },
       function: async () => {
         try {
@@ -676,42 +723,35 @@ async function extractJobDataFromPage() {
             }
           }
           
-          // If no salary found via selectors, try regex patterns on the entire page
+          // If no salary found via selectors, try quick regex patterns (optimized)
           if (!jobData.salary || jobData.salary === 'null') {
-            console.log('🔍 CONTENT SCRIPT: No salary found via selectors, trying regex patterns...');
-            const salaryRegexPatterns = [
+            console.log('🔍 CONTENT SCRIPT: No salary found via selectors, trying quick regex...');
+            // Use only the most effective regex patterns to speed up processing
+            const quickSalaryPatterns = [
               /\$[\d,]+(?:\.\d{2})?\s*(?:-\s*\$?[\d,]+(?:\.\d{2})?)?\s*(?:per\s+(?:year|month|hour|week))?/gi,
-              /\$[\d,]+(?:\.\d{2})?\s*(?:to\s*\$?[\d,]+(?:\.\d{2})?)?\s*(?:per\s+(?:year|month|hour|week))?/gi,
-              /\$[\d,]+(?:\.\d{2})?\s*(?:-\s*\$?[\d,]+(?:\.\d{2})?)?\s*(?:annually|monthly|hourly|weekly)/gi,
-              /\$[\d,]+(?:\.\d{2})?\s*(?:to\s*\$?[\d,]+(?:\.\d{2})?)?\s*(?:annually|monthly|hourly|weekly)/gi,
-              /(?:salary|pay|compensation|wage):\s*\$?[\d,]+(?:\.\d{2})?(?:\s*-\s*\$?[\d,]+(?:\.\d{2})?)?/gi,
-              /\$[\d,]+(?:\.\d{2})?\s*(?:k|K)\s*(?:per\s+(?:year|month|hour|week))?/gi,
-              /\$[\d,]+(?:\.\d{2})?\s*(?:k|K)\s*(?:annually|monthly|hourly|weekly)/gi
+              /\$[\d,]+(?:\.\d{2})?\s*(?:k|K)\s*(?:per\s+(?:year|month|hour|week))?/gi
             ];
             
-            for (const pattern of salaryRegexPatterns) {
-              const matches = document.body.textContent.match(pattern);
+            // Only search in job-related sections to speed up regex processing
+            const jobSections = document.querySelectorAll('.jobs-details, .jobs-unified-top-card, .job-details, [data-testid*="job"]');
+            const searchText = jobSections.length > 0 ? 
+              Array.from(jobSections).map(section => section.textContent).join(' ') : 
+              document.body.textContent;
+            
+            for (const pattern of quickSalaryPatterns) {
+              const matches = searchText.match(pattern);
               if (matches && matches.length > 0) {
-                // Find the most complete salary match
-                const bestMatch = matches.find(match => 
-                  match.includes('$') && 
-                  (match.includes('per') || match.includes('annually') || match.includes('monthly') || match.includes('hourly') || match.includes('weekly') || match.includes('k') || match.includes('K'))
-                ) || matches[0];
-                
-                if (bestMatch) {
-                  jobData.salary = bestMatch.trim();
-                  console.log('🔍 CONTENT SCRIPT: Found salary via regex:', jobData.salary);
-                  break;
-                }
+                jobData.salary = matches[0].trim();
+                console.log('🔍 CONTENT SCRIPT: Found salary via quick regex:', jobData.salary);
+                break;
               }
             }
           }
 
-          // Retry a few times if critical fields are still missing (dynamic render)
+          // Quick retry only once if critical fields are missing (reduced from 4 retries)
           const needsRetry = () => !jobData.job_title || jobData.job_title === 'Unknown Job Title' || jobData.company === 'Unknown Company';
-          let retries = 4;
-          while (needsRetry() && retries > 0) {
-            await sleep(400);
+          if (needsRetry()) {
+            await sleep(200); // Reduced from 400ms to 200ms
             for (const selector of titleSelectors) {
               const el = document.querySelector(selector);
               if (el && el.textContent.trim().length > 3) {
@@ -726,7 +766,6 @@ async function extractJobDataFromPage() {
                 break;
               }
             }
-            retries -= 1;
           }
           
           // Prefer canonical job URL if available
@@ -758,6 +797,9 @@ async function extractJobDataFromPage() {
         }
       }
     });
+    
+    // Race between content script and timeout
+    const results = await Promise.race([contentScriptPromise, extractionTimeout]);
     
     console.log('🔍 STEP 4.4: Content script execution complete, processing results...');
     const result = results[0].result;

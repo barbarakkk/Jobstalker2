@@ -64,17 +64,34 @@ app = FastAPI(title="JobStalker API", version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5174",
+        "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "chrome-extension://*",  # Allow Chrome extensions
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+    expose_headers=["*"],  # Expose all headers
 )
+
+# Additional CORS handling for preflight requests
+@app.options("/{path:path}")
+async def options_handler(path: str):
+    return {"message": "OK"}
+
+# Add CORS headers to all responses
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # Security middleware for adding security headers
 @app.middleware("http")
@@ -297,6 +314,32 @@ async def upload_resume_to_supabase(file: UploadFile, file_content: bytes, user_
 def ping():
     """Health check endpoint"""
     return {"message": "pong", "status": "healthy", "timestamp": time.time()}
+
+@app.get("/api/auth/verify")
+def verify_token(authorization: Optional[str] = Header(None)):
+    """Simple token verification endpoint for extensions"""
+    try:
+        if not authorization or not authorization.startswith("Bearer "):
+            return {"valid": False, "error": "Invalid authorization header"}
+        
+        token = authorization.replace("Bearer ", "").strip()
+        if not token:
+            return {"valid": False, "error": "Empty token"}
+        
+        # Verify token with Supabase
+        user_response = supabase.auth.get_user(token)
+        
+        if not user_response or not user_response.user:
+            return {"valid": False, "error": "Invalid or expired token"}
+        
+        return {
+            "valid": True, 
+            "user_id": user_response.user.id,
+            "email": user_response.user.email
+        }
+        
+    except Exception as e:
+        return {"valid": False, "error": f"Token verification failed: {str(e)}"}
 
 @app.get("/health")
 def health_check():

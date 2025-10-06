@@ -126,14 +126,6 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
         },
       },
     },
-    elements: {
-      arc: {
-        borderWidth: 3,
-        borderColor: '#ffffff',
-        hoverBorderWidth: 4,
-        hoverBorderColor: '#ffffff',
-      },
-    },
     cutout: '40%',
     radius: '90%',
     hover: {

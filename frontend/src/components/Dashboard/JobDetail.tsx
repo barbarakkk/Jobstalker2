@@ -39,12 +39,39 @@ export default function JobDetail() {
     );
   }
 
+  const getInitials = (text: string) => {
+    if (!text) return 'JS';
+    const words = text.trim().split(/\s+/);
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[1][0]).toUpperCase();
+  };
+
+  const getStatusBadgeClasses = (status: Job['status']) => {
+    switch (status) {
+      case 'Bookmarked':
+        return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+      case 'Applying':
+        return 'bg-blue-50 text-blue-700 border border-blue-200';
+      case 'Applied':
+        return 'bg-indigo-50 text-indigo-700 border border-indigo-200';
+      case 'Interviewing':
+        return 'bg-purple-50 text-purple-700 border border-purple-200';
+      case 'Accepted':
+        return 'bg-green-50 text-green-700 border border-green-200';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {/* Back */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="text-gray-600">
+          <Button
+            onClick={() => navigate('/dashboard')}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+          >
             <ArrowLeft className="h-4 w-4 mr-2" /> Back to Dashboard
           </Button>
         </div>
@@ -55,7 +82,9 @@ export default function JobDetail() {
             <div className="flex items-start justify-between">
               <div className="min-w-0">
                 <div className="flex items-center gap-3 mb-1">
-                  <div className="h-10 w-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold">JD</div>
+                  <div className="h-10 w-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 font-bold">
+                    {getInitials(job.company || job.job_title)}
+                  </div>
                   <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{job.job_title}</h1>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
@@ -85,7 +114,7 @@ export default function JobDetail() {
 
               {/* Status + Actions */}
               <div className="shrink-0 flex flex-col items-end gap-3">
-                <Badge className="px-3 py-1 text-xs font-bold rounded-full">{job.status}</Badge>
+                <Badge className={`px-3 py-1 text-xs font-bold rounded-full ${getStatusBadgeClasses(job.status)}`}>{job.status}</Badge>
                 <div className="flex items-center gap-2">
                   {job.job_url && (
                     <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
@@ -94,9 +123,6 @@ export default function JobDetail() {
                       </a>
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" className="border-gray-300 text-gray-700">
-                    <BookmarkPlus className="h-4 w-4 mr-2" /> Save Job
-                  </Button>
                 </div>
               </div>
             </div>
@@ -105,14 +131,24 @@ export default function JobDetail() {
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Description */}
+          {/* Notes / Description */}
           <div className="lg:col-span-2">
             <Card className="border border-gray-200 shadow-sm">
               <CardContent className="p-5">
-                <h2 className="text-base font-semibold text-gray-900 mb-3">About the Role</h2>
-                <div className="prose max-w-none whitespace-pre-wrap text-gray-800 text-sm leading-6">
-                  {job.description || 'No description available.'}
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-base font-semibold text-gray-900">Notes</h2>
+                  <span className="text-xs text-gray-400">{(job.description || '').length} chars</span>
                 </div>
+                {job.description ? (
+                  <div className="prose max-w-none whitespace-pre-wrap text-gray-800 text-sm leading-6 bg-white border border-gray-200 rounded-md p-4">
+                    {job.description}
+                  </div>
+                ) : (
+                  <div className="border border-dashed border-gray-300 rounded-md p-6 bg-gray-50 text-sm text-gray-600">
+                    <p className="font-medium text-gray-700 mb-1">No notes yet</p>
+                    <p className="text-gray-500">Add your thoughts, follow-ups, or interview prep when editing this job.</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -129,9 +165,6 @@ export default function JobDetail() {
                     </a>
                   </Button>
                 )}
-                <Button variant="outline" className="w-full border-gray-300 text-gray-700">
-                  <BookmarkPlus className="h-4 w-4 mr-2" /> Save Job
-                </Button>
               </CardContent>
             </Card>
           </div>
