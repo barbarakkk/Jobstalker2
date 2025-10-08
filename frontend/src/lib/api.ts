@@ -1,7 +1,9 @@
-import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, Resume, ProfileStats, CreateProfileData, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData } from './types';
+import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, Resume, ProfileStats, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData } from './types';
 import { supabase } from './supabaseClient';
 
-const API_BASE_URL = 'http://localhost:8000';
+// Base URL for the backend API. In production, set VITE_API_BASE_URL in a .env file.
+// Falls back to localhost for local backend development.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // Helper function to get auth token
 const getAuthToken = async (): Promise<string | null> => {

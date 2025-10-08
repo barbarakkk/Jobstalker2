@@ -4,7 +4,9 @@ console.log('JobStalker extension background script loaded');
 // Configuration
 const CONFIG = {
   WEB_APP_URL: 'http://localhost:3000',
-  API_BASE_URL: 'http://localhost:8000',
+  // Use your deployed backend URL so the extension can reach the API
+  // Update this if your Railway domain is different
+  API_BASE_URL: 'https://jobstalker2-production.up.railway.app',
   TOKEN_KEY: 'jobstalker_auth_token',
   TOKEN_EXPIRY_KEY: 'jobstalker_token_expiry',
   EXTENSION_ID: chrome.runtime.id,

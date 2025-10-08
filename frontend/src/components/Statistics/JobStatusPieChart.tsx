@@ -97,8 +97,8 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
         borderWidth: 2,
         cornerRadius: 16,
         displayColors: true,
-        titleFont: { size: 16, weight: '700' as const },
-        bodyFont: { size: 14, weight: '500' as const },
+        titleFont: { size: 16, weight: 'bold' as const },
+        bodyFont: { size: 14, weight: 'normal' as const },
         padding: 20,
         titleAlign: 'center' as const,
         bodyAlign: 'center' as const,
@@ -130,7 +130,7 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
     radius: '90%',
     hover: {
       scale: 1.12,
-    },
+    } as any,
     animation: {
       animateRotate: true,
       animateScale: true,

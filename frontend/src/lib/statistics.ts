@@ -154,7 +154,7 @@ export function getSummaryStats(jobs: Job[]) {
   const totalInterviewing = jobs.filter(job => job.status === 'Interviewing').length;
   const totalAccepted = jobs.filter(job => job.status === 'Accepted').length;
   // Note: 'Rejected' status is not in the current Job type, so we'll set it to 0
-  const totalRejected = 0;
+  // const totalRejected = 0;
   
   // Calculate rates
   const interviewRate = totalApplied > 0 ? Math.round((totalInterviewing / totalApplied) * 100) : 0;
