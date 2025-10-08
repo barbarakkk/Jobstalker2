@@ -1,4 +1,4 @@
-# Railway Deployment Guide for JobStalker2 - Force Deploy
+# Railway Deployment Guide for JobStalker2 - Docker Fix
 
 ## Project Structure
 This is a **Python FastAPI backend** with the following structure:
