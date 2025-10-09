@@ -70,28 +70,16 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
-        "chrome-extension://*",  # Allow Chrome extensions
+        "https://jobstalker.vercel.app",
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app$",
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods
-    allow_headers=["*"],  # Allow all headers
-    expose_headers=["*"],  # Expose all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
+    max_age=3600,
 )
 
-# Additional CORS handling for preflight requests
-@app.options("/{path:path}")
-async def options_handler(path: str):
-    return {"message": "OK"}
-
-# Add CORS headers to all responses
-@app.middleware("http")
-async def add_cors_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true"
-    return response
+# Rely on CORSMiddleware for preflight handling and headers
 
 # Security middleware for adding security headers
 @app.middleware("http")
