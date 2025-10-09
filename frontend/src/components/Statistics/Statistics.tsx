@@ -8,7 +8,6 @@ import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
 
 // Import new components
 import { KPICards } from './KPICards';
-import { JobStatusPieChart } from './JobStatusPieChart';
 import { AIInsights } from './AIInsights';
 
 import {
@@ -359,14 +358,7 @@ export function Statistics() {
 
 
 
-          {/* 2. Job Status Distribution */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Job Status Distribution</h2>
-            <p className="text-gray-600 mb-6">Visual breakdown of your job applications by status</p>
-            <div className="h-64 sm:h-72 md:h-80">
-              <JobStatusPieChart jobs={jobs} />
-            </div>
-          </div>
+          {/* Job Status Distribution removed per request */}
 
           {/* 3. AI-Powered Insights & Recommendations */}
           <div className="mb-8">

@@ -126,31 +126,24 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
         },
       },
     },
-    cutout: '40%',
+    cutout: '50%',
     radius: '90%',
-    hover: {
-      scale: 1.12,
-    } as any,
     animation: {
       animateRotate: true,
-      animateScale: true,
-      duration: 1500,
+      animateScale: false,
+      duration: 600,
       easing: 'easeOutCubic',
-    },
-    interaction: {
-      intersect: false,
-      mode: 'index',
     },
     elements: {
       arc: {
         borderWidth: 0,
         borderColor: 'transparent',
-        hoverBorderWidth: 8,
+        hoverBorderWidth: 3,
         hoverBorderColor: '#ffffff',
         shadowOffsetX: 0,
-        shadowOffsetY: 6,
-        shadowBlur: 16,
-        shadowColor: 'rgba(0, 0, 0, 0.2)',
+        shadowOffsetY: 4,
+        shadowBlur: 10,
+        shadowColor: 'rgba(0, 0, 0, 0.15)',
       },
     },
   } as const;
@@ -215,7 +208,7 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
   }
 
   return (
-    <Card className="bg-white shadow-sm border border-gray-200 rounded-lg">
+    <Card className="bg-white shadow-sm border border-gray-200 rounded-lg overflow-hidden">
       <CardHeader className="p-6 border-b border-gray-200">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-blue-100 rounded-lg">
@@ -228,16 +221,16 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
         </div>
       </CardHeader>
       <CardContent className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Pie Chart */}
           <div className="flex items-center justify-center">
-            <div className="w-96 h-96 relative">
+            <div className="relative z-0 w-full max-w-[360px] h-[320px] overflow-hidden">
               <Pie data={chartData} options={chartOptions} />
               {/* Center text */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-full p-8 shadow-2xl border border-gray-200/50 min-w-[120px] min-h-[120px] flex flex-col items-center justify-center">
-                  <div className="text-4xl font-black text-gray-900 mb-2 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{jobs.length}</div>
-                  <div className="text-sm font-bold text-gray-600 uppercase tracking-widest">Total Jobs</div>
+              <div className="absolute inset-0 flex items-center justify-center z-10">
+                <div className="text-center bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-full p-5 shadow-2xl border border-gray-200/50 min-w-[104px] min-h-[104px] flex flex-col items-center justify-center">
+                  <div className="text-3xl font-black text-gray-900 mb-1 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{jobs.length}</div>
+                  <div className="text-xs font-bold text-gray-600 uppercase tracking-widest">Total Jobs</div>
                 </div>
               </div>
             </div>

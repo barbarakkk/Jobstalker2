@@ -113,7 +113,7 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl bg-white border border-gray-200 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-2xl bg-white border border-gray-200">
         <DialogHeader className="space-y-3">
           <DialogTitle className="text-xl font-bold text-gray-900">
             {mode === 'edit' ? 'Edit Job' : 'Add New Job'}
@@ -136,7 +136,7 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Job Title and Company */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="job_title" className="text-sm font-semibold text-gray-900">Job Title</Label>
               <Input
@@ -162,7 +162,7 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
           </div>
 
           {/* Location and Salary */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="location" className="text-sm font-semibold text-gray-900">Location</Label>
               <Input
@@ -199,7 +199,7 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
           </div>
 
           {/* Status and Excitement Level */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status" className="text-sm font-semibold text-gray-900">Status</Label>
               <Select
@@ -239,7 +239,7 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
           </div>
 
           {/* Date Applied and Deadline */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date_applied" className="text-sm font-semibold text-gray-900">Date Applied</Label>
               <Input

@@ -7,7 +7,6 @@
 ### 🎯 Core Functionality
 - **Job Application Tracking**: Add, edit, and track job applications with status management
 - **Professional Profile Management**: Complete profile with skills, experience, education, and resume uploads
-- **Resume Builder**: AI-powered resume optimization based on job descriptions
 - **Analytics Dashboard**: Visual insights into your job search progress
 - **Modern UI**: Beautiful, responsive interface built with Tailwind CSS and Shadcn/UI
 

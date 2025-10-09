@@ -506,7 +506,7 @@ export function Dashboard({ }: DashboardProps) {
 
         {/* Control Bar */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-4 md:p-8 shadow-lg">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 flex-wrap">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div className="flex items-center flex-wrap gap-4 md:space-x-8">
               <div className="flex items-center space-x-4">
                 <Checkbox id="select-all" className="rounded-full border-2" checked={selectedJobs.length === jobs.length && jobs.length > 0} onCheckedChange={handleSelectAll} />
@@ -543,7 +543,7 @@ export function Dashboard({ }: DashboardProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 md:space-x-6 flex-wrap md:flex-nowrap">
+            <div className="flex items-center gap-4 md:space-x-6">
               <div className="flex items-center space-x-4">
                 <Button 
                   onClick={loadJobs} 
@@ -578,7 +578,7 @@ export function Dashboard({ }: DashboardProps) {
                   Kanban
                 </Button>
               </div>
-              <Button onClick={handleAddJob} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-5 md:px-8 py-3 transition-all duration-200 w-full sm:w-auto">
+              <Button onClick={handleAddJob} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-5 md:px-8 py-3 transition-all duration-200">
                 <Plus className="w-5 h-5 mr-2" />
                 Add Job
               </Button>
