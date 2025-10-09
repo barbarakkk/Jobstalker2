@@ -411,7 +411,7 @@ export function Dashboard({ }: DashboardProps) {
                 className="h-8 w-auto"
               />
             </div>
-            <nav className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-8">
+            <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
               <a href="#" className="text-blue-600 font-semibold px-4 py-2 rounded-full bg-blue-50">Jobs</a>
               <a href="/statistics" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/statistics'); }}>
                 Statistics
@@ -425,6 +425,14 @@ export function Dashboard({ }: DashboardProps) {
                 Sign Out
               </Button>
             </div>
+          </div>
+        </div>
+        {/* Mobile nav */}
+        <div className="md:hidden px-4 pb-4 -mt-4">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Jobs</button>
+            <button onClick={() => navigate('/statistics')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Statistics</button>
+            <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Profile</button>
           </div>
         </div>
       </header>
@@ -461,7 +469,7 @@ export function Dashboard({ }: DashboardProps) {
         </div>
       )}
 
-      <div className="w-full px-8 py-12 space-y-10">
+      <div className="w-full px-4 md:px-8 py-6 md:py-12 space-y-6 md:space-y-10">
         {/* Status Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="bg-white border border-gray-200 rounded-2xl p-8 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
@@ -497,9 +505,9 @@ export function Dashboard({ }: DashboardProps) {
         </div>
 
         {/* Control Bar */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-8 shadow-lg">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 p-4 md:p-8 shadow-lg">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div className="flex items-center flex-wrap gap-4 md:space-x-8">
               <div className="flex items-center space-x-4">
                 <Checkbox id="select-all" className="rounded-full border-2" checked={selectedJobs.length === jobs.length && jobs.length > 0} onCheckedChange={handleSelectAll} />
                 <label htmlFor="select-all" className="text-sm font-semibold text-gray-900">{selectedJobs.length} selected</label>
@@ -514,7 +522,7 @@ export function Dashboard({ }: DashboardProps) {
               <div className="flex items-center space-x-4">
                 <span className="text-sm font-semibold text-gray-600">Filter by:</span>
                 <Select value={filterBy || 'none'} onValueChange={(value) => handleFilterChange(value === 'none' ? null : value as 'company' | 'job_title', filterValue)}>
-                  <SelectTrigger className="w-40 border-gray-300 bg-white rounded-full shadow-sm">
+                  <SelectTrigger className="w-36 md:w-40 border-gray-300 bg-white rounded-full shadow-sm">
                     <SelectValue placeholder="All" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border border-gray-200 shadow-xl rounded-2xl">
@@ -529,13 +537,13 @@ export function Dashboard({ }: DashboardProps) {
                     placeholder="Enter value..."
                     value={filterValue}
                     onChange={(e) => handleFilterChange(filterBy, e.target.value)}
-                    className="px-4 py-2 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                    className="px-3 md:px-4 py-2 text-sm border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
                   />
                 )}
               </div>
             </div>
 
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center gap-4 md:space-x-6">
               <div className="flex items-center space-x-4">
                 <Button 
                   onClick={loadJobs} 
@@ -547,7 +555,7 @@ export function Dashboard({ }: DashboardProps) {
                   <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
-                <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 md:px-3 py-1 rounded-full">
                   Last updated: {lastRefreshTime.toLocaleTimeString()}
                 </span>
               </div>
@@ -570,7 +578,7 @@ export function Dashboard({ }: DashboardProps) {
                   Kanban
                 </Button>
               </div>
-              <Button onClick={handleAddJob} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-8 py-3 transition-all duration-200">
+              <Button onClick={handleAddJob} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-5 md:px-8 py-3 transition-all duration-200">
                 <Plus className="w-5 h-5 mr-2" />
                 Add Job
               </Button>
@@ -582,11 +590,11 @@ export function Dashboard({ }: DashboardProps) {
         {viewMode === 'list' ? (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 overflow-hidden shadow-lg">
             <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-full">
+              <table className="w-full min-w-full text-xs md:text-sm">
                 <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                   <tr>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Selection</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Selection</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">
                       <div className="flex items-center space-x-3">
                         <span>Job Title</span>
                         <Button variant="ghost" size="sm" onClick={() => handleSort('job_title')} className="h-6 w-6 p-0 hover:bg-gray-200 rounded-full">
@@ -594,7 +602,7 @@ export function Dashboard({ }: DashboardProps) {
                         </Button>
                       </div>
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">
                       <div className="flex items-center space-x-3">
                         <span>Company</span>
                         <Button variant="ghost" size="sm" onClick={() => handleSort('company')} className="h-6 w-6 p-0 hover:bg-gray-200 rounded-full">
@@ -602,20 +610,20 @@ export function Dashboard({ }: DashboardProps) {
                         </Button>
                       </div>
                     </th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Salary</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Location</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Status</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Date Saved</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Deadline</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Date Applied</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Excitement</th>
-                    <th className="px-8 py-6 text-left text-sm font-bold text-gray-900 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Salary</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Location</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Status</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Date Saved</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Deadline</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Date Applied</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Excitement</th>
+                    <th className="px-4 md:px-8 py-4 md:py-6 text-left font-bold text-gray-900 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {getFilteredAndSortedJobs().length === 0 ? (
                     <tr>
-                      <td colSpan={11} className="px-8 py-16 text-center">
+                      <td colSpan={11} className="px-4 md:px-8 py-12 md:py-16 text-center">
                         <div className="space-y-6">
                           <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
                             <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -625,7 +633,7 @@ export function Dashboard({ }: DashboardProps) {
                           <div>
                             <h3 className="text-2xl font-bold text-gray-900 mb-3">No jobs yet</h3>
                             <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">Start tracking your job applications by adding your first job</p>
-                            <Button onClick={handleAddJob} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-8 py-4 text-lg transition-all duration-200">
+                            <Button onClick={handleAddJob} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-6 md:px-8 py-3 md:py-4 text-base md:text-lg transition-all duration-200">
                               <Plus className="w-5 h-5 mr-2" />
                               Add Your First Job
                             </Button>
@@ -636,13 +644,13 @@ export function Dashboard({ }: DashboardProps) {
                   ) : (
                     getFilteredAndSortedJobs().map((job) => (
                       <tr key={job.id} className="hover:bg-gray-50/50 transition-all duration-200 group">
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           <div className="flex items-center space-x-4">
                             <Checkbox className="rounded-full border-2" checked={selectedJobs.includes(job.id)} onCheckedChange={(checked) => handleJobSelection(job.id, checked as boolean)} />
                             <MoreHorizontal className="w-4 h-4 text-gray-400 hover:text-blue-600 cursor-pointer transition-colors" />
                           </div>
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           {job.job_url ? (
                             <a
                               href={job.job_url}
@@ -657,16 +665,16 @@ export function Dashboard({ }: DashboardProps) {
                             <div className="text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-200">{job.job_title}</div>
                           )}
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           <div className="text-sm font-semibold text-gray-900">{job.company}</div>
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-4 py-2 rounded-full shadow-sm">{job.salary || 'N/A'}</span>
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           <span className="text-sm font-semibold text-gray-900 bg-gray-100 px-4 py-2 rounded-full shadow-sm">{job.location || 'N/A'}</span>
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           <Select value={job.status} onValueChange={(value) => handleStatusUpdate(job.id, value as 'Bookmarked' | 'Applying' | 'Applied' | 'Interviewing' | 'Accepted')} disabled={updatingJobId === job.id}>
                             <SelectTrigger className={`w-auto border-0 p-0 h-auto ${getStatusColor(job.status)} rounded-full px-4 py-2 font-semibold text-sm hover:opacity-80 transition-opacity shadow-sm`}>
                               <SelectValue />
@@ -680,10 +688,10 @@ export function Dashboard({ }: DashboardProps) {
                             </SelectContent>
                           </Select>
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-gray-600">{job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-gray-600">{job.deadline || 'N/A'}</td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm font-semibold text-gray-600">{job.date_applied || 'N/A'}</td>
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap text-sm font-semibold text-gray-600">{job.created_at ? new Date(job.created_at).toLocaleDateString() : 'N/A'}</td>
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap text-sm font-semibold text-gray-600">{job.deadline || 'N/A'}</td>
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap text-sm font-semibold text-gray-600">{job.date_applied || 'N/A'}</td>
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           <div className="flex space-x-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
@@ -697,7 +705,7 @@ export function Dashboard({ }: DashboardProps) {
                             ))}
                           </div>
                         </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
+                        <td className="px-4 md:px-8 py-4 md:py-6 whitespace-nowrap">
                           <div className="flex space-x-2">
                             <Button
                               variant="ghost"

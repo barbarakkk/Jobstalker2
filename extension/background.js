@@ -3,8 +3,8 @@ console.log('JobStalker extension background script loaded');
 
 // Configuration
 const CONFIG = {
-  // Update this to your actual Vercel frontend URL
-  WEB_APP_URL: 'https://jobstalker2-barbare008-gmailcoms-projects.vercel.app',
+  // Deployed frontend URL
+  WEB_APP_URL: 'https://jobstalker.vercel.app',
   // Use your deployed backend URL so the extension can reach the API
   // Update this if your Railway domain is different
   API_BASE_URL: 'https://jobstalker2-production.up.railway.app',
@@ -443,8 +443,9 @@ async function reloadDashboardTabs() {
     });
     
     // Find JobStalker tabs (more flexible matching)
-    const jobstalkerTabs = tabs.filter(tab => 
+  const jobstalkerTabs = tabs.filter(tab => 
       tab.url && (
+        tab.url.includes('jobstalker.vercel.app') ||
         tab.url.includes('localhost:3000') || 
         tab.url.includes('127.0.0.1:3000') ||
         tab.url.includes('localhost:5173') ||
