@@ -516,7 +516,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                 className="h-8 w-auto"
               />
             </div>
-            <nav className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-8">
+            <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
               <a href="/dashboard" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Jobs</a>
               <a href="/statistics" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Statistics</a>
               <a href="/profile" className="text-blue-600 font-semibold">Profile</a>
@@ -526,6 +526,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                 Sign Out
               </Button>
             </div>
+          </div>
+        </div>
+        {/* Mobile nav */}
+        <div className="md:hidden px-4 pb-4 -mt-4">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <button onClick={() => navigate('/dashboard')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Jobs</button>
+            <button onClick={() => navigate('/statistics')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Statistics</button>
+            <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Profile</button>
           </div>
         </div>
       </header>
@@ -555,9 +563,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         </div>
       )}
 
-      <div className="flex">
+      <div className="flex flex-col md:flex-row">
         {/* Left Sidebar */}
-        <div className="w-80 bg-white border-r border-gray-200 min-h-screen p-6 space-y-6">
+        <div className="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-gray-200 md:min-h-screen p-4 md:p-6 space-y-6">
           {/* Profile Card */}
           <Card className="bg-white border border-gray-200 shadow-sm">
             <CardHeader className="pb-4">
@@ -751,9 +759,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-4 md:p-8">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-                                      <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200">
+            <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200">
                 <TabsTrigger value="skills" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600">Skills</TabsTrigger>
                 <TabsTrigger value="experience" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600">Experience</TabsTrigger>
                 <TabsTrigger value="account" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600">Account</TabsTrigger>
@@ -772,7 +780,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   {/* Add New Skill */}
-                  <div className="flex space-x-2">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
                     <Input
                       value={newSkill}
                       onChange={(e) => setNewSkill(e.target.value)}
@@ -780,7 +788,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                       className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     />
                     <Select value={newSkillLevel} onValueChange={(value: any) => setNewSkillLevel(value)}>
-                      <SelectTrigger className="w-32 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                      <SelectTrigger className="w-full sm:w-32 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -846,7 +854,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                 <CardContent className="space-y-4">
                   {experience.map((exp) => (
                     <div key={exp.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-                      <div className="flex items-start justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900">{exp.title}</h4>
                           <p className="text-gray-600">{exp.company}</p>
@@ -855,7 +863,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                           </p>
                           <p className="text-gray-700 mt-2 whitespace-pre-wrap">{exp.description}</p>
                         </div>
-                        <div className="flex space-x-2 ml-4">
+                        <div className="flex space-x-2 sm:ml-4">
                           <Button
                             size="sm"
                             variant="ghost"
@@ -910,7 +918,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                 <CardContent className="space-y-4">
                   {education.map((edu) => (
                     <div key={edu.id} className="border border-gray-200 rounded-lg p-4 bg-white">
-                      <div className="flex items-start justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900">{edu.degree}</h4>
                           <p className="text-gray-600">{edu.school}</p>
@@ -919,7 +927,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                             {formatDate(edu.start_date)} - {edu.end_date ? formatDate(edu.end_date) : 'Present'}
                           </p>
                         </div>
-                        <div className="flex space-x-2 ml-4">
+                        <div className="flex space-x-2 sm:ml-4">
                           <Button
                             size="sm"
                             variant="ghost"

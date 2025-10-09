@@ -85,7 +85,7 @@ export function Statistics() {
                 className="h-8 w-auto"
               />
             </div>
-            <nav className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-8">
+            <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
               <a
                 href="/dashboard"
                 className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
@@ -104,6 +104,14 @@ export function Statistics() {
                 Sign Out
               </Button>
             </div>
+          </div>
+        </div>
+        {/* Mobile nav */}
+        <div className="md:hidden px-4 pb-4 -mt-4">
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <button onClick={() => navigate('/dashboard')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Jobs</button>
+            <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Statistics</button>
+            <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Profile</button>
           </div>
         </div>
     </header>
@@ -339,7 +347,7 @@ export function Statistics() {
     <div className="min-h-screen bg-gray-50">
       {renderHeader()}
       
-      <div className="w-full px-4 py-8">
+      <div className="w-full px-4 md:px-6 lg:px-8 py-6 md:py-8">
         <div className="max-w-7xl mx-auto">
 
           {/* 1. Key Performance Indicators (KPIs) - The Big Picture */}
@@ -355,7 +363,9 @@ export function Statistics() {
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Job Status Distribution</h2>
             <p className="text-gray-600 mb-6">Visual breakdown of your job applications by status</p>
-            <JobStatusPieChart jobs={jobs} />
+            <div className="h-64 sm:h-72 md:h-80">
+              <JobStatusPieChart jobs={jobs} />
+            </div>
           </div>
 
           {/* 3. AI-Powered Insights & Recommendations */}
