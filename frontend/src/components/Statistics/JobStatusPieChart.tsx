@@ -127,7 +127,7 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
       },
     },
     cutout: '50%',
-    radius: '90%',
+    radius: '80%',
     animation: {
       animateRotate: true,
       animateScale: false,
@@ -220,55 +220,55 @@ export function JobStatusPieChart({ jobs }: JobStatusPieChartProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <CardContent className="p-4 sm:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
           {/* Pie Chart */}
           <div className="flex items-center justify-center">
-            <div className="relative z-0 w-full max-w-[360px] h-[320px] overflow-hidden">
+            <div className="relative w-full max-w-[240px] sm:max-w-[280px] h-[240px] sm:h-[280px] overflow-hidden">
               <Pie data={chartData} options={chartOptions} />
               {/* Center text */}
               <div className="absolute inset-0 flex items-center justify-center z-10">
-                <div className="text-center bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-full p-5 shadow-2xl border border-gray-200/50 min-w-[104px] min-h-[104px] flex flex-col items-center justify-center">
-                  <div className="text-3xl font-black text-gray-900 mb-1 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{jobs.length}</div>
-                  <div className="text-xs font-bold text-gray-600 uppercase tracking-widest">Total Jobs</div>
+                <div className="text-center bg-gradient-to-br from-white/95 to-gray-50/95 backdrop-blur-md rounded-full p-3 sm:p-4 shadow-2xl border border-gray-200/50 min-w-[70px] min-h-[70px] sm:min-w-[80px] sm:min-h-[80px] flex flex-col items-center justify-center">
+                  <div className="text-xl sm:text-2xl font-black text-gray-900 mb-1 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">{jobs.length}</div>
+                  <div className="text-[9px] sm:text-[10px] font-bold text-gray-600 uppercase tracking-widest">Total Jobs</div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Custom Legend */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Breakdown</h3>
-            <div className="space-y-3">
+          <div className="space-y-3 sm:space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Status Breakdown</h3>
+            <div className="space-y-2 sm:space-y-3">
               {statusData.map((item, index) => (
-                <div key={item.status} className="group flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200">
-                  <div className="flex items-center space-x-4">
-                    <div className={`p-3 rounded-2xl shadow-sm ${getStatusColor(item.status)} transform transition-transform duration-200 group-hover:scale-105`}>
+                <div key={item.status} className="group flex items-center justify-between p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg sm:rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-200">
+                  <div className="flex items-center space-x-3 sm:space-x-4">
+                    <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-sm ${getStatusColor(item.status)} transform transition-transform duration-200 group-hover:scale-105`}>
                       {getStatusIcon(item.status)}
                     </div>
                     <div>
-                      <p className="font-semibold text-gray-900 text-base">{item.status}</p>
-                      <p className="text-sm text-gray-600 font-medium">{item.percentage}% of total</p>
+                      <p className="font-semibold text-gray-900 text-sm sm:text-base">{item.status}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 font-medium">{item.percentage}% of total</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">{item.count}</p>
-                    <p className="text-xs text-gray-500 font-medium">job{item.count !== 1 ? 's' : ''}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{item.count}</p>
+                    <p className="text-[10px] sm:text-xs text-gray-500 font-medium">job{item.count !== 1 ? 's' : ''}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Summary Stats */}
-            <div className="mt-6 p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="p-2 bg-blue-200 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-blue-800" />
+            <div className="mt-4 sm:mt-6 p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg sm:rounded-xl border border-blue-200 shadow-sm">
+              <div className="flex items-center space-x-2 sm:space-x-3 mb-2 sm:mb-3">
+                <div className="p-1.5 sm:p-2 bg-blue-200 rounded-md sm:rounded-lg">
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-800" />
                 </div>
-                <span className="text-base font-semibold text-blue-900">Total Applications</span>
+                <span className="text-sm sm:text-base font-semibold text-blue-900">Total Applications</span>
               </div>
-              <div className="text-3xl font-bold text-blue-900 mb-1">{jobs.length}</div>
-              <p className="text-sm text-blue-800 font-medium">across all statuses</p>
+              <div className="text-2xl sm:text-3xl font-bold text-blue-900 mb-1">{jobs.length}</div>
+              <p className="text-xs sm:text-sm text-blue-800 font-medium">across all statuses</p>
             </div>
           </div>
         </div>

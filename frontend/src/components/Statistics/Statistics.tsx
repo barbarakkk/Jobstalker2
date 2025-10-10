@@ -8,6 +8,7 @@ import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
 
 // Import new components
 import { KPICards } from './KPICards';
+import { JobStatusPieChart } from './JobStatusPieChart';
 import { AIInsights } from './AIInsights';
 
 import {
@@ -346,24 +347,29 @@ export function Statistics() {
     <div className="min-h-screen bg-gray-50">
       {renderHeader()}
       
-      <div className="w-full px-4 md:px-6 lg:px-8 py-6 md:py-8">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <div className="max-w-7xl mx-auto">
 
           {/* 1. Key Performance Indicators (KPIs) - The Big Picture */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">Key Performance Indicators</h2>
-            <p className="text-gray-600 mb-6">High-level metrics that give you a quick health check of your job search</p>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Key Performance Indicators</h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">High-level metrics that give you a quick health check of your job search</p>
             <KPICards jobs={jobs} />
           </div>
 
 
 
-          {/* Job Status Distribution removed per request */}
+          {/* 2. Job Status Distribution */}
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Job Status Distribution</h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Visual breakdown of your job applications by status</p>
+            <JobStatusPieChart jobs={jobs} />
+          </div>
 
           {/* 3. AI-Powered Insights & Recommendations */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">AI-Powered Insights & Recommendations</h2>
-            <p className="text-gray-600 mb-6">Personalized advice to optimize your job search strategy</p>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">AI-Powered Insights & Recommendations</h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Personalized advice to optimize your job search strategy</p>
             <AIInsights jobs={jobs} />
           </div>
         </div>

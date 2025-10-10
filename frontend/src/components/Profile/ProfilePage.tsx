@@ -563,34 +563,34 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row">
+      <div className="flex flex-col lg:flex-row">
         {/* Left Sidebar */}
-        <div className="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-gray-200 md:min-h-screen p-4 md:p-6 space-y-6">
+        <div className="w-full lg:w-80 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 lg:min-h-screen p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
           {/* Profile Card */}
           <Card className="bg-white border border-gray-200 shadow-sm">
-            <CardHeader className="pb-4">
+            <CardHeader className="pb-3 sm:pb-4">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-gray-900">Profile</CardTitle>
+                <CardTitle className="text-base sm:text-lg text-gray-900">Profile</CardTitle>
                 <Button
                   onClick={handleRefreshProfile}
                   disabled={isLoading}
                   variant="outline"
                   size="sm"
-                  className="text-gray-600 hover:text-gray-800"
+                  className="text-gray-600 hover:text-gray-800 text-xs sm:text-sm"
                 >
                   {isLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                   ) : (
-                    'Refresh'
+                    <span className="hidden sm:inline">Refresh</span>
                   )}
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-6 pt-0">
+            <CardContent className="p-4 sm:p-6 pt-0">
               <div className="flex flex-col items-center space-y-4">
                 {/* Profile Picture */}
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                     {profilePicture ? (
                       <img 
                         src={profilePicture} 
@@ -605,18 +605,18 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                         }}
                       />
                     ) : (
-                      <User className="w-12 h-12 text-gray-400" />
+                      <User className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400" />
                     )}
                   </div>
                   <button
                     onClick={() => pictureInputRef.current?.click()}
                     disabled={uploadingPicture}
-                    className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 disabled:opacity-50"
+                    className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-1.5 sm:p-2 rounded-full hover:bg-blue-700 disabled:opacity-50"
                   >
                     {uploadingPicture ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                     ) : (
-                      <Camera className="w-4 h-4" />
+                      <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
                     )}
                   </button>
                   <input
@@ -759,36 +759,36 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-4 md:p-8">
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <div className="flex-1 p-3 sm:p-4 lg:p-8">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-6">
             <TabsList className="grid w-full grid-cols-3 bg-white border border-gray-200">
-                <TabsTrigger value="skills" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600">Skills</TabsTrigger>
-                <TabsTrigger value="experience" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600">Experience</TabsTrigger>
-                <TabsTrigger value="account" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600">Account</TabsTrigger>
+                <TabsTrigger value="skills" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 text-xs sm:text-sm">Skills</TabsTrigger>
+                <TabsTrigger value="experience" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 text-xs sm:text-sm">Experience</TabsTrigger>
+                <TabsTrigger value="account" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:border-blue-600 text-xs sm:text-sm">Account</TabsTrigger>
              </TabsList>
 
             
 
             {/* Skills Tab */}
-            <TabsContent value="skills" className="space-y-6">
+            <TabsContent value="skills" className="space-y-4 sm:space-y-6">
               <Card className="bg-white border border-gray-200 shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl font-semibold text-gray-900">Skills & Expertise</CardTitle>
-                  <CardDescription className="text-gray-600">
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900">Skills & Expertise</CardTitle>
+                  <CardDescription className="text-sm sm:text-base text-gray-600">
                     Add your technical and professional skills with proficiency levels
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
                   {/* Add New Skill */}
                   <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
                     <Input
                       value={newSkill}
                       onChange={(e) => setNewSkill(e.target.value)}
                       placeholder="Add a new skill..."
-                      className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base"
                     />
                     <Select value={newSkillLevel} onValueChange={(value: any) => setNewSkillLevel(value)}>
-                      <SelectTrigger className="w-full sm:w-32 border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                      <SelectTrigger className="w-full sm:w-32 border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -797,8 +797,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                         <SelectItem value="Expert">Expert</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button onClick={handleAddSkill} disabled={!newSkill.trim()} className="bg-blue-600 hover:bg-blue-700 text-white">
-                      <Plus className="w-4 h-4 mr-2" />
+                    <Button onClick={handleAddSkill} disabled={!newSkill.trim()} className="bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base">
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                       Add
                     </Button>
                   </div>
