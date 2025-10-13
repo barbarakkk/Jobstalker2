@@ -154,7 +154,7 @@ export function ModernJSONResume({ data, theme }: ModernJSONResumeProps = {}) {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Experience</h2>
           <div className="mt-3 space-y-4">
-            {r.work.map((w, i) => (
+            {r.work.map((w: any, i: number) => (
               <div key={i} className="text-sm">
                 <div className="font-semibold">{w.position}{w.name ? `, ${w.name}` : ''}</div>
                 <div className="text-xs text-gray-500">{[w.startDate, w.endDate].filter(Boolean).join(' — ')}</div>
@@ -170,7 +170,7 @@ export function ModernJSONResume({ data, theme }: ModernJSONResumeProps = {}) {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Education</h2>
           <div className="mt-3 space-y-3">
-            {r.education.map((e, i) => (
+            {r.education.map((e: any, i: number) => (
               <div key={i} className="text-sm">
                 <div className="font-semibold">{[e.studyType, e.area].filter(Boolean).join(', ')}{e.institution ? `, ${e.institution}` : ''}</div>
                 <div className="text-xs text-gray-500">{[e.startDate, e.endDate].filter(Boolean).join(' — ')}</div>
@@ -185,12 +185,12 @@ export function ModernJSONResume({ data, theme }: ModernJSONResumeProps = {}) {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Skills</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-            {r.skills.map((s, i) => (
+            {r.skills.map((s: any, i: number) => (
               <div key={i}>
                 <div className="text-xs font-semibold text-gray-700">{s.name}</div>
                 <div className="h-0.5 bg-gray-300 my-2" />
                 <div className="flex flex-wrap gap-2">
-                  {s.keywords.map((k, idx) => (
+                  {s.keywords.map((k: any, idx: number) => (
                     <span key={idx} className="px-2 py-0.5 text-xs rounded-full bg-gray-100 border text-gray-700">{k}</span>
                   ))}
                 </div>
@@ -205,7 +205,7 @@ export function ModernJSONResume({ data, theme }: ModernJSONResumeProps = {}) {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Languages</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 text-sm">
-            {r.languages.map((l, i) => (
+            {r.languages.map((l: any, i: number) => (
               <div key={i}>
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-gray-800">{l.language}</span>
