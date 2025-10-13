@@ -48,17 +48,22 @@ export function Login() {
     setLoading(true);
     
     try {
+      const redirectUrl = redirectUri || `${window.location.origin}/auth/callback`;
+      console.log('Google OAuth redirect URL:', redirectUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
-          redirectTo: redirectUri || window.location.origin
+          redirectTo: redirectUrl
         }
       });
       
       if (error) {
+        console.error('Google OAuth error:', error);
         setError('Google login failed. Please try again.');
       }
     } catch (err) {
+      console.error('Google OAuth exception:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -73,7 +78,7 @@ export function Login() {
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'github',
         options: {
-          redirectTo: redirectUri || `${window.location.origin}/dashboard`
+          redirectTo: redirectUri || `${window.location.origin}/auth/callback`
         }
       });
       
@@ -97,7 +102,7 @@ export function Login() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc' as any,
         options: {
-          redirectTo: redirectUri || `${window.location.origin}/dashboard`
+          redirectTo: redirectUri || `${window.location.origin}/auth/callback`
         }
       });
       

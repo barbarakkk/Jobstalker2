@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
+import { AppHeader } from '@/components/Layout/AppHeader';
 import { 
   MapPin, 
   Edit, 
@@ -505,38 +505,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {/* Header */}
-      <header className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="w-full py-6">
-          <div className="flex items-center px-4 relative">
-            <div className="flex items-center">
-              <img 
-                src={ColoredLogoHorizontal} 
-                alt="JobStalker" 
-                className="h-8 w-auto"
-              />
-            </div>
-            <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
-              <a href="/dashboard" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Jobs</a>
-              <a href="/statistics" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">Statistics</a>
-              <a href="/profile" className="text-blue-600 font-semibold">Profile</a>
-            </nav>
-            <div className="ml-auto pr-2">
-              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-        {/* Mobile nav */}
-        <div className="md:hidden px-4 pb-4 -mt-4">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <button onClick={() => navigate('/dashboard')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Jobs</button>
-            <button onClick={() => navigate('/statistics')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Statistics</button>
-            <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Profile</button>
-          </div>
-        </div>
-      </header>
+      <AppHeader active="profile" />
 
       {/* Success/Error Messages */}
       {successMessage && (

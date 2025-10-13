@@ -28,13 +28,23 @@ export function Header() {
         {/* Desktop Nav Links */}
         <div className="hidden md:flex gap-8">
           {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200"
-            >
-              {link.label}
-            </a>
+            link.href.startsWith('/') ? (
+              <Link
+                key={link.href}
+                to={link.href}
+                className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200"
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.href}
+                href={link.href}
+                className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200"
+              >
+                {link.label}
+              </a>
+            )
           ))}
         </div>
 
@@ -67,14 +77,25 @@ export function Header() {
       {isMobileMenuOpen && (
         <div className="md:hidden bg-white border-t border-gray-200 px-4 py-6 space-y-4">
           {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="block text-gray-600 hover:text-blue-600 font-medium py-2 transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              {link.label}
-            </a>
+            link.href.startsWith('/') ? (
+              <Link
+                key={link.href}
+                to={link.href}
+                className="block text-gray-600 hover:text-blue-600 font-medium py-2 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ) : (
+              <a
+                key={link.href}
+                href={link.href}
+                className="block text-gray-600 hover:text-blue-600 font-medium py-2 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                {link.label}
+              </a>
+            )
           ))}
           <div className="pt-4 space-y-3">
             <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>

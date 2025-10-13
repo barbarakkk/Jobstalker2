@@ -32,7 +32,7 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load job data when editing
+  // Load job data when editing - only reset when modal opens/closes or mode changes
   useEffect(() => {
     if (mode === 'edit' && jobToEdit) {
       setFormData({
@@ -47,8 +47,8 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
         deadline: jobToEdit.deadline || '',
         description: jobToEdit.description || ''
       });
-    } else {
-      // Reset form for add mode
+    } else if (mode === 'add' && isOpen) {
+      // Only reset form for add mode when modal is opened
       setFormData({
         job_title: '',
         company: '',
@@ -111,8 +111,26 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
     }
   };
 
+  const handleClose = () => {
+    // Reset form when closing modal
+    setFormData({
+      job_title: '',
+      company: '',
+      location: '',
+      salary: '',
+      job_url: '',
+      status: 'Bookmarked',
+      excitement_level: 3,
+      date_applied: '',
+      deadline: '',
+      description: ''
+    });
+    setError(null);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-2xl bg-white border border-gray-200">
         <DialogHeader className="space-y-3">
           <DialogTitle className="text-xl font-bold text-gray-900">
@@ -209,12 +227,12 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
                 <SelectTrigger className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Bookmarked">Bookmarked</SelectItem>
-                  <SelectItem value="Applying">Applying</SelectItem>
-                  <SelectItem value="Applied">Applied</SelectItem>
-                  <SelectItem value="Interviewing">Interviewing</SelectItem>
-                  <SelectItem value="Accepted">Accepted</SelectItem>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                  <SelectItem value="Bookmarked" className="hover:bg-gray-50 focus:bg-gray-50">Bookmarked</SelectItem>
+                  <SelectItem value="Applying" className="hover:bg-gray-50 focus:bg-gray-50">Applying</SelectItem>
+                  <SelectItem value="Applied" className="hover:bg-gray-50 focus:bg-gray-50">Applied</SelectItem>
+                  <SelectItem value="Interviewing" className="hover:bg-gray-50 focus:bg-gray-50">Interviewing</SelectItem>
+                  <SelectItem value="Accepted" className="hover:bg-gray-50 focus:bg-gray-50">Accepted</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -227,12 +245,12 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
                 <SelectTrigger className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500">
                   <SelectValue placeholder="Select rating" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">⭐ 1 - Not excited</SelectItem>
-                  <SelectItem value="2">⭐⭐ 2 - Somewhat interested</SelectItem>
-                  <SelectItem value="3">⭐⭐⭐ 3 - Interested</SelectItem>
-                  <SelectItem value="4">⭐⭐⭐⭐ 4 - Very excited</SelectItem>
-                  <SelectItem value="5">⭐⭐⭐⭐⭐ 5 - Dream job!</SelectItem>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                  <SelectItem value="1" className="hover:bg-gray-50 focus:bg-gray-50">⭐ 1 - Not excited</SelectItem>
+                  <SelectItem value="2" className="hover:bg-gray-50 focus:bg-gray-50">⭐⭐ 2 - Somewhat interested</SelectItem>
+                  <SelectItem value="3" className="hover:bg-gray-50 focus:bg-gray-50">⭐⭐⭐ 3 - Interested</SelectItem>
+                  <SelectItem value="4" className="hover:bg-gray-50 focus:bg-gray-50">⭐⭐⭐⭐ 4 - Very excited</SelectItem>
+                  <SelectItem value="5" className="hover:bg-gray-50 focus:bg-gray-50">⭐⭐⭐⭐⭐ 5 - Dream job!</SelectItem>
                 </SelectContent>
               </Select>
             </div>

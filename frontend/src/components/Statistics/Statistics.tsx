@@ -4,7 +4,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { jobApi } from '@/lib/api';
 import { Job } from '@/lib/types';
 import { useNavigate } from 'react-router-dom';
-import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
+import { AppHeader } from '@/components/Layout/AppHeader';
 
 // Import new components
 import { KPICards } from './KPICards';
@@ -73,54 +73,11 @@ export function Statistics() {
     fetchJobs();
   }, []);
 
-  // Common header component to avoid duplication
-  const renderHeader = () => (
-    <header className="w-full bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-        <div className="w-full py-6">
-          <div className="flex items-center px-4 relative">
-            <div className="flex items-center">
-              <img 
-                src={ColoredLogoHorizontal} 
-                alt="JobStalker" 
-                className="h-8 w-auto"
-              />
-            </div>
-            <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
-              <a
-                href="/dashboard"
-                className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
-                onClick={(e) => {
-                  e.preventDefault();
-                  navigate('/dashboard');
-                }}
-              >
-                Jobs
-              </a>
-              <a href="#" className="text-blue-600 font-semibold">Statistics</a>
-              <a href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors font-medium" onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>Profile</a>
-            </nav>
-            <div className="ml-auto pr-2">
-              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-        {/* Mobile nav */}
-        <div className="md:hidden px-4 pb-4 -mt-4">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <button onClick={() => navigate('/dashboard')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Jobs</button>
-            <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Statistics</button>
-            <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Profile</button>
-          </div>
-        </div>
-    </header>
-  );
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans">
-        {renderHeader()}
+        <AppHeader active="statistics" />
         
         <div className="flex justify-center items-center h-96">
           <div className="text-center space-y-4">
@@ -137,7 +94,7 @@ export function Statistics() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans">
-        {renderHeader()}
+        <AppHeader active="statistics" />
         
         <div className="flex justify-center items-center h-96">
           <div className="text-center space-y-4 max-w-md">
@@ -162,7 +119,7 @@ export function Statistics() {
   if (jobs.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans">
-        {renderHeader()}
+        <AppHeader active="statistics" />
         
         <div className="w-full px-8 py-12">
           <div className="max-w-7xl mx-auto">
@@ -345,7 +302,7 @@ export function Statistics() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {renderHeader()}
+      <AppHeader active="statistics" />
       
       <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         <div className="max-w-7xl mx-auto">
