@@ -90,6 +90,24 @@ export function Dashboard({ }: DashboardProps) {
   useEffect(() => {
     if (!user?.id) return;
 
+    // In production, allow disabling realtime entirely via env flag to avoid noisy WS errors
+    const enableRealtime = import.meta.env.MODE !== 'production' || import.meta.env.VITE_ENABLE_REALTIME === 'true';
+    if (!enableRealtime) {
+      // Start polling immediately when realtime is disabled
+      const id = window.setInterval(() => {
+        if (!isJobModalOpen) {
+          loadJobs();
+        }
+      }, 15000);
+      pollingRef._jobsPolling = id;
+      setIsPolling(true);
+      return () => {
+        if (pollingRef._jobsPolling) window.clearInterval(pollingRef._jobsPolling);
+        pollingRef._jobsPolling = undefined;
+        setIsPolling(false);
+      };
+    }
+
     const startPolling = () => {
       if (!isPolling) {
         const id = window.setInterval(() => {
