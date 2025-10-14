@@ -14,11 +14,9 @@ export function LandingPage() {
       try {
         // Check if this is an OAuth callback (has hash fragment with auth data)
         const hash = window.location.hash;
-        if (hash && (hash.includes('access_token') || hash.includes('refresh_token'))) {
-          console.log('OAuth callback detected, processing...');
-          // This is an OAuth callback, let the auth state change handler deal with it
-          // Clear the hash to clean up the URL
-          window.history.replaceState(null, '', window.location.pathname);
+        if (hash && (hash.includes('access_token') || hash.includes('refresh_token') || hash.includes('code'))) {
+          // Forward to dedicated handler so it can finalize session and redirect
+          navigate('/auth/callback');
           return;
         }
 
