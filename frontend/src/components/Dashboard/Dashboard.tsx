@@ -43,6 +43,9 @@ export function Dashboard({ }: DashboardProps) {
   const [showNewJobNotification, setShowNewJobNotification] = useState(false);
   const [newJobCount, setNewJobCount] = useState(0);
   const navigate = useNavigate();
+  // Polling fallback for when Supabase Realtime is unavailable
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingRef = (typeof window !== 'undefined' ? (window as any) : {}) as { _jobsPolling?: number };
 
   // Load jobs from API
   const loadJobs = async () => {
@@ -83,9 +86,29 @@ export function Dashboard({ }: DashboardProps) {
   }, []);
 
 
-  // Realtime: auto-refresh when jobs change for this user
+  // Realtime: auto-refresh when jobs change for this user with polling fallback
   useEffect(() => {
     if (!user?.id) return;
+
+    const startPolling = () => {
+      if (!isPolling) {
+        const id = window.setInterval(() => {
+          if (!isJobModalOpen) {
+            loadJobs();
+          }
+        }, 15000);
+        pollingRef._jobsPolling = id;
+        setIsPolling(true);
+      }
+    };
+
+    const stopPolling = () => {
+      if (pollingRef._jobsPolling) {
+        window.clearInterval(pollingRef._jobsPolling);
+        pollingRef._jobsPolling = undefined;
+      }
+      if (isPolling) setIsPolling(false);
+    };
 
     const channel = supabase
       .channel('jobs-changes')
@@ -100,10 +123,24 @@ export function Dashboard({ }: DashboardProps) {
           loadJobs();
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Realtime connected; ensure polling is off
+          stopPolling();
+        }
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Start polling if we cannot maintain a realtime connection
+          startPolling();
+        }
+      });
+
+    // Safety: if not subscribed within 5s, start polling
+    const subscribeTimeout = window.setTimeout(() => startPolling(), 5000);
 
     return () => {
       supabase.removeChannel(channel);
+      window.clearTimeout(subscribeTimeout);
+      stopPolling();
     };
   }, [user?.id, isJobModalOpen]);
 
