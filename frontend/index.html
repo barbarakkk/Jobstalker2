@@ -14,6 +14,21 @@
 
   </head>
   <body>
+    <script>
+      (function () {
+        try {
+          var hash = window.location.hash || '';
+          if (hash.indexOf('access_token=') !== -1 || hash.indexOf('refresh_token=') !== -1 || hash.indexOf('code=') !== -1) {
+            // Redirect immediately to the callback route so the app can process the session
+            var target = '/auth/callback' + (hash ? hash : '');
+            // Use replace so the landing page is not left in history
+            window.location.replace(target);
+          }
+        } catch (e) {
+          // no-op
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
