@@ -8,7 +8,26 @@ export function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Get the session from the URL hash/fragment
+        // First, handle PKCE/code flow if present
+        const url = new URL(window.location.href);
+        const hasCode = !!url.searchParams.get('code');
+        const hasError = !!url.searchParams.get('error');
+
+        if (hasError) {
+          navigate('/login?error=auth_failed');
+          return;
+        }
+
+        if (hasCode) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(url.href);
+          if (exchangeError) {
+            console.error('Auth code exchange error:', exchangeError);
+            navigate('/login?error=auth_failed');
+            return;
+          }
+        }
+
+        // Fallback: if provider used implicit flow (hash tokens), supabase-js already picked it up
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
