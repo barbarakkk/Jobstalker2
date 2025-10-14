@@ -1,6 +1,6 @@
-import { toJSONResume } from '../../../lib/jsonresume';
+import { toJSONResume } from '@/lib/jsonresume';
 import { useResumeBuilder } from '../context/ResumeBuilderContext';
-import type { ResumeData } from '../../../types/resume';
+import type { ResumeData } from '@/types/resume';
 
 interface ModernJSONResumeProps {
   data?: ResumeData;
