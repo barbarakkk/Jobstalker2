@@ -3,9 +3,15 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 import openai
 import os
+import sys
 import json
 from datetime import datetime
 from uuid import UUID
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from supabase_client import supabase
 from models import ResumeBuilderData, SaveResumeRequest, UpdateResumeRequest, ResumeBuilderItem, SaveResumeResponse
 
