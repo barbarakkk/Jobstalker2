@@ -1,19 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import type { ResumeData, PersonalInfo, WorkExperience, Education, Skill } from '@/types/resume';
+import { supabase } from '@/lib/supabaseClient';
 
-type ResumeTemplateId = 
-  | 'modern-pro' 
-  | 'classic-executive' 
-  | 'tech-min'
-  | 'jsonresume-theme-modern'
-  | 'jsonresume-theme-flat'
-  | 'jsonresume-theme-elegant'
-  | 'jsonresume-theme-classy'
-  | 'jsonresume-theme-kendall'
-  | 'jsonresume-theme-stackoverflow'
-  | 'jsonresume-theme-paper'
-  | 'jsonresume-theme-short'
-  | 'jsonresume-theme-spartan';
+type ResumeTemplateId = string;
 
 interface ResumeBuilderContextValue {
   selectedTemplate: ResumeTemplateId;
@@ -27,10 +16,23 @@ interface ResumeBuilderContextValue {
   addSkill: (skill: Skill) => void;
   removeSkill: (id: string) => void;
   setSummary: (summary: string) => void;
+  replaceResumeData: (data: ResumeData) => void; // Add function to replace entire resume data
   currentStep: number;
   setCurrentStep: (s: number) => void;
   isDirty: boolean;
   lastSaved?: number;
+  // AI generation methods
+  generateWithAI: (formData: any) => Promise<string | null>; // Returns saved resume ID
+  isAIGenerated: boolean;
+  aiGenerationInProgress: boolean;
+  // Resume persistence methods
+  currentResumeId: string | null;
+  setCurrentResumeId: (id: string | null) => void;
+  saveResume: (title: string, templateId: string, resumeData: ResumeData) => Promise<string>;
+  updateResume: (resumeId: string, title?: string, resumeData?: ResumeData) => Promise<void>;
+  loadResume: (resumeId: string) => Promise<void>;
+  listResumes: () => Promise<any[]>;
+  deleteResume: (resumeId: string) => Promise<void>;
 }
 
 const defaultData: ResumeData = {
@@ -52,11 +54,14 @@ const defaultData: ResumeData = {
 const ResumeBuilderContext = createContext<ResumeBuilderContextValue | undefined>(undefined);
 
 export function ResumeBuilderProvider({ children }: { children: React.ReactNode }) {
-  const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplateId>('jsonresume-theme-modern');
+  const [selectedTemplate, setSelectedTemplate] = useState<ResumeTemplateId>('');
   const [resumeData, setResumeData] = useState<ResumeData>(defaultData);
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [isDirty, setIsDirty] = useState<boolean>(false);
   const [lastSaved, setLastSaved] = useState<number | undefined>(undefined);
+  const [isAIGenerated, setIsAIGenerated] = useState<boolean>(false);
+  const [aiGenerationInProgress, setAiGenerationInProgress] = useState<boolean>(false);
+  const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
 
   const debouncedTimerRef = useRef<number | undefined>(undefined);
 
@@ -111,6 +116,215 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
     markDirty();
   }, [markDirty]);
 
+  const replaceResumeData = useCallback((data: ResumeData) => {
+    console.log('Context - Replacing resume data with:', data);
+    setResumeData(data);
+    markDirty();
+    console.log('Context - Resume data replaced successfully');
+  }, [markDirty]);
+
+  const getAuthToken = useCallback(async (): Promise<string | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  }, []);
+
+  const saveResume = useCallback(async (title: string, templateId: string, data: ResumeData): Promise<string> => {
+    try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/resume-builder/save', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          template_id: templateId,
+          title: title || `Resume - ${new Date().toLocaleDateString()}`,
+          resume_data: data,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save resume');
+      }
+
+      const result = await response.json();
+      const savedId = result.id;
+      setCurrentResumeId(savedId);
+      console.log('Context - Resume saved with ID:', savedId);
+      return savedId;
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  const updateResume = useCallback(async (resumeId: string, title?: string, data?: ResumeData): Promise<void> => {
+    try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const updatePayload: any = {};
+      if (title !== undefined) updatePayload.title = title;
+      if (data !== undefined) updatePayload.resume_data = data;
+
+      const response = await fetch(`/api/resume-builder/${resumeId}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(updatePayload),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update resume');
+      }
+
+      console.log('Context - Resume updated:', resumeId);
+    } catch (error) {
+      console.error('Error updating resume:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  const loadResume = useCallback(async (resumeId: string): Promise<void> => {
+    try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`/api/resume-builder/${resumeId}`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load resume');
+      }
+
+      const result = await response.json();
+      setResumeData(result.resume_data as ResumeData);
+      setSelectedTemplate(result.template_id);
+      setCurrentResumeId(resumeId);
+      setIsAIGenerated(true);
+      console.log('Context - Resume loaded:', resumeId);
+    } catch (error) {
+      console.error('Error loading resume:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  const listResumes = useCallback(async (): Promise<any[]> => {
+    try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/resume-builder/list', {
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to list resumes');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error listing resumes:', error);
+      throw error;
+    }
+  }, [getAuthToken]);
+
+  const deleteResume = useCallback(async (resumeId: string): Promise<void> => {
+    try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`/api/resume-builder/${resumeId}`, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete resume');
+      }
+
+      if (currentResumeId === resumeId) {
+        setCurrentResumeId(null);
+        setResumeData(defaultData);
+      }
+      console.log('Context - Resume deleted:', resumeId);
+    } catch (error) {
+      console.error('Error deleting resume:', error);
+      throw error;
+    }
+  }, [currentResumeId]);
+
+  const generateWithAI = useCallback(async (formData: any): Promise<string | null> => {
+    setAiGenerationInProgress(true);
+    try {
+      const token = await getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch('/api/ai/generate-resume', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        console.error('Generate resume error:', response.status, errorData);
+        throw new Error(errorData.detail || `Failed to generate resume (${response.status})`);
+      }
+
+      const result = await response.json();
+      setResumeData(result.resumeData);
+      setIsAIGenerated(true);
+      markDirty();
+
+      // Auto-save to database
+      try {
+        const savedResumeId = await saveResume(
+          `Resume - ${new Date().toLocaleDateString()}`,
+          formData.templateId,
+          result.resumeData
+        );
+        console.log('Context - Resume auto-saved with ID:', savedResumeId);
+        return savedResumeId;
+      } catch (saveError) {
+        console.error('Error auto-saving resume:', saveError);
+        // Don't throw - generation succeeded, just saving failed
+        return null;
+      }
+    } catch (error) {
+      console.error('Error generating resume:', error);
+      throw error;
+    } finally {
+      setAiGenerationInProgress(false);
+    }
+  }, [markDirty, saveResume, getAuthToken]);
+
+
   const value = useMemo<ResumeBuilderContextValue>(() => ({
     selectedTemplate,
     setSelectedTemplate,
@@ -123,10 +337,21 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
     addSkill,
     removeSkill,
     setSummary,
+    replaceResumeData,
     currentStep,
     setCurrentStep,
     isDirty,
     lastSaved,
+    generateWithAI,
+    isAIGenerated,
+    aiGenerationInProgress,
+    currentResumeId,
+    setCurrentResumeId,
+    saveResume,
+    updateResume,
+    loadResume,
+    listResumes,
+    deleteResume,
   }), [
     selectedTemplate,
     resumeData,
@@ -138,9 +363,19 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
     addSkill,
     removeSkill,
     setSummary,
+    replaceResumeData,
     currentStep,
     isDirty,
     lastSaved,
+    generateWithAI,
+    isAIGenerated,
+    aiGenerationInProgress,
+    currentResumeId,
+    saveResume,
+    updateResume,
+    loadResume,
+    listResumes,
+    deleteResume,
   ]);
 
   return (

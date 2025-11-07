@@ -28,7 +28,7 @@ export function SkillsSection({ data, config, style }: SkillsSectionProps) {
         <h2 
           className="text-xl font-bold mb-4"
           style={{ 
-            color: style?.color || config?.style?.color || primaryColor,
+            color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem'
           }}
@@ -43,7 +43,7 @@ export function SkillsSection({ data, config, style }: SkillsSectionProps) {
             className="px-3 py-1 text-xs rounded-full font-medium border"
             style={{
               backgroundColor: `${primaryColor}15`,
-              color: primaryColor,
+              color: String(primaryColor),
               borderColor: `${primaryColor}40`
             }}
           >

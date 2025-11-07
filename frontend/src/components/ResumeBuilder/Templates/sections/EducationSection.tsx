@@ -28,7 +28,7 @@ export function EducationSection({ data, config, style }: EducationSectionProps)
         <h2 
           className="text-xl font-bold mb-4"
           style={{ 
-            color: style?.color || config?.style?.color || primaryColor,
+            color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem'
           }}
@@ -39,9 +39,9 @@ export function EducationSection({ data, config, style }: EducationSectionProps)
       <div className="space-y-3">
         {education.map((edu) => (
           <div key={edu.id} className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
-            <div className="font-semibold text-sm text-gray-900" style={{ color: primaryColor }}>{edu.degree}</div>
+            <div className="font-semibold text-sm text-gray-900" style={{ color: String(primaryColor) }}>{edu.degree}</div>
             {edu.field && (
-              <div className="text-sm" style={{ color: primaryColor, opacity: 0.8 }}>{edu.field}</div>
+              <div className="text-sm" style={{ color: String(primaryColor), opacity: 0.8 }}>{edu.field}</div>
             )}
             <div className="text-xs text-gray-600 mt-1">{edu.school}</div>
             <div className="text-xs text-gray-500 mt-1">{edu.startDate} — {edu.endDate}</div>

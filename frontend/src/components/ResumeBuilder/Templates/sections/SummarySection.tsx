@@ -26,7 +26,7 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
         <h2 
           className="text-xl font-bold mb-3"
           style={{ 
-            color: style?.color || config?.style?.color || primaryColor,
+            color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem'
           }}

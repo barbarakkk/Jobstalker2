@@ -1,45 +1,112 @@
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { renderTemplate } from '@/components/ResumeBuilder/Templates/templateRegistry';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { EditorToolbar } from '@/components/ResumeBuilder/EditorToolbar';
+import { TemplateRenderer } from '@/components/ResumeBuilder/Templates/TemplateRenderer';
+import { Save, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 export function ResumeEditPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const template = searchParams.get('template') || 'modern-pro';
-  const { resumeData, updatePersonalInfo, addWorkExperience, removeWorkExperience } = useResumeBuilder();
+  const { state } = useLocation() as any;
+  const { 
+    resumeData, 
+    replaceResumeData, 
+    selectedTemplate,
+    currentResumeId,
+    setCurrentResumeId,
+    loadResume,
+    saveResume,
+    updateResume,
+    isDirty
+  } = useResumeBuilder() as any;
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  
+  // Get template ID from URL params or context, default to modern-professional
+  const templateId = searchParams.get('template') || selectedTemplate || 'modern-professional';
+  
+  // Get resume ID from URL params
+  const resumeIdFromUrl = searchParams.get('resume');
 
-  const demoData = resumeData && (resumeData.personalInfo.firstName || resumeData.workExperience.length || resumeData.skills.length)
-    ? resumeData
-    : {
-        personalInfo: {
-          firstName: 'Barbara',
-          lastName: 'Kavtaradze',
-          email: 'barbara008@gmail.com',
-          phone: '+995 555 000 000',
-          location: 'Tbilisi, Tbilisi',
-          jobTitle: 'Software Engineer',
-          linkedin: 'linkedin.com/in/barbarak',
-          website: 'barbarak.dev',
-        },
-        summary: 'A highly motivated and results-driven analyst with a strong software background and strategic mindset. Skilled in front-end and back-end technologies and experienced in product management, UX, and database tools.',
-        workExperience: [
-          { id: 'w1', title: 'Analyst', company: 'Corvis', location: '', startDate: '2023-01', endDate: '2024-12', isCurrent: false, description: 'Conduct data analysis and generate actionable insights to support business decisions. Collaborate with cross-functional teams to optimize processes and improve performance.' },
-          { id: 'w2', title: 'Freelance Career Consultant', company: '', location: '', startDate: '2023', endDate: '2024', isCurrent: false, description: 'Provided career consulting services to job seekers; personalized career plans and interview preparation.' },
-        ],
-        education: [
-          { id: 'e1', school: 'State University', degree: 'B.S.', field: 'Computer Science', startDate: '2017', endDate: '2020' },
-        ],
-        skills: [
-          { id: 's1', name: 'JavaScript', category: 'Technical' },
-          { id: 's2', name: 'React', category: 'Technical' },
-          { id: 's3', name: 'SQL', category: 'Technical' },
-          { id: 's4', name: 'Communication', category: 'Soft Skills' },
-        ],
-        languages: [{ name: 'English', proficiency: 'Fluent' }, { name: 'Georgian', proficiency: 'Native' }],
-      } as any;
+  // Load resume if ID is in URL and not already loaded
+  useEffect(() => {
+    if (resumeIdFromUrl && resumeIdFromUrl !== currentResumeId) {
+      console.log('Edit Page - Loading resume from URL:', resumeIdFromUrl);
+      loadResume(resumeIdFromUrl).catch((error: unknown) => {
+        console.error('Error loading resume:', error);
+      });
+    }
+  }, [resumeIdFromUrl, currentResumeId, loadResume]);
+
+  // If navigation provided fresh data, hydrate context once
+  useEffect(() => {
+    if (state?.injectedResumeData) {
+      console.log('Edit Page - Injecting fresh resume data from navigation:', state.injectedResumeData);
+      replaceResumeData(state.injectedResumeData);
+      // clear state reference so we do not loop
+      state.injectedResumeData = undefined;
+    }
+  }, [state?.injectedResumeData, replaceResumeData]);
+
+  const handleAutoSave = async () => {
+    if (!currentResumeId || !resumeData) return;
+
+    try {
+      await updateResume(currentResumeId, undefined, resumeData);
+      console.log('Edit Page - Auto-saved resume');
+    } catch (error) {
+      console.error('Error auto-saving resume:', error);
+    }
+  };
+
+  // Auto-save on changes (debounced)
+  useEffect(() => {
+    if (isDirty && currentResumeId && resumeData) {
+      const timer = setTimeout(() => {
+        handleAutoSave();
+      }, 30000); // Auto-save after 30 seconds of inactivity
+
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, currentResumeId]);
+
+  const handleManualSave = async () => {
+    setIsSaving(true);
+    setSaveStatus('saving');
+
+    try {
+      if (currentResumeId) {
+        // Update existing resume
+        await updateResume(currentResumeId, undefined, resumeData);
+        setSaveStatus('saved');
+      } else {
+        // Save new resume
+        const savedId = await saveResume(
+          `Resume - ${new Date().toLocaleDateString()}`,
+          templateId,
+          resumeData
+        );
+        setCurrentResumeId(savedId);
+        setSaveStatus('saved');
+        // Update URL with resume ID
+        navigate(`/resume-builder/edit?resume=${savedId}&template=${encodeURIComponent(templateId)}`, { replace: true });
+      }
+      
+      // Clear save status after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -47,46 +114,56 @@ export function ResumeEditPage() {
       <div className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Edit Resume</h1>
-        <Button onClick={() => navigate('/resume-builder/finalize')}>Finalize</Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            onClick={handleManualSave}
+            disabled={isSaving || !resumeData}
+            className="flex items-center gap-2"
+            variant={saveStatus === 'saved' ? 'default' : saveStatus === 'error' ? 'destructive' : 'default'}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : saveStatus === 'saved' ? (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Saved
+              </>
+            ) : saveStatus === 'error' ? (
+              <>
+                <AlertCircle className="h-4 w-4" />
+                Error
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save
+              </>
+            )}
+          </Button>
+          <Button onClick={() => navigate('/resume-builder/finalize')}>Finalize</Button>
+        </div>
       </div>
       <div className="space-y-4">
         <EditorToolbar onReset={() => window.location.reload()} />
-        {/* Live Preview - Full Width */}
-        <div className="bg-gray-100 p-8 rounded-lg border overflow-auto relative">
+        {/* Live Preview - Responsive */}
+        <div className="bg-gray-100 p-4 rounded-lg border overflow-auto relative">
           {/* Edit Mode Indicator */}
           <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium z-10">
             Edit Mode: ON
           </div>
           
-          <div className="mx-auto w-[1000px] max-w-full">
-            <div className="bg-white p-8 rounded-md border border-gray-300 shadow">
-              <div className="origin-top-left inline-block">
-                {renderTemplate(template as any, demoData, {
-                  onUpdatePersonalInfo: updatePersonalInfo,
-                  onAddExperience: () => addWorkExperience({
-                    id: `w${Date.now()}`,
-                    title: '',
-                    company: '',
-                    location: '',
-                    startDate: '',
-                    endDate: '',
-                    isCurrent: false,
-                    description: ''
-                  }),
-                  onUpdateExperience: (id: string, updates: any) => {
-                    // TODO: Implement update experience
-                    console.log('Update experience:', id, updates);
-                  },
-                  onRemoveExperience: removeWorkExperience,
-                  onAddEducation: () => {
-                    // TODO: Implement add education
-                    console.log('Add education');
-                  },
-                  onAddSkill: () => {
-                    // TODO: Implement add skill
-                    console.log('Add skill');
-                  }
-                })}
+          <div className="mx-auto max-w-4xl resume-edit-container">
+            <div className="bg-white rounded-md border border-gray-300 shadow">
+              <div className="p-6" key={`resume-${resumeData?.personalInfo?.email || 'default'}-${resumeData?.summary?.length || 0}-${templateId}`}>
+                {resumeData && (
+                  <TemplateRenderer 
+                    templateId={templateId}
+                    data={resumeData}
+                  />
+                )}
               </div>
             </div>
           </div>

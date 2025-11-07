@@ -28,7 +28,7 @@ export function LanguagesSection({ data, config, style }: LanguagesSectionProps)
         <h2 
           className="text-xl font-bold mb-4"
           style={{ 
-            color: style?.color || config?.style?.color || primaryColor,
+            color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem'
           }}
@@ -43,7 +43,7 @@ export function LanguagesSection({ data, config, style }: LanguagesSectionProps)
             <span 
               className="text-xs px-2 py-1 rounded font-medium"
               style={{
-                color: primaryColor,
+                color: String(primaryColor),
                 backgroundColor: `${primaryColor}15`,
                 border: `1px solid ${primaryColor}40`
               }}
