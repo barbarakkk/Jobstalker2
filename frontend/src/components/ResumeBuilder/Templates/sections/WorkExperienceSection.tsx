@@ -29,7 +29,7 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
         <h2 
           className="text-xl font-bold mb-4"
           style={{ 
-            color: style?.color || config?.style?.color || primaryColor,
+            color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem'
           }}
@@ -42,9 +42,9 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
           <div key={work.id} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
             <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
               <div className="flex-1">
-              <div className="font-semibold text-gray-900" style={{ color: primaryColor }}>{work.title}</div>
+              <div className="font-semibold text-gray-900" style={{ color: String(primaryColor) }}>{work.title}</div>
               {work.company && (
-                <div className="font-medium text-sm" style={{ color: primaryColor, opacity: 0.8 }}>{work.company}</div>
+                <div className="font-medium text-sm" style={{ color: String(primaryColor), opacity: 0.8 }}>{work.company}</div>
               )}
               </div>
               <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">

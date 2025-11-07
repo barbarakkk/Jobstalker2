@@ -16,7 +16,7 @@ export function applyStyles(config: StyleConfig | undefined, baseStyles: React.C
     if (value !== undefined) {
       // Convert kebab-case to camelCase for CSS properties
       const camelKey = key.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-      style[camelKey as keyof React.CSSProperties] = value as string | number;
+      style[camelKey as keyof React.CSSProperties] = String(value) as any;
     }
   });
   
