@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,143 +43,107 @@ export function Dashboard({ }: DashboardProps) {
   const [showNewJobNotification, setShowNewJobNotification] = useState(false);
   const [newJobCount, setNewJobCount] = useState(0);
   const navigate = useNavigate();
-  // Polling fallback for when Supabase Realtime is unavailable
-  const [isPolling, setIsPolling] = useState(false);
-  const pollingRef = (typeof window !== 'undefined' ? (window as any) : {}) as { _jobsPolling?: number };
 
-  // Load jobs from API
-  const loadJobs = async () => {
+  // Use ref to track if we're currently loading to prevent duplicate calls
+  const isLoadingRef = useRef(false);
+  
+  // Load jobs from API - memoized to prevent unnecessary re-renders
+  const loadJobs = useCallback(async () => {
+    // Prevent duplicate concurrent calls
+    if (isLoadingRef.current) {
+      console.log('loadJobs: Already loading, skipping duplicate call');
+      return;
+    }
+    
+    isLoadingRef.current = true;
     setLoading(true);
     setError(null);
     try {
-      const previousJobCount = jobs.length;
       const jobsData = await jobApi.getJobs();
-      setJobs(jobsData);
-      setLastRefreshTime(new Date());
       
-      // Show notification if new jobs were added
-      if (jobsData.length > previousJobCount && previousJobCount > 0) {
-        const newJobs = jobsData.length - previousJobCount;
-        setNewJobCount(newJobs);
-        setShowNewJobNotification(true);
+      // Use functional update to safely compare counts and update state
+      setJobs(prevJobs => {
+        const previousJobCount = prevJobs.length;
+        setLastRefreshTime(new Date());
         
-        // Hide notification after 3 seconds
-        setTimeout(() => {
-          setShowNewJobNotification(false);
-        }, 3000);
-      }
+        // Show notification if new jobs were added
+        if (jobsData.length > previousJobCount && previousJobCount > 0) {
+          const newJobs = jobsData.length - previousJobCount;
+          setNewJobCount(newJobs);
+          setShowNewJobNotification(true);
+          
+          // Hide notification after 3 seconds
+          setTimeout(() => {
+            setShowNewJobNotification(false);
+          }, 3000);
+        }
+        
+        return jobsData;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load jobs');
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
-  };
+  }, []); // Empty deps - function never changes
 
   useEffect(() => {
+    // Only load jobs once on mount - no dependencies to prevent re-runs
     loadJobs();
+    
     // Get current user
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
     };
     getUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
+
+
+  // Realtime: COMPLETELY DISABLED to prevent auto-refreshes
+  // Users can manually refresh using the refresh button
+  // This prevents annoying automatic page refreshes
+  useEffect(() => {
+    // Realtime subscription is completely disabled
+    // No auto-refresh - users must click the refresh button manually
+    // This ensures a smooth, non-interruptive experience
+    
+    // If you need realtime updates in the future, uncomment below and use debouncing:
+    // const enableRealtime = import.meta.env.MODE !== 'production' || import.meta.env.VITE_ENABLE_REALTIME === 'true';
+    // if (enableRealtime && user?.id) {
+    //   // Setup realtime subscription with aggressive debouncing
+    // }
+    
+    return () => {
+      // No cleanup needed since we're not subscribing
+    };
   }, []);
 
 
-  // Realtime: auto-refresh when jobs change for this user with polling fallback
-  useEffect(() => {
-    if (!user?.id) return;
-
-    // In production, allow disabling realtime entirely via env flag to avoid noisy WS errors
-    const enableRealtime = import.meta.env.MODE !== 'production' || import.meta.env.VITE_ENABLE_REALTIME === 'true';
-    if (!enableRealtime) {
-      // Start polling immediately when realtime is disabled
-      const id = window.setInterval(() => {
-        if (!isJobModalOpen) {
-          loadJobs();
-        }
-      }, 15000);
-      pollingRef._jobsPolling = id;
-      setIsPolling(true);
-      return () => {
-        if (pollingRef._jobsPolling) window.clearInterval(pollingRef._jobsPolling);
-        pollingRef._jobsPolling = undefined;
-        setIsPolling(false);
-      };
-    }
-
-    const startPolling = () => {
-      if (!isPolling) {
-        const id = window.setInterval(() => {
-          if (!isJobModalOpen) {
-            loadJobs();
-          }
-        }, 15000);
-        pollingRef._jobsPolling = id;
-        setIsPolling(true);
-      }
-    };
-
-    const stopPolling = () => {
-      if (pollingRef._jobsPolling) {
-        window.clearInterval(pollingRef._jobsPolling);
-        pollingRef._jobsPolling = undefined;
-      }
-      if (isPolling) setIsPolling(false);
-    };
-
-    const channel = supabase
-      .channel('jobs-changes')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'jobs',
-        filter: `user_id=eq.${user.id}`,
-      }, () => {
-        // Don't auto-refresh if job modal is open to prevent form data loss
-        if (!isJobModalOpen) {
-          loadJobs();
-        }
-      })
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          // Realtime connected; ensure polling is off
-          stopPolling();
-        }
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          // Start polling if we cannot maintain a realtime connection
-          startPolling();
-        }
-      });
-
-    // Safety: if not subscribed within 5s, start polling
-    const subscribeTimeout = window.setTimeout(() => startPolling(), 5000);
-
-    return () => {
-      supabase.removeChannel(channel);
-      window.clearTimeout(subscribeTimeout);
-      stopPolling();
-    };
-  }, [user?.id, isJobModalOpen]);
-
-
   // Listen for storage changes (when extension saves jobs)
+  // COMPLETELY DISABLED auto-refresh - users must manually refresh
+  // This prevents annoying automatic refreshes from storage events
   useEffect(() => {
-    const handleStorageChange = () => {
-      // Don't auto-refresh if job modal is open to prevent form data loss
-      if (!isJobModalOpen) {
-        loadJobs();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
+    // Storage event listener is disabled to prevent auto-refreshes
+    // Users can manually refresh using the refresh button when needed
     
-    // Also listen for focus events (when user comes back to tab)
-    window.addEventListener('focus', handleStorageChange);
-
+    // If you need storage events in the future, uncomment below with aggressive debouncing:
+    // let debounceTimer: NodeJS.Timeout | null = null;
+    // const handleStorageChange = () => {
+    //   if (isJobModalOpen) return;
+    //   if (debounceTimer) clearTimeout(debounceTimer);
+    //   debounceTimer = setTimeout(() => loadJobs(), 5000); // 5 second debounce
+    // };
+    // window.addEventListener('storage', handleStorageChange);
+    // return () => {
+    //   if (debounceTimer) clearTimeout(debounceTimer);
+    //   window.removeEventListener('storage', handleStorageChange);
+    // };
+    
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', handleStorageChange);
+      // No cleanup needed since we're not listening
     };
   }, [isJobModalOpen]);
 

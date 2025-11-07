@@ -88,15 +88,7 @@ export interface Education {
   added_at: string;
 }
 
-export interface Resume {
-  id: string;
-  filename: string;
-  file_url: string;
-  is_default: boolean;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-}
+// Resume interface removed - using AI-generated resumes instead
 
 export interface ProfileStats {
   jobs_applied: number;

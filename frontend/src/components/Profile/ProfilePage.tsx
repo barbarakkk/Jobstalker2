@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,6 @@ import {
   Briefcase, 
   AlertTriangle,
   Save,
-  Camera,
   Star,
   Calendar,
   Award,
@@ -173,11 +172,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
 
   // Removed resume management state
 
-  // Profile picture
-  const [profilePicture, setProfilePicture] = useState<string | null>(null);
-  const [uploadingPicture, setUploadingPicture] = useState(false);
-  const pictureInputRef = useRef<HTMLInputElement>(null);
-
   // Load initial data - Load profile first, then other data
   useEffect(() => {
     loadProfileData();
@@ -217,8 +211,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         job_title: profileData.job_title || '',
         location: profileData.location || ''
       });
-      console.log('Profile picture URL:', profileData.profile_picture_url);
-      setProfilePicture(profileData.profile_picture_url || null);
 
       // Load stats data (quick to load)
       try {
@@ -301,25 +293,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
     }
   };
 
-  const handleProfilePictureUpload = async (file: File) => {
-    try {
-      setUploadingPicture(true);
-      setError(null);
-
-      console.log('Uploading profile picture:', file.name, file.type, file.size);
-      const result = await profileApi.uploadProfilePicture(file);
-      console.log('Profile picture upload result:', result);
-      setProfilePicture(result.profile_picture_url);
-      setSuccessMessage('Profile picture updated successfully!');
-      
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (error) {
-      console.error('Profile picture upload error:', error);
-      setError(error instanceof Error ? error.message : 'Failed to upload profile picture');
-    } finally {
-      setUploadingPicture(false);
-    }
-  };
 
   // Skills management
   const handleAddSkill = async () => {
@@ -463,7 +436,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         job_title: refreshedProfile.job_title || '',
         location: refreshedProfile.location || ''
       });
-      setProfilePicture(refreshedProfile.profile_picture_url || null);
       setSuccessMessage('Profile refreshed successfully!');
       
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -557,49 +529,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="flex flex-col items-center space-y-4">
-                {/* Profile Picture */}
-                <div className="relative">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                    {profilePicture ? (
-                      <img 
-                        src={profilePicture} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          console.error('Profile picture failed to load:', profilePicture);
-                          e.currentTarget.style.display = 'none';
-                        }}
-                        onLoad={() => {
-                          console.log('Profile picture loaded successfully:', profilePicture);
-                        }}
-                      />
-                    ) : (
-                      <User className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400" />
-                    )}
-                  </div>
-                  <button
-                    onClick={() => pictureInputRef.current?.click()}
-                    disabled={uploadingPicture}
-                    className="absolute -bottom-1 -right-1 bg-blue-600 text-white p-1.5 sm:p-2 rounded-full hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {uploadingPicture ? (
-                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                    ) : (
-                      <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
-                    )}
-                  </button>
-                  <input
-                    ref={pictureInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleProfilePictureUpload(file);
-                    }}
-                  />
-                </div>
-
                 {/* Profile Info */}
                 <div className="text-center w-full">
                   {isEditingProfile ? (
@@ -659,11 +588,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                         <Edit className="w-4 h-4 mr-2" />
                         Edit Profile
                       </Button>
-                      {profilePicture && (
-                        <div className="mt-2 text-xs text-gray-500 text-center max-w-full truncate">
-                          Picture: {profilePicture.split('/').pop()}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -1141,7 +1065,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
               <li>Your profile information</li>
               <li>All job applications</li>
               <li>Skills and experience data</li>
-              <li>Uploaded resumes</li>
               <li>All statistics and progress</li>
             </ul>
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">

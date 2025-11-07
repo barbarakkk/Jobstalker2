@@ -1,4 +1,4 @@
-import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, Resume, ProfileStats, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData } from './types';
+import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, ProfileStats, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData } from './types';
 import { supabase } from './supabaseClient';
 
 // Base URL for the backend API. In production, set VITE_API_BASE_URL in a .env file.
@@ -11,16 +11,24 @@ const getAuthToken = async (): Promise<string | null> => {
   return session?.access_token || null;
 };
 
+// Enable debug logs only in development and when explicitly enabled
+const DEBUG_API_CALLS = import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true';
+
 // Helper function to make authenticated API calls
 const apiCall = async <T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> => {
-  console.log(`=== API CALL DEBUG ===`);
-  console.log(`Calling endpoint: ${endpoint}`);
+  if (DEBUG_API_CALLS) {
+    console.log(`=== API CALL DEBUG ===`);
+    console.log(`Calling endpoint: ${endpoint}`);
+  }
   
   const token = await getAuthToken();
-  console.log(`Auth token: ${token ? 'Present' : 'Missing'}`);
+  
+  if (DEBUG_API_CALLS) {
+    console.log(`Auth token: ${token ? 'Present' : 'Missing'}`);
+  }
   
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -30,17 +38,23 @@ const apiCall = async <T>(
   // Only add Authorization header if we have a token
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
-    console.log(`Authorization header added`);
+    if (DEBUG_API_CALLS) {
+      console.log(`Authorization header added`);
+    }
   } else {
-    console.log(`No auth token, skipping Authorization header`);
+    if (DEBUG_API_CALLS) {
+      console.log(`No auth token, skipping Authorization header`);
+    }
     // If no token, throw authentication error for protected endpoints
     if (endpoint.startsWith('/api/jobs') && !endpoint.includes('-test')) {
       throw new Error('Authentication required. Please log in again.');
     }
   }
   
-  console.log(`Final headers:`, headers);
-  console.log(`Request options:`, options);
+  if (DEBUG_API_CALLS) {
+    console.log(`Final headers:`, headers);
+    console.log(`Request options:`, options);
+  }
   
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -55,12 +69,14 @@ const apiCall = async <T>(
       },
     });
 
-    console.log(`Response status: ${response.status}`);
-    console.log(`Response ok: ${response.ok}`);
+    if (DEBUG_API_CALLS) {
+      console.log(`Response status: ${response.status}`);
+      console.log(`Response ok: ${response.ok}`);
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error(`Response error:`, errorData);
+      console.error(`API Error [${endpoint}]:`, errorData);
       
       // Handle authentication errors
       if (response.status === 401) {
@@ -84,11 +100,13 @@ const apiCall = async <T>(
     }
 
     const result = await response.json();
-    console.log(`Response data:`, result);
-    console.log(`=== END API CALL DEBUG ===`);
+    if (DEBUG_API_CALLS) {
+      console.log(`Response data:`, result);
+      console.log(`=== END API CALL DEBUG ===`);
+    }
     return result;
   } catch (error) {
-    console.error(`API call failed:`, error);
+    console.error(`API call failed [${endpoint}]:`, error);
     if (error instanceof Error) {
       throw error;
     }
@@ -328,65 +346,40 @@ export const educationApi = {
   },
 };
 
-// Resume API functions
-export const resumeApi = {
-  // Get user resumes
-  getResumes: async (): Promise<Resume[]> => {
-    console.log('Fetching resumes from API...');
-    try {
-      const result = await apiCall<Resume[]>('/api/resumes');
-      console.log('Resumes API response:', result);
-      console.log('Resumes response type:', typeof result);
-      console.log('Resumes response length:', result?.length);
-      return result;
-    } catch (error) {
-      console.error('Error in getResumes API call:', error);
-      throw error;
-    }
-  },
+// Resume upload API removed - using AI-generated resumes instead 
 
-  // Upload resume
-  uploadResume: async (file: File): Promise<Resume> => {
-    console.log('Uploading resume:', file.name, file.size, file.type);
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const token = await getAuthToken();
-    console.log('Auth token obtained:', token ? 'Yes' : 'No');
-    
-    const response = await fetch(`${API_BASE_URL}/api/resume/upload`, {
+// Templates & Wizard API
+export const templatesApi = {
+  list: async (): Promise<any[]> => {
+    return apiCall<any[]>('/api/templates');
+  },
+  get: async (id: string): Promise<any> => {
+    return apiCall<any>(`/api/templates/${id}`);
+  },
+};
+
+export const wizardApi = {
+  createSession: async (templateId: string, prefill = true, seed?: any): Promise<{ id: string; draftJson: any; progress: any }> => {
+    return apiCall('/api/wizard/sessions', {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    console.log('Upload response status:', response.status);
-    console.log('Upload response ok:', response.ok);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Upload error:', errorData);
-      throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log('Upload result:', result);
-    return result;
-  },
-
-  // Delete resume
-  deleteResume: async (id: string): Promise<void> => {
-    return apiCall<void>(`/api/resume/${id}`, {
-      method: 'DELETE',
+      body: JSON.stringify({ templateId, prefill, seed }),
     });
   },
-
-  // Set resume as default
-  setDefaultResume: async (id: string): Promise<Resume> => {
-    return apiCall<Resume>(`/api/resume/${id}/default`, {
-      method: 'PUT',
+  patchSession: async (id: string, draftPatch?: any, progressPatch?: any, lastStep?: number): Promise<{ draftJson: any; progress: any }> => {
+    return apiCall(`/api/wizard/sessions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ draftPatch, progressPatch, lastStep }),
     });
   },
-}; 
+  completeSession: async (id: string): Promise<{ generatedResumeId: string; version: number; resumeBuilderId?: string }> => {
+    return apiCall(`/api/wizard/sessions/${id}/complete`, {
+      method: 'POST',
+    });
+  },
+  generateSummary: async (wizardSessionId: string, promptHints?: string): Promise<{ summary: string }> => {
+    return apiCall('/api/ai/profile-summary', {
+      method: 'POST',
+      body: JSON.stringify({ wizardSessionId, promptHints }),
+    });
+  },
+};

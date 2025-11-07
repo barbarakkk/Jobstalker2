@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 from uuid import UUID
 
@@ -72,30 +72,34 @@ class ProfileStats(BaseModel):
     interviews: int
     offers: int
 
-# Skills models
+# Skills models (normalized table)
 class Skill(BaseModel):
     id: Optional[UUID]
     user_id: UUID
     name: str
-    proficiency_level: str  # Beginner, Intermediate, Expert
+    proficiency: Optional[str] = None  # Beginner, Intermediate, Expert, etc.
+    category: Optional[str] = "Technical"
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 class CreateSkill(BaseModel):
     name: str
-    proficiency_level: str
+    proficiency: Optional[str] = None
+    category: Optional[str] = "Technical"
 
 class UpdateSkill(BaseModel):
     name: Optional[str] = None
-    proficiency_level: Optional[str] = None
+    proficiency: Optional[str] = None
+    category: Optional[str] = None
 
-# Experience models
+# Experience models (normalized table)
 class WorkExperience(BaseModel):
     id: Optional[UUID]
     user_id: UUID
     title: str
     company: str
-    start_date: date
+    location: Optional[str] = None
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
     is_current: bool = False
     description: Optional[str] = None
@@ -105,7 +109,8 @@ class WorkExperience(BaseModel):
 class CreateExperience(BaseModel):
     title: str
     company: str
-    start_date: date
+    location: Optional[str] = None
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
     is_current: bool = False
     description: Optional[str] = None
@@ -113,59 +118,72 @@ class CreateExperience(BaseModel):
 class UpdateExperience(BaseModel):
     title: Optional[str] = None
     company: Optional[str] = None
+    location: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     is_current: Optional[bool] = None
     description: Optional[str] = None
 
-# Education models
+# Education models (normalized table)
 class Education(BaseModel):
     id: Optional[UUID]
     user_id: UUID
     school: str
-    degree: str
-    field_of_study: str
-    start_date: date
+    degree: Optional[str] = None
+    field: Optional[str] = None
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 class CreateEducation(BaseModel):
     school: str
-    degree: str
-    field_of_study: str
-    start_date: date
+    degree: Optional[str] = None
+    field: Optional[str] = None
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
 
 class UpdateEducation(BaseModel):
     school: Optional[str] = None
     degree: Optional[str] = None
-    field_of_study: Optional[str] = None
+    field: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
 
-# Resume models
-class Resume(BaseModel):
-    id: Optional[UUID]
+# Resume models removed - using AI-generated resumes instead
+
+# Resume Builder Data models
+class ResumeBuilderData(BaseModel):
+    id: Optional[UUID] = None
     user_id: UUID
-    filename: str
-    file_url: str
-    file_size: int
-    is_default: bool = False
+    template_id: str
+    title: str = "My Resume"
+    resume_data: Dict[str, Any]  # JSONB field
+    is_current: bool = False
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-class CreateResume(BaseModel):
-    filename: str
-    file_url: str
-    file_size: int
-    is_default: bool = False
+class SaveResumeRequest(BaseModel):
+    template_id: str
+    title: Optional[str] = "My Resume"
+    resume_data: Dict[str, Any]
 
-class UpdateResume(BaseModel):
-    filename: Optional[str] = None
-    file_url: Optional[str] = None
-    file_size: Optional[int] = None
-    is_default: Optional[bool] = None
+class UpdateResumeRequest(BaseModel):
+    title: Optional[str] = None
+    resume_data: Optional[Dict[str, Any]] = None
+
+class ResumeBuilderItem(BaseModel):
+    id: UUID
+    template_id: str
+    title: str
+    created_at: datetime
+    updated_at: datetime
+    is_current: bool
+
+class SaveResumeResponse(BaseModel):
+    id: UUID
+    success: bool = True
+    message: str = "Resume saved successfully"
 
 # File upload response models
 class FileUploadResponse(BaseModel):
@@ -186,6 +204,5 @@ class ProfileResponse(BaseModel):
     work_experience: Optional[list] = []
     education: Optional[list] = []
     user_id: str
-    resumes: Optional[list] = []
     created_at: datetime
     updated_at: datetime 

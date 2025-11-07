@@ -67,10 +67,25 @@ CREATE TABLE IF NOT EXISTS public.resumes (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Resume Builder Data table for structured resume data
+CREATE TABLE IF NOT EXISTS public.resume_builder_data (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    template_id VARCHAR(100) NOT NULL,
+    title VARCHAR(255) DEFAULT 'My Resume',
+    resume_data JSONB NOT NULL,
+    is_current BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profile_user_id ON public.user_profile(user_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON public.jobs(user_id);
 CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON public.resumes(user_id);
+CREATE INDEX IF NOT EXISTS idx_resume_builder_data_user_id ON public.resume_builder_data(user_id);
+CREATE INDEX IF NOT EXISTS idx_resume_builder_data_template_id ON public.resume_builder_data(template_id);
+CREATE INDEX IF NOT EXISTS idx_resume_builder_data_resume_data ON public.resume_builder_data USING GIN (resume_data);
 
 -- Create GIN indexes for JSONB fields to enable efficient querying
 CREATE INDEX IF NOT EXISTS idx_user_profile_skills ON public.user_profile USING GIN (skills);
@@ -91,11 +106,13 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_user_profile_updated_at BEFORE UPDATE ON public.user_profile FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON public.jobs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_resumes_updated_at BEFORE UPDATE ON public.resumes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_resume_builder_data_updated_at BEFORE UPDATE ON public.resume_builder_data FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.user_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resumes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.resume_builder_data ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for user_profile
 CREATE POLICY "Users can view own profile" ON public.user_profile
@@ -134,6 +151,19 @@ CREATE POLICY "Users can update own resumes" ON public.resumes
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own resumes" ON public.resumes
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for resume_builder_data
+CREATE POLICY "Users can view own resume builder data" ON public.resume_builder_data
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own resume builder data" ON public.resume_builder_data
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own resume builder data" ON public.resume_builder_data
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own resume builder data" ON public.resume_builder_data
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Create helper functions for JSON operations
