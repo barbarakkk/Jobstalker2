@@ -7,9 +7,9 @@ import JobDetail from './components/Dashboard/JobDetail';
 import { Statistics } from './components/Statistics';
 import ProfilePage from './components/Profile/ProfilePage';
 import { ResumeTemplateSelectionPage } from './components/ResumeBuilder/TemplateSelection';
-import { ResumeUploadPage } from './components/ResumeBuilder/Upload';
 import { ResumeEditPage } from './components/ResumeBuilder/Edit';
 import { ResumeFinalizePage } from './components/ResumeBuilder/Finalize';
+import { AIGeneratePage } from './components/ResumeBuilder/AIGenerate';
 
 function App() {
   return (
@@ -27,7 +27,7 @@ function App() {
         {/* Resume Builder routes */}
         <Route path="/resume-builder" element={<ProtectedRoute><ResumeTemplateSelectionPage /></ProtectedRoute>} />
         <Route path="/resume-builder/templates" element={<ProtectedRoute><ResumeTemplateSelectionPage /></ProtectedRoute>} />
-        <Route path="/resume-builder/upload" element={<ProtectedRoute><ResumeUploadPage /></ProtectedRoute>} />
+        <Route path="/resume-builder/ai-generate" element={<ProtectedRoute><AIGeneratePage /></ProtectedRoute>} />
         <Route path="/resume-builder/edit" element={<ProtectedRoute><ResumeEditPage /></ProtectedRoute>} />
         <Route path="/resume-builder/finalize" element={<ProtectedRoute><ResumeFinalizePage /></ProtectedRoute>} />
       </Routes>
