@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, Header, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from supabase_client import supabase
-from models import Job, CreateJob, UpdateJob, Profile, CreateProfile, UpdateProfile, ProfileStats, Skill, CreateSkill, UpdateSkill, WorkExperience, CreateExperience, UpdateExperience, Education, CreateEducation, UpdateEducation, Resume, CreateResume, UpdateResume, FileUploadResponse, ProfilePictureResponse, ProfileResponse
+from models import Job, CreateJob, UpdateJob, Profile, CreateProfile, UpdateProfile, ProfileStats, Skill, CreateSkill, UpdateSkill, WorkExperience, CreateExperience, UpdateExperience, Education, CreateEducation, UpdateEducation, FileUploadResponse, ProfilePictureResponse, ProfileResponse
 from uuid import UUID
 from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
@@ -17,6 +17,10 @@ from dotenv import load_dotenv
 import json
 import hashlib
 from pathlib import Path
+from routes.ai_resume import router as ai_resume_router
+from routes.wizard import router as wizard_router
+import logging
+import threading
 
 # Load environment variables from .env files (project root and backend/.env)
 try:
@@ -55,12 +59,28 @@ def save_html_content(html_content: str, user_id: str, job_url: str, stage: str 
 def save_cleaned_content(cleaned_text: str, user_id: str, job_url: str, stage: str = "cleaned_text"):
     return None
 
+# ----------------------------------------------------------------------------
+# Logging setup (structured and minimal)
+# ----------------------------------------------------------------------------
+logger = logging.getLogger("jobstalker")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 app = FastAPI(title="JobStalker API", version="1.0.0")
 
+# Include AI resume routes
+app.include_router(ai_resume_router)
+app.include_router(wizard_router)
 
 
-# Add CORS middleware
+
+# Add CORS middleware - must be added BEFORE other middleware
+# This allows frontend applications to make requests to this backend
+# Order matters: CORS middleware must be first to handle preflight requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -74,56 +94,123 @@ app.add_middleware(
     ],
     allow_origin_regex=r"https://.*\.vercel\.app$",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
     allow_headers=["*"],
+    expose_headers=["*"],
     max_age=3600,
 )
 
 # Rely on CORSMiddleware for preflight handling and headers
 
 # Security middleware for adding security headers
+# Note: This runs AFTER CORS middleware, so CORS headers are preserved
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     """Add security headers to all responses"""
+    start = time.time()
     response = await call_next(request)
+    duration_ms = int((time.time() - start) * 1000)
     
-    # Add security headers
+    # Don't add security headers to OPTIONS requests (preflight) - let CORS handle it
+    if request.method == "OPTIONS":
+        return response
+    
+    # Add security headers (CORS headers are already set by CORSMiddleware)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     
+    # Basic structured request log
+    try:
+        logger.info(json.dumps({
+            "event": "http_request",
+            "path": request.url.path,
+            "method": request.method,
+            "status": response.status_code,
+            "duration_ms": duration_ms,
+            "client": request.client.host if request.client else None,
+        }))
+    except Exception:
+        pass
     return response
 
-# Rate limiting middleware (simple implementation)
-request_counts = {}
+# ---------------------------------------------------------------------------
+# Rate limiting (per-IP and per-user with path buckets)
+# ---------------------------------------------------------------------------
+request_counts_ip = {}
+request_counts_user = {}
+lock = threading.Lock()
+
+RATE_LIMIT_GLOBAL_PER_MIN = 100  # per IP fallback
+RATE_LIMIT_USER_PER_MIN = 30     # per user default
+RATE_LIMIT_USER_AI_PER_MIN = 5   # per user AI endpoints
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    """Simple rate limiting middleware"""
-    client_ip = request.client.host
-    current_time = time.time()
+    """Simple rate limiting with per-user and per-IP buckets. Adds rate headers."""
+    # Skip rate limiting for OPTIONS requests (CORS preflight)
+    if request.method == "OPTIONS":
+        return await call_next(request)
     
-    # Clean old entries (older than 1 minute)
-    request_counts[client_ip] = [
-        req_time for req_time in request_counts.get(client_ip, [])
-        if current_time - req_time < 60
-    ]
-    
-    # Add current request
-    if client_ip not in request_counts:
-        request_counts[client_ip] = []
-    request_counts[client_ip].append(current_time)
-    
-    # Check rate limit (100 requests per minute)
-    if len(request_counts[client_ip]) > 100:
-        return JSONResponse(
-            status_code=429,
-            content={"detail": "Rate limit exceeded. Please try again later."}
-        )
-    
-    return await call_next(request)
+    now = time.time()
+    client_ip = request.client.host if request.client else "unknown"
+
+    # Determine user id from bearer token if present
+    auth = request.headers.get("authorization") or request.headers.get("Authorization")
+    user_id = None
+    if auth and auth.lower().startswith("bearer "):
+        token = auth.split(" ", 1)[1].strip()
+        try:
+            # Do not block request if auth lookup fails
+            user_resp = supabase.auth.get_user(token)
+            if user_resp and user_resp.user:
+                user_id = user_resp.user.id
+        except Exception:
+            user_id = None
+
+    # Choose bucket
+    path = request.url.path
+    is_ai = path.startswith("/api/ai/")
+    user_limit = RATE_LIMIT_USER_AI_PER_MIN if is_ai else RATE_LIMIT_USER_PER_MIN
+
+    with lock:
+        # Cleanup + count for IP
+        bucket = request_counts_ip.setdefault(client_ip, [])
+        request_counts_ip[client_ip] = [t for t in bucket if now - t < 60]
+        request_counts_ip[client_ip].append(now)
+        ip_count = len(request_counts_ip[client_ip])
+
+        # Cleanup + count for user when available
+        user_count = None
+        if user_id:
+            bucket_u = request_counts_user.setdefault(user_id, [])
+            request_counts_user[user_id] = [t for t in bucket_u if now - t < 60]
+            request_counts_user[user_id].append(now)
+            user_count = len(request_counts_user[user_id])
+
+    # Decide limit applies
+    limit = user_limit if user_id else RATE_LIMIT_GLOBAL_PER_MIN
+    remaining = None
+    current_count = user_count if user_id else ip_count
+    if current_count is not None:
+        remaining = max(0, limit - current_count)
+
+    if current_count is not None and current_count > limit:
+        headers = {
+            "X-RateLimit-Limit": str(limit),
+            "X-RateLimit-Remaining": "0",
+            "Retry-After": "60",
+        }
+        return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded. Please try again later."}, headers=headers)
+
+    response = await call_next(request)
+    # Add headers
+    if remaining is not None:
+        response.headers["X-RateLimit-Limit"] = str(limit)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+    return response
 
 async def get_current_user(authorization: Optional[str] = Header(None)):
     """Enhanced authentication middleware with better error handling and security"""
@@ -176,7 +263,7 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
         raise
     except Exception as e:
         # Log the specific error for debugging
-        print(f"Authentication error: {str(e)}")
+        logger.warning(f"Authentication error: {str(e)}")
         
         # Provide user-friendly error message
         if "expired" in str(e).lower():
@@ -219,7 +306,7 @@ async def upload_file_to_supabase(file: UploadFile, folder: str) -> str:
         
         return file_url
     except Exception as e:
-        print(f"File upload error: {str(e)}")
+        logger.error(f"File upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
 # File upload helper function for profile picture
@@ -246,57 +333,7 @@ async def upload_profile_picture_to_supabase(file: UploadFile, file_content: byt
         print(f"Profile picture upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Profile picture upload failed: {str(e)}")
 
-# File upload helper function for resume
-async def upload_resume_to_supabase(file: UploadFile, file_content: bytes, user_id: str) -> str:
-    """Upload resume to Supabase Storage and return the URL"""
-    try:
-        # Generate unique filename
-        file_extension = os.path.splitext(file.filename)[1]
-        unique_filename = f"{uuid.uuid4()}{file_extension}"
-        
-        # Upload to Supabase Storage with user ID in path
-        file_path = f"{user_id}/resumes/{unique_filename}"
-        print(f"Uploading to path: {file_path}")
-        print(f"Content type: {file.content_type}")
-        print(f"Content length in helper: {len(file_content)} bytes")
-        
-        # Try different upload approaches
-        try:
-            # Method 1: Direct upload with content type
-            response = supabase.storage.from_("jobstalker-files").upload(
-                file_path, 
-                file_content,
-                {"content-type": file.content_type}
-            )
-            print(f"Upload method 1 successful: {response}")
-        except Exception as e1:
-            print(f"Upload method 1 failed: {e1}")
-            try:
-                # Method 2: Upload without content type
-                response = supabase.storage.from_("jobstalker-files").upload(
-                    file_path, 
-                    file_content
-                )
-                print(f"Upload method 2 successful: {response}")
-            except Exception as e2:
-                print(f"Upload method 2 failed: {e2}")
-                # Method 3: Upload as binary
-                response = supabase.storage.from_("jobstalker-files").upload(
-                    file_path, 
-                    file_content,
-                    {"content-type": "application/octet-stream"}
-                )
-                print(f"Upload method 3 successful: {response}")
-        
-        print(f"Final upload response: {response}")
-        
-        # Get public URL
-        file_url = supabase.storage.from_("jobstalker-files").get_public_url(file_path)
-        
-        return file_url
-    except Exception as e:
-        print(f"Resume upload error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Resume upload failed: {str(e)}")
+# Resume upload helper removed - using AI-generated resumes instead
 
 @app.get("/ping")
 def ping():
@@ -452,27 +489,35 @@ def supabase_test():
 
 @app.get("/api/profile", response_model=ProfileResponse)
 def get_profile(user_id: str = Depends(get_current_user)):
-    """Get user profile"""
+    """Get user profile with normalized data"""
     try:
-        # First try to get existing profile
-        response = supabase.table("user_profile").select("*").eq("user_id", user_id).execute()
+        # Get basic profile
+        profile_response = supabase.table("user_profile").select("*").eq("user_id", user_id).execute()
         
-        if response.data and len(response.data) > 0:
-            return ProfileResponse(**response.data[0])
+        if profile_response.data and len(profile_response.data) > 0:
+            profile = profile_response.data[0]
         else:
             # Create default profile if none exists
             default_profile = {
                 "user_id": user_id,
                 "full_name": "Your Name",
                 "job_title": "Your Role",
-                "location": "Your Location",
-                "skills": [],
-                "work_experience": [],
-                "education": [],
-                "resumes": []
+                "location": "Your Location"
             }
             insert_response = supabase.table("user_profile").insert(default_profile).execute()
-            return ProfileResponse(**insert_response.data[0])
+            profile = insert_response.data[0]
+        
+        # Fetch normalized data
+        skills_response = supabase.table("user_skills").select("*").eq("user_id", user_id).execute()
+        experience_response = supabase.table("user_work_experience").select("*").eq("user_id", user_id).execute()
+        education_response = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
+        
+        # Build response with normalized data
+        profile["skills"] = skills_response.data or []
+        profile["work_experience"] = experience_response.data or []
+        profile["education"] = education_response.data or []
+        
+        return ProfileResponse(**profile)
     except Exception as e:
         print(f"Error getting profile: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to get profile: {str(e)}")
@@ -541,168 +586,230 @@ async def upload_profile_picture(file: UploadFile = File(...), user_id: str = De
 
 
 
-# Skills endpoints - work with user_profile table
+# Skills endpoints - work with normalized user_skills table
 @app.get("/api/skills")
 def get_skills(user_id: str = Depends(get_current_user)):
-    """Get user skills from user_profile table"""
+    """Get user skills from normalized user_skills table"""
     try:
-        response = supabase.table("user_profile").select("skills").eq("user_id", user_id).execute()
-        if response.data and len(response.data) > 0:
-            skills = response.data[0].get("skills", [])
-            
-            # Migrate old skills with "proficiency" field to "proficiency_level"
-            updated_skills = []
-            needs_update = False
-            
-            for skill in skills:
-                if "proficiency" in skill and "proficiency_level" not in skill:
-                    # Migrate old format to new format
-                    skill["proficiency_level"] = skill.pop("proficiency")
-                    needs_update = True
-                updated_skills.append(skill)
-            
-            # Update the database if migration was needed
-            if needs_update:
-                try:
-                    supabase.table("user_profile").update({
-                        "skills": updated_skills,
-                        "updated_at": datetime.utcnow().isoformat()
-                    }).eq("user_id", user_id).execute()
-                    print(f"Migrated skills for user {user_id}")
-                except Exception as e:
-                    print(f"Failed to migrate skills: {str(e)}")
-            
-            return updated_skills
+        response = supabase.table("user_skills").select("*").eq("user_id", user_id).order("created_at", desc=False).execute()
+        if response.data:
+            return response.data
         return []
     except Exception as e:
         print(f"Error getting skills: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to get skills: {str(e)}")
 
 @app.post("/api/skills/add")
-def add_skill(skill_data: dict, user_id: str = Depends(get_current_user)):
-    """Add skill to user_profile table"""
+def add_skill(skill_data: CreateSkill, user_id: str = Depends(get_current_user)):
+    """Add skill to normalized user_skills table"""
     try:
-        # Get current skills
-        response = supabase.table("user_profile").select("skills").eq("user_id", user_id).execute()
-        current_skills = []
-        if response.data and len(response.data) > 0:
-            current_skills = response.data[0].get("skills", [])
-        
-        # Add new skill
-        new_skill = {
-            "name": skill_data.get("name"),
-            "proficiency_level": skill_data.get("proficiency_level", "Beginner"),
-            "added_at": datetime.utcnow().isoformat()
+        skill_dict = {
+            "user_id": user_id,
+            "name": skill_data.name,
+            "proficiency": skill_data.proficiency,
+            "category": skill_data.category or "Technical"
         }
-        current_skills.append(new_skill)
         
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "skills": current_skills,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
+        response = supabase.table("user_skills").insert(skill_dict).execute()
         
-        if update_response.data:
-            return new_skill
+        if response.data and len(response.data) > 0:
+            return response.data[0]
         raise HTTPException(status_code=400, detail="Failed to add skill")
     except Exception as e:
         print(f"Error adding skill: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to add skill: {str(e)}")
 
-# Experience endpoints - work with user_profile table
+@app.put("/api/skills/{skill_id}")
+def update_skill(skill_id: str, skill_data: UpdateSkill, user_id: str = Depends(get_current_user)):
+    """Update skill in normalized user_skills table"""
+    try:
+        update_dict = {}
+        if skill_data.name is not None:
+            update_dict["name"] = skill_data.name
+        if skill_data.proficiency is not None:
+            update_dict["proficiency"] = skill_data.proficiency
+        if skill_data.category is not None:
+            update_dict["category"] = skill_data.category
+        
+        if not update_dict:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        response = supabase.table("user_skills").update(update_dict).eq("id", skill_id).eq("user_id", user_id).execute()
+        
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        raise HTTPException(status_code=404, detail="Skill not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating skill: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to update skill: {str(e)}")
+
+@app.delete("/api/skills/{skill_id}")
+def delete_skill(skill_id: str, user_id: str = Depends(get_current_user)):
+    """Delete skill from normalized user_skills table"""
+    try:
+        response = supabase.table("user_skills").delete().eq("id", skill_id).eq("user_id", user_id).execute()
+        return {"success": True, "message": "Skill deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting skill: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to delete skill: {str(e)}")
+
+# Experience endpoints - work with normalized user_work_experience table
 @app.get("/api/experience")
 def get_experience(user_id: str = Depends(get_current_user)):
-    """Get user work experience from user_profile table"""
+    """Get user work experience from normalized user_work_experience table"""
     try:
-        response = supabase.table("user_profile").select("work_experience").eq("user_id", user_id).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0].get("work_experience", [])
+        response = supabase.table("user_work_experience").select("*").eq("user_id", user_id).order("start_date", desc=True).execute()
+        if response.data:
+            return response.data
         return []
     except Exception as e:
         print(f"Error getting experience: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to get experience: {str(e)}")
 
 @app.post("/api/experience/add")
-def add_experience(experience_data: dict, user_id: str = Depends(get_current_user)):
-    """Add work experience to user_profile table"""
+def add_experience(experience_data: CreateExperience, user_id: str = Depends(get_current_user)):
+    """Add work experience to normalized user_work_experience table"""
     try:
-        # Get current experience
-        response = supabase.table("user_profile").select("work_experience").eq("user_id", user_id).execute()
-        current_experience = []
-        if response.data and len(response.data) > 0:
-            current_experience = response.data[0].get("work_experience", [])
-        
-        # Add new experience
-        new_experience = {
-            "title": experience_data.get("title"),
-            "company": experience_data.get("company"),
-            "start_date": experience_data.get("start_date"),
-            "end_date": experience_data.get("end_date"),
-            "is_current": experience_data.get("is_current", False),
-            "description": experience_data.get("description"),
-            "added_at": datetime.utcnow().isoformat()
+        exp_dict = {
+            "user_id": user_id,
+            "title": experience_data.title,
+            "company": experience_data.company,
+            "location": experience_data.location,
+            "start_date": experience_data.start_date.isoformat() if experience_data.start_date else None,
+            "end_date": experience_data.end_date.isoformat() if experience_data.end_date else None,
+            "is_current": experience_data.is_current,
+            "description": experience_data.description
         }
-        current_experience.append(new_experience)
         
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "work_experience": current_experience,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
+        response = supabase.table("user_work_experience").insert(exp_dict).execute()
         
-        if update_response.data:
-            return new_experience
+        if response.data and len(response.data) > 0:
+            return response.data[0]
         raise HTTPException(status_code=400, detail="Failed to add experience")
     except Exception as e:
         print(f"Error adding experience: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to add experience: {str(e)}")
 
-# Education endpoints - work with user_profile table
+@app.put("/api/experience/{experience_id}")
+def update_experience(experience_id: str, experience_data: UpdateExperience, user_id: str = Depends(get_current_user)):
+    """Update work experience in normalized user_work_experience table"""
+    try:
+        update_dict = {}
+        if experience_data.title is not None:
+            update_dict["title"] = experience_data.title
+        if experience_data.company is not None:
+            update_dict["company"] = experience_data.company
+        if experience_data.location is not None:
+            update_dict["location"] = experience_data.location
+        if experience_data.start_date is not None:
+            update_dict["start_date"] = experience_data.start_date.isoformat()
+        if experience_data.end_date is not None:
+            update_dict["end_date"] = experience_data.end_date.isoformat()
+        if experience_data.is_current is not None:
+            update_dict["is_current"] = experience_data.is_current
+        if experience_data.description is not None:
+            update_dict["description"] = experience_data.description
+        
+        if not update_dict:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        response = supabase.table("user_work_experience").update(update_dict).eq("id", experience_id).eq("user_id", user_id).execute()
+        
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        raise HTTPException(status_code=404, detail="Experience not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating experience: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to update experience: {str(e)}")
+
+@app.delete("/api/experience/{experience_id}")
+def delete_experience(experience_id: str, user_id: str = Depends(get_current_user)):
+    """Delete work experience from normalized user_work_experience table"""
+    try:
+        response = supabase.table("user_work_experience").delete().eq("id", experience_id).eq("user_id", user_id).execute()
+        return {"success": True, "message": "Experience deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting experience: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to delete experience: {str(e)}")
+
+# Education endpoints - work with normalized user_education table
 @app.get("/api/education")
 def get_education(user_id: str = Depends(get_current_user)):
-    """Get user education from user_profile table"""
+    """Get user education from normalized user_education table"""
     try:
-        response = supabase.table("user_profile").select("education").eq("user_id", user_id).execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0].get("education", [])
+        response = supabase.table("user_education").select("*").eq("user_id", user_id).order("start_date", desc=True).execute()
+        if response.data:
+            return response.data
         return []
     except Exception as e:
         print(f"Error getting education: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to get education: {str(e)}")
 
 @app.post("/api/education/add")
-def add_education(education_data: dict, user_id: str = Depends(get_current_user)):
-    """Add education to user_profile table"""
+def add_education(education_data: CreateEducation, user_id: str = Depends(get_current_user)):
+    """Add education to normalized user_education table"""
     try:
-        # Get current education
-        response = supabase.table("user_profile").select("education").eq("user_id", user_id).execute()
-        current_education = []
-        if response.data and len(response.data) > 0:
-            current_education = response.data[0].get("education", [])
-        
-        # Add new education
-        new_education = {
-            "school": education_data.get("school"),
-            "degree": education_data.get("degree"),
-            "field_of_study": education_data.get("field_of_study"),
-            "start_date": education_data.get("start_date"),
-            "end_date": education_data.get("end_date"),
-            "added_at": datetime.utcnow().isoformat()
+        edu_dict = {
+            "user_id": user_id,
+            "school": education_data.school,
+            "degree": education_data.degree,
+            "field": education_data.field,
+            "start_date": education_data.start_date.isoformat() if education_data.start_date else None,
+            "end_date": education_data.end_date.isoformat() if education_data.end_date else None
         }
-        current_education.append(new_education)
         
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "education": current_education,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
+        response = supabase.table("user_education").insert(edu_dict).execute()
         
-        if update_response.data:
-            return new_education
+        if response.data and len(response.data) > 0:
+            return response.data[0]
         raise HTTPException(status_code=400, detail="Failed to add education")
     except Exception as e:
         print(f"Error adding education: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to add education: {str(e)}")
+
+@app.put("/api/education/{education_id}")
+def update_education(education_id: str, education_data: UpdateEducation, user_id: str = Depends(get_current_user)):
+    """Update education in normalized user_education table"""
+    try:
+        update_dict = {}
+        if education_data.school is not None:
+            update_dict["school"] = education_data.school
+        if education_data.degree is not None:
+            update_dict["degree"] = education_data.degree
+        if education_data.field is not None:
+            update_dict["field"] = education_data.field
+        if education_data.start_date is not None:
+            update_dict["start_date"] = education_data.start_date.isoformat()
+        if education_data.end_date is not None:
+            update_dict["end_date"] = education_data.end_date.isoformat()
+        
+        if not update_dict:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        response = supabase.table("user_education").update(update_dict).eq("id", education_id).eq("user_id", user_id).execute()
+        
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        raise HTTPException(status_code=404, detail="Education not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating education: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to update education: {str(e)}")
+
+@app.delete("/api/education/{education_id}")
+def delete_education(education_id: str, user_id: str = Depends(get_current_user)):
+    """Delete education from normalized user_education table"""
+    try:
+        response = supabase.table("user_education").delete().eq("id", education_id).eq("user_id", user_id).execute()
+        return {"success": True, "message": "Education deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting education: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to delete education: {str(e)}")
 
 # Note: Resume endpoints moved to the main resume section below
 
@@ -744,12 +851,6 @@ def delete_profile(user_id: str = Depends(get_current_user)):
     try:
         # Delete all user jobs first
         jobs_response = supabase.table("jobs").delete().eq("user_id", user_id).execute()
-        
-        # Delete all user resumes (if using separate resumes table)
-        try:
-            resumes_response = supabase.table("resumes").delete().eq("user_id", user_id).execute()
-        except Exception as e:
-            print(f"Note: Could not delete resumes (table may not exist): {str(e)}")
         
         # Delete user profile
         profile_response = supabase.table("user_profile").delete().eq("user_id", user_id).execute()
@@ -815,35 +916,6 @@ def delete_profile(user_id: str = Depends(get_current_user)):
 #         print(f"Error updating skill: {str(e)}")
 #         raise HTTPException(status_code=400, detail=f"Skill update failed: {str(e)}")
 
-@app.delete("/api/skills/{skill_id}")
-def delete_skill(skill_id: str, user_id: str = Depends(get_current_user)):
-    """Delete skill from user_profile table"""
-    try:
-        # Get current skills
-        response = supabase.table("user_profile").select("skills").eq("user_id", user_id).execute()
-        if response.data and len(response.data) > 0:
-            current_skills = response.data[0].get("skills", [])
-        else:
-            current_skills = []
-        
-        # Filter out the skill to delete
-        updated_skills = [skill for skill in current_skills if skill.get("added_at") != skill_id]
-        
-        if len(updated_skills) == len(current_skills):
-            raise HTTPException(status_code=404, detail="Skill not found")
-        
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "skills": updated_skills,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
-        
-        if update_response.data:
-            return {"success": True, "message": "Skill deleted successfully"}
-        raise HTTPException(status_code=400, detail="Failed to delete skill")
-    except Exception as e:
-        print(f"Error deleting skill: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Skill deletion failed: {str(e)}")
 
 @app.get("/api/skills/suggestions")
 def get_skill_suggestions():
@@ -887,81 +959,6 @@ def get_skill_suggestions():
 #         print(f"Error adding experience: {str(e)}")
 #         raise HTTPException(status_code=400, detail=f"Experience creation failed: {str(e)}")
 
-@app.put("/api/experience/{experience_id}/update")
-def update_experience(experience_id: str, experience_data: dict, user_id: str = Depends(get_current_user)):
-    """Update work experience in user_profile table"""
-    try:
-        # Get current experience
-        response = supabase.table("user_profile").select("work_experience").eq("user_id", user_id).execute()
-        current_experience = []
-        if response.data and len(response.data) > 0:
-            current_experience = response.data[0].get("work_experience", [])
-        
-        # Find and update the specific experience
-        updated_experience = []
-        found = False
-        updated_exp = None
-        for exp in current_experience:
-            if exp.get("added_at") == experience_id:  # Use added_at as identifier
-                updated_exp = {
-                    "title": experience_data.get("title", exp.get("title")),
-                    "company": experience_data.get("company", exp.get("company")),
-                    "start_date": experience_data.get("start_date", exp.get("start_date")),
-                    "end_date": experience_data.get("end_date", exp.get("end_date")),
-                    "is_current": experience_data.get("is_current", exp.get("is_current", False)),
-                    "description": experience_data.get("description", exp.get("description")),
-                    "added_at": exp.get("added_at")  # Keep the same identifier
-                }
-                updated_experience.append(updated_exp)
-                found = True
-            else:
-                updated_experience.append(exp)
-        
-        if not found:
-            raise HTTPException(status_code=404, detail="Experience not found")
-        
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "work_experience": updated_experience,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
-        
-        if update_response.data:
-            return updated_exp
-        raise HTTPException(status_code=400, detail="Failed to update experience")
-    except Exception as e:
-        print(f"Error updating experience: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Experience update failed: {str(e)}")
-
-@app.delete("/api/experience/{experience_id}")
-def delete_experience(experience_id: str, user_id: str = Depends(get_current_user)):
-    """Delete work experience from user_profile table"""
-    try:
-        # Get current experience
-        response = supabase.table("user_profile").select("work_experience").eq("user_id", user_id).execute()
-        if response.data and len(response.data) > 0:
-            current_experience = response.data[0].get("work_experience", [])
-        else:
-            current_experience = []
-        
-        # Remove the specific experience
-        updated_experience = [exp for exp in current_experience if exp.get("added_at") != experience_id]
-        
-        if len(updated_experience) == len(current_experience):
-            raise HTTPException(status_code=404, detail="Experience not found")
-        
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "work_experience": updated_experience,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
-        
-        if update_response.data:
-            return {"success": True, "message": "Experience deleted successfully"}
-        raise HTTPException(status_code=400, detail="Failed to delete experience")
-    except Exception as e:
-        print(f"Error deleting experience: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Experience deletion failed: {str(e)}")
 
 # ============================================================================
 # EDUCATION API ENDPOINTS
@@ -994,179 +991,8 @@ def delete_experience(experience_id: str, user_id: str = Depends(get_current_use
 #         print(f"Error adding education: {str(e)}")
 #         raise HTTPException(status_code=400, detail=f"Education creation failed: {str(e)}")
 
-@app.put("/api/education/{education_id}/update")
-def update_education(education_id: str, education_data: dict, user_id: str = Depends(get_current_user)):
-    """Update education in user_profile table"""
-    try:
-        # Get current education
-        response = supabase.table("user_profile").select("education").eq("user_id", user_id).execute()
-        current_education = []
-        if response.data and len(response.data) > 0:
-            current_education = response.data[0].get("education", [])
-        
-        # Find and update the specific education
-        updated_education = []
-        found = False
-        updated_edu = None
-        for edu in current_education:
-            if edu.get("added_at") == education_id:  # Use added_at as identifier
-                updated_edu = {
-                    "school": education_data.get("school", edu.get("school")),
-                    "degree": education_data.get("degree", edu.get("degree")),
-                    "field_of_study": education_data.get("field_of_study", edu.get("field_of_study")),
-                    "start_date": education_data.get("start_date", edu.get("start_date")),
-                    "end_date": education_data.get("end_date", edu.get("end_date")),
-                    "added_at": edu.get("added_at")  # Keep the same identifier
-                }
-                updated_education.append(updated_edu)
-                found = True
-            else:
-                updated_education.append(edu)
-        
-        if not found:
-            raise HTTPException(status_code=404, detail="Education not found")
-        
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "education": updated_education,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
-        
-        if update_response.data:
-            return updated_edu
-        raise HTTPException(status_code=400, detail="Failed to update education")
-    except Exception as e:
-        print(f"Error updating education: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Education update failed: {str(e)}")
 
-@app.delete("/api/education/{education_id}")
-def delete_education(education_id: str, user_id: str = Depends(get_current_user)):
-    """Delete education from user_profile table"""
-    try:
-        # Get current education
-        response = supabase.table("user_profile").select("education").eq("user_id", user_id).execute()
-        if response.data and len(response.data) > 0:
-            current_education = response.data[0].get("education", [])
-        else:
-            current_education = []
-        
-        # Remove the specific education
-        updated_education = [edu for edu in current_education if edu.get("added_at") != education_id]
-        
-        if len(updated_education) == len(current_education):
-            raise HTTPException(status_code=404, detail="Education not found")
-        
-        # Update profile
-        update_response = supabase.table("user_profile").update({
-            "education": updated_education,
-            "updated_at": datetime.utcnow().isoformat()
-        }).eq("user_id", user_id).execute()
-        
-        if update_response.data:
-            return {"success": True, "message": "Education deleted successfully"}
-        raise HTTPException(status_code=400, detail="Failed to delete education")
-    except Exception as e:
-        print(f"Error deleting education: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Education deletion failed: {str(e)}")
-
-# ============================================================================
-# RESUME API ENDPOINTS
-# ============================================================================
-
-@app.get("/api/resumes", response_model=List[Resume])
-def get_resumes(user_id: str = Depends(get_current_user)):
-    """Get user resumes"""
-    try:
-        response = supabase.table("resumes").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
-        return response.data
-    except Exception as e:
-        print(f"Error getting resumes: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Failed to get resumes: {str(e)}")
-
-@app.post("/api/resume/upload", response_model=Resume)
-async def upload_resume(file: UploadFile = File(...), user_id: str = Depends(get_current_user)):
-    """Upload resume"""
-    try:
-        # Validate file type
-        allowed_types = ["application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"]
-        print(f"File upload attempt - Filename: {file.filename}, Content-Type: {file.content_type}")
-        print(f"Allowed types: {allowed_types}")
-        
-        if file.content_type not in allowed_types:
-            print(f"File type validation failed: {file.content_type} not in {allowed_types}")
-            raise HTTPException(status_code=400, detail=f"File must be PDF, DOC, or DOCX. Received: {file.content_type}")
-        
-        # Validate file size (max 5MB)
-        file_size = 0
-        file_content = await file.read()
-        file_size = len(file_content)
-        
-        # Verify file content is not empty
-        if file_size == 0:
-            raise HTTPException(status_code=400, detail="Uploaded file is empty")
-            
-        if file_size > 5 * 1024 * 1024:  # 5MB
-            raise HTTPException(status_code=400, detail="File size must be less than 5MB")
-        
-        # Upload to Supabase Storage
-        print(f"Uploading resume: {file.filename}, size: {file_size} bytes, type: {file.content_type}")
-        print(f"File content length: {len(file_content)} bytes")
-        print(f"File content first 100 bytes: {file_content[:100]}")
-        print(f"File content last 100 bytes: {file_content[-100:]}")
-        print(f"File content is empty: {len(file_content) == 0}")
-        print(f"File content type: {type(file_content)}")
-        file_url = await upload_resume_to_supabase(file, file_content, user_id)
-        print(f"Resume uploaded successfully to: {file_url}")
-        
-        # Create resume record
-        resume_data = {
-            "user_id": user_id,
-            "filename": file.filename,
-            "file_url": file_url,
-            "file_size": file_size,
-            "is_default": False
-        }
-        
-        print(f"Inserting resume data: {resume_data}")
-        response = supabase.table("resumes").insert(resume_data).execute()
-        print(f"Resume insert response: {response.data}")
-        if response.data:
-            print(f"Resume uploaded successfully: {response.data[0]}")
-            return response.data[0]
-        raise HTTPException(status_code=400, detail="Resume upload failed")
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error uploading resume: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Resume upload failed: {str(e)}")
-
-@app.put("/api/resume/{resume_id}/default", response_model=Resume)
-def set_default_resume(resume_id: UUID, user_id: str = Depends(get_current_user)):
-    """Set resume as default"""
-    try:
-        # First, unset all other resumes as default
-        supabase.table("resumes").update({"is_default": False}).eq("user_id", user_id).execute()
-        
-        # Set the selected resume as default
-        response = supabase.table("resumes").update({"is_default": True}).eq("id", str(resume_id)).eq("user_id", user_id).execute()
-        if response.data:
-            return response.data[0]
-        raise HTTPException(status_code=404, detail="Resume not found")
-    except Exception as e:
-        print(f"Error setting default resume: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Failed to set default resume: {str(e)}")
-
-@app.delete("/api/resume/{resume_id}")
-def delete_resume(resume_id: UUID, user_id: str = Depends(get_current_user)):
-    """Delete resume"""
-    try:
-        response = supabase.table("resumes").delete().eq("id", str(resume_id)).eq("user_id", user_id).execute()
-        if response.data:
-            return {"success": True, "message": "Resume deleted successfully"}
-        raise HTTPException(status_code=404, detail="Resume not found")
-    except Exception as e:
-        print(f"Error deleting resume: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Resume deletion failed: {str(e)}")
+# Resume upload endpoints removed - using AI-generated resumes instead
 
 # ============================================================================
 # JOB API ENDPOINTS (EXISTING)
