@@ -507,15 +507,27 @@ def get_profile(user_id: str = Depends(get_current_user)):
             insert_response = supabase.table("user_profile").insert(default_profile).execute()
             profile = insert_response.data[0]
         
-        # Fetch normalized data
-        skills_response = supabase.table("user_skills").select("*").eq("user_id", user_id).execute()
-        experience_response = supabase.table("user_work_experience").select("*").eq("user_id", user_id).execute()
-        education_response = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
+        # Fetch normalized data (handle case where tables might not exist yet)
+        try:
+            skills_response = supabase.table("user_skills").select("*").eq("user_id", user_id).execute()
+            profile["skills"] = skills_response.data or []
+        except Exception as e:
+            print(f"Warning: Could not fetch skills: {str(e)}")
+            profile["skills"] = []
         
-        # Build response with normalized data
-        profile["skills"] = skills_response.data or []
-        profile["work_experience"] = experience_response.data or []
-        profile["education"] = education_response.data or []
+        try:
+            experience_response = supabase.table("user_work_experience").select("*").eq("user_id", user_id).execute()
+            profile["work_experience"] = experience_response.data or []
+        except Exception as e:
+            print(f"Warning: Could not fetch work experience: {str(e)}")
+            profile["work_experience"] = []
+        
+        try:
+            education_response = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
+            profile["education"] = education_response.data or []
+        except Exception as e:
+            print(f"Warning: Could not fetch education: {str(e)}")
+            profile["education"] = []
         
         return ProfileResponse(**profile)
     except Exception as e:

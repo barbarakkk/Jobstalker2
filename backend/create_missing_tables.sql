@@ -1,6 +1,15 @@
 -- Quick fix: Create missing tables for user_skills, user_work_experience, user_education
 -- Run this SQL in your Supabase SQL Editor
 
+-- First, ensure the update_updated_at_column function exists
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- User Skills Table
 CREATE TABLE IF NOT EXISTS public.user_skills (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
