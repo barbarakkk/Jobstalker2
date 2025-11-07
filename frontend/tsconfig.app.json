@@ -20,5 +20,13 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": [
+    "**/ModernJSONResume.tsx",
+    "**/ClassicExecutive.tsx",
+    "**/ModernProfessional.tsx",
+    "**/TechMinimalist.tsx",
+    "node_modules",
+    "dist"
+  ]
 }
