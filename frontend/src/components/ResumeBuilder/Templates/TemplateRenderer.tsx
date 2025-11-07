@@ -1,0 +1,199 @@
+import { useEffect, useState } from 'react';
+import type { ResumeData } from '@/types/resume';
+import type { TemplateConfig } from './config/templateConfigSchema';
+import { loadTemplateConfig } from './templateRegistry';
+import { getSectionComponent, sortSections, validateTemplateConfig } from './utils/templateUtils';
+import { LayoutRenderer } from './layouts/LayoutRenderer';
+import { applyContainerStyles } from './styles/TemplateStyles';
+
+interface TemplateRendererProps {
+  templateId: string;
+  data: ResumeData;
+  className?: string;
+}
+
+export function TemplateRenderer({ templateId, data, className }: TemplateRendererProps) {
+  const [templateConfig, setTemplateConfig] = useState<TemplateConfig | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadTemplate = async () => {
+      if (!templateId) {
+        setError('No template ID provided');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const config = await loadTemplateConfig(templateId);
+        
+        if (!config) {
+          setError(`Template "${templateId}" not found`);
+          setLoading(false);
+          return;
+        }
+
+        if (!validateTemplateConfig(config)) {
+          setError(`Invalid template configuration for "${templateId}"`);
+          setLoading(false);
+          return;
+        }
+
+        setTemplateConfig(config);
+        setError(null);
+      } catch (err) {
+        setError(`Failed to load template: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTemplate();
+  }, [templateId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Loading template...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !templateConfig) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <p className="text-red-600 font-medium mb-2">Error Loading Template</p>
+          <p className="text-sm text-gray-600">{error || 'Template not found'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Sort sections by order and position
+  const sortedSections = sortSections(templateConfig.sections.filter(s => s.visible !== false));
+
+  // Group sections by position for layout rendering
+  const headerSections = sortedSections.filter(s => s.position === 'top' || s.position === 'after-header');
+  const mainSections = sortedSections.filter(s => s.position === 'main');
+  const sidebarSections = sortedSections.filter(s => s.position === 'sidebar');
+  const bottomSections = sortedSections.filter(s => s.position === 'bottom');
+
+  // Apply container styles
+  const containerStyle = applyContainerStyles(
+    templateConfig.theme,
+    templateConfig.styles?.container,
+    undefined
+  );
+
+  return (
+    <div 
+      className={`resume-template ${className || ''}`}
+      style={containerStyle}
+    >
+      <LayoutRenderer layout={templateConfig.layout} theme={templateConfig.theme}>
+        {/* Header sections */}
+        {headerSections.map((sectionConfig) => {
+          const SectionComponent = getSectionComponent(sectionConfig.type);
+          if (!SectionComponent) return null;
+          
+          return (
+            <div key={`${sectionConfig.type}-${sectionConfig.position}`} className="col-span-full">
+              <SectionComponent 
+                data={data} 
+                config={sectionConfig}
+                style={{ 
+                  ...sectionConfig.style, 
+                  ...{ 
+                    color: templateConfig.theme.textColor,
+                    primaryColor: templateConfig.theme.primaryColor 
+                  } 
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/* Main content sections */}
+        {mainSections.map((sectionConfig) => {
+          const SectionComponent = getSectionComponent(sectionConfig.type);
+          if (!SectionComponent) return null;
+          
+          // For two-column: main sections take 2 columns (full width of left), for three-column: main takes 2 columns (left 2/3)
+          const colSpan = templateConfig.layout.type === 'two-column' 
+            ? 'col-span-1' // In 2-column grid, main takes left column
+            : templateConfig.layout.type === 'three-column'
+            ? 'col-span-2' // In 3-column grid, main takes first 2 columns
+            : 'col-span-full'; // Single column takes full width
+          
+          return (
+            <div key={`${sectionConfig.type}-${sectionConfig.position}`} className={colSpan}>
+              <SectionComponent 
+                data={data} 
+                config={sectionConfig}
+                style={{ 
+                  ...sectionConfig.style, 
+                  ...{ 
+                    color: templateConfig.theme.textColor,
+                    primaryColor: templateConfig.theme.primaryColor 
+                  } 
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/* Sidebar sections */}
+        {sidebarSections.map((sectionConfig) => {
+          const SectionComponent = getSectionComponent(sectionConfig.type);
+          if (!SectionComponent) return null;
+          
+          // Sidebar always takes 1 column (rightmost)
+          const colSpan = templateConfig.layout.type === 'two-column' 
+            ? 'col-span-1' 
+            : templateConfig.layout.type === 'three-column'
+            ? 'col-span-1'
+            : 'col-span-full'; // Single column fallback
+          
+          return (
+            <div key={`${sectionConfig.type}-${sectionConfig.position}`} className={colSpan}>
+              <SectionComponent 
+                data={data} 
+                config={sectionConfig}
+                style={{ 
+                  ...sectionConfig.style, 
+                  ...{ 
+                    color: templateConfig.theme.textColor,
+                    primaryColor: templateConfig.theme.primaryColor 
+                  } 
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/* Bottom sections */}
+        {bottomSections.map((sectionConfig) => {
+          const SectionComponent = getSectionComponent(sectionConfig.type);
+          if (!SectionComponent) return null;
+          
+          return (
+            <div key={`${sectionConfig.type}-${sectionConfig.position}`} className="col-span-full">
+              <SectionComponent 
+                data={data} 
+                config={sectionConfig}
+                style={sectionConfig.style}
+              />
+            </div>
+          );
+        })}
+      </LayoutRenderer>
+    </div>
+  );
+}
+
