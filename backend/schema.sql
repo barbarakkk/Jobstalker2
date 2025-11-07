@@ -79,6 +79,46 @@ CREATE TABLE IF NOT EXISTS public.resume_builder_data (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- User Skills Table (normalized)
+CREATE TABLE IF NOT EXISTS public.user_skills (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    proficiency VARCHAR(50),
+    category VARCHAR(100) DEFAULT 'Technical',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, name) -- Prevent duplicate skills for same user
+);
+
+-- User Work Experience Table (normalized)
+CREATE TABLE IF NOT EXISTS public.user_work_experience (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    company VARCHAR(255) NOT NULL,
+    location VARCHAR(255),
+    start_date DATE,
+    end_date DATE,
+    is_current BOOLEAN DEFAULT FALSE,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- User Education Table (normalized)
+CREATE TABLE IF NOT EXISTS public.user_education (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    school VARCHAR(255) NOT NULL,
+    degree VARCHAR(100),
+    field VARCHAR(255),
+    start_date DATE,
+    end_date DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profile_user_id ON public.user_profile(user_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON public.jobs(user_id);
@@ -86,6 +126,10 @@ CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON public.resumes(user_id);
 CREATE INDEX IF NOT EXISTS idx_resume_builder_data_user_id ON public.resume_builder_data(user_id);
 CREATE INDEX IF NOT EXISTS idx_resume_builder_data_template_id ON public.resume_builder_data(template_id);
 CREATE INDEX IF NOT EXISTS idx_resume_builder_data_resume_data ON public.resume_builder_data USING GIN (resume_data);
+CREATE INDEX IF NOT EXISTS idx_user_skills_user_id ON public.user_skills(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_skills_category ON public.user_skills(category);
+CREATE INDEX IF NOT EXISTS idx_user_work_experience_user_id ON public.user_work_experience(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_education_user_id ON public.user_education(user_id);
 
 -- Create GIN indexes for JSONB fields to enable efficient querying
 CREATE INDEX IF NOT EXISTS idx_user_profile_skills ON public.user_profile USING GIN (skills);
@@ -107,12 +151,18 @@ CREATE TRIGGER update_user_profile_updated_at BEFORE UPDATE ON public.user_profi
 CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON public.jobs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_resumes_updated_at BEFORE UPDATE ON public.resumes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_resume_builder_data_updated_at BEFORE UPDATE ON public.resume_builder_data FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_skills_updated_at BEFORE UPDATE ON public.user_skills FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_work_experience_updated_at BEFORE UPDATE ON public.user_work_experience FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_education_updated_at BEFORE UPDATE ON public.user_education FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.user_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resumes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resume_builder_data ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_work_experience ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_education ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for user_profile
 CREATE POLICY "Users can view own profile" ON public.user_profile
@@ -164,6 +214,45 @@ CREATE POLICY "Users can update own resume builder data" ON public.resume_builde
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own resume builder data" ON public.resume_builder_data
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for user_skills
+CREATE POLICY "Users can view own skills" ON public.user_skills
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own skills" ON public.user_skills
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own skills" ON public.user_skills
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own skills" ON public.user_skills
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for user_work_experience
+CREATE POLICY "Users can view own work experience" ON public.user_work_experience
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own work experience" ON public.user_work_experience
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own work experience" ON public.user_work_experience
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own work experience" ON public.user_work_experience
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for user_education
+CREATE POLICY "Users can view own education" ON public.user_education
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own education" ON public.user_education
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own education" ON public.user_education
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own education" ON public.user_education
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Create helper functions for JSON operations
