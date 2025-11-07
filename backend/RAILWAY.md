@@ -39,9 +39,11 @@ uvicorn main:app --host 0.0.0.0 --port $PORT
 
 ## Environment Variables Required
 Make sure to set these in Railway dashboard:
-- `SUPABASE_URL` - Your Supabase project URL
-- `SUPABASE_ANON_KEY` - Your Supabase anonymous key
+- `SUPABASE_URL` - Your Supabase project URL (e.g., `https://<your-ref>.supabase.co`)
+- `SUPABASE_SERVICE_ROLE_KEY` - Your Supabase service role key (required for server-side operations)
 - `OPENAI_API_KEY` - Your OpenAI API key
+- `DATABASE_URL` - Your Supabase database connection string (optional, if needed)
+- `ENVIRONMENT` - Set to `production` for production deployments
 
 ## Build Process
 1. Railway detects Python project from `backend/requirements.txt`
