@@ -157,6 +157,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   const [experienceForm, setExperienceForm] = useState<CreateExperienceData>({
     title: '',
     company: '',
+    location: '',
     start_date: '',
     end_date: '',
     description: '',
@@ -373,6 +374,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       setExperienceForm({
         title: '',
         company: '',
+        location: '',
         start_date: '',
         end_date: '',
         description: '',
