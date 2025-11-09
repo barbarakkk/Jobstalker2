@@ -113,9 +113,10 @@ export interface CreateSkillData {
 export interface CreateExperienceData {
   title: string;
   company: string;
-  start_date: string;
-  end_date?: string;
-  description: string;
+  location?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  description?: string | null;
   is_current: boolean;
 }
 

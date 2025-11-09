@@ -346,15 +346,17 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         return;
       }
 
-      // Prepare data - convert empty strings to null for dates
-      const experienceData = {
-        ...experienceForm,
-        start_date: experienceForm.start_date && experienceForm.start_date.trim() !== '' ? experienceForm.start_date : null,
+      // Prepare data - convert empty strings to undefined for optional fields
+      const experienceData: CreateExperienceData = {
+        title: experienceForm.title.trim(),
+        company: experienceForm.company.trim(),
+        location: experienceForm.location && experienceForm.location.trim() !== '' ? experienceForm.location.trim() : undefined,
+        start_date: experienceForm.start_date && experienceForm.start_date.trim() !== '' ? experienceForm.start_date.trim() : undefined,
         end_date: experienceForm.is_current || !experienceForm.end_date || experienceForm.end_date.trim() === '' 
-          ? null 
-          : experienceForm.end_date,
-        location: experienceForm.location && experienceForm.location.trim() !== '' ? experienceForm.location : null,
-        description: experienceForm.description && experienceForm.description.trim() !== '' ? experienceForm.description : null,
+          ? undefined 
+          : experienceForm.end_date.trim(),
+        description: experienceForm.description && experienceForm.description.trim() !== '' ? experienceForm.description.trim() : undefined,
+        is_current: experienceForm.is_current,
       };
 
       if (editingExperience && editingExperienceId) {
@@ -954,7 +956,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                 <label className="text-sm font-medium text-gray-900">Start Date</label>
                 <Input
                   type="date"
-                  value={experienceForm.start_date}
+                  value={experienceForm.start_date || ''}
                   onChange={(e) => setExperienceForm({...experienceForm, start_date: e.target.value})}
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
@@ -963,7 +965,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                 <label className="text-sm font-medium text-gray-900">End Date</label>
                 <Input
                   type="date"
-                  value={experienceForm.end_date}
+                  value={experienceForm.end_date || ''}
                   onChange={(e) => setExperienceForm({...experienceForm, end_date: e.target.value})}
                   disabled={experienceForm.is_current}
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
@@ -987,7 +989,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
             <div>
               <label className="text-sm font-medium text-gray-900">Description</label>
               <Textarea
-                value={experienceForm.description}
+                value={experienceForm.description || ''}
                 onChange={(e) => setExperienceForm({...experienceForm, description: e.target.value})}
                 placeholder="Describe your role and achievements..."
                 className="min-h-[100px] border-gray-300 focus:border-blue-500 focus:ring-blue-500"
