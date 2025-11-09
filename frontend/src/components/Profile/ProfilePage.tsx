@@ -333,11 +333,35 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       setIsSaving(true);
       setError(null);
 
+      // Client-side validation - show user-friendly messages
+      if (!experienceForm.title || experienceForm.title.trim() === '') {
+        setError('Please enter a job title');
+        setIsSaving(false);
+        return;
+      }
+
+      if (!experienceForm.company || experienceForm.company.trim() === '') {
+        setError('Please enter a company name');
+        setIsSaving(false);
+        return;
+      }
+
+      // Prepare data - convert empty strings to null for dates
+      const experienceData = {
+        ...experienceForm,
+        start_date: experienceForm.start_date && experienceForm.start_date.trim() !== '' ? experienceForm.start_date : null,
+        end_date: experienceForm.is_current || !experienceForm.end_date || experienceForm.end_date.trim() === '' 
+          ? null 
+          : experienceForm.end_date,
+        location: experienceForm.location && experienceForm.location.trim() !== '' ? experienceForm.location : null,
+        description: experienceForm.description && experienceForm.description.trim() !== '' ? experienceForm.description : null,
+      };
+
       if (editingExperience && editingExperienceId) {
-        const updated = await experienceApi.updateExperience(editingExperienceId, experienceForm);
+        const updated = await experienceApi.updateExperience(editingExperienceId, experienceData);
         setExperience(experience.map(exp => (exp.added_at || exp.id) === editingExperienceId ? updated : exp));
       } else {
-        const newExp = await experienceApi.addExperience(experienceForm);
+        const newExp = await experienceApi.addExperience(experienceData);
         setExperience([...experience, newExp]);
       }
 
@@ -356,7 +380,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to save experience');
+      // Log technical error to console only
+      console.error('Error saving experience (technical):', error);
+      
+      // Show user-friendly message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save experience';
+      setError(errorMessage);
     } finally {
       setIsSaving(false);
     }

@@ -83,12 +83,19 @@ const apiCall = async <T>(
         throw new Error('Authentication failed. Please log in again.');
       }
       
-      // Handle FastAPI validation errors
+      // Handle FastAPI validation errors - show user-friendly messages
       if (response.status === 422 && errorData.detail) {
-        const validationErrors = Array.isArray(errorData.detail) 
-          ? errorData.detail.map((err: any) => `${err.loc?.join('.')}: ${err.msg}`).join(', ')
-          : errorData.detail;
-        throw new Error(`Validation error: ${validationErrors}`);
+        // Use user-friendly message from backend, or fallback to generic message
+        const userMessage = typeof errorData.detail === 'string' 
+          ? errorData.detail 
+          : (errorData.errors && errorData.errors[0]) 
+            ? errorData.errors[0]
+            : 'Please check your input and try again';
+        
+        // Log technical details to console only
+        console.error('Validation error (technical):', errorData);
+        
+        throw new Error(userMessage);
       }
       
       // Handle rate limiting

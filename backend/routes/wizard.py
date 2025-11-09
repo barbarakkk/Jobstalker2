@@ -51,22 +51,6 @@ async def get_current_user(authorization: Optional[str] = Header(None)):
         print(f"Auth error (wizard): {e}")
         raise HTTPException(status_code=401, detail="Authentication failed")
 
-async def get_current_user_with_email(authorization: Optional[str] = Header(None)):
-    """Get user ID and email from token"""
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Authorization header required")
-    token = authorization.replace("Bearer ", "").strip()
-    try:
-        user_response = supabase.auth.get_user(token)
-        if not user_response or not user_response.user:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-        return user_response.user.id, user_response.user.email
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Auth error (wizard): {e}")
-        raise HTTPException(status_code=401, detail="Authentication failed")
-
 
 def _draft_to_resume_data(draft: Dict[str, Any]) -> Dict[str, Any]:
     """Map draft_json (template-shaped) into ResumeData used by editor."""
@@ -135,8 +119,33 @@ def _draft_to_resume_data(draft: Dict[str, Any]) -> Dict[str, Any]:
 @router.get("/api/templates")
 async def list_templates(_: str = Depends(get_current_user)):
     try:
-        res = supabase.table("templates").select("id,name,slug,preview_url,is_active,created_at,updated_at").eq("is_active", True).execute()
-        return res.data or []
+        res = supabase.table("templates").select("id,name,slug,schema,preview_url,is_active,created_at,updated_at").eq("is_active", True).execute()
+        if not res.data:
+            return []
+        
+        # Extract metadata from schema for each template
+        templates = []
+        for tpl in res.data:
+            schema = tpl.get("schema") or {}
+            metadata = schema.get("metadata", {})
+            
+            template_info = {
+                "id": tpl["id"],
+                "name": tpl["name"],
+                "slug": tpl["slug"],
+                "preview_url": tpl.get("preview_url"),
+                "is_active": tpl.get("is_active", True),
+                "created_at": tpl.get("created_at"),
+                "updated_at": tpl.get("updated_at"),
+                # Extract from schema metadata
+                "description": metadata.get("description"),
+                "category": metadata.get("category"),
+                "badge": metadata.get("badge"),
+                "colors": metadata.get("colors", []),
+            }
+            templates.append(template_info)
+        
+        return templates
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list templates: {e}")
 
@@ -158,7 +167,7 @@ async def get_template(template_id: str, _: str = Depends(get_current_user)):
 
 
 @router.post("/api/wizard/sessions")
-async def create_session(body: CreateSessionRequest, user_id_email: tuple = Depends(get_current_user_with_email)):
+async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_current_user)):
     try:
         # Fetch template schema - accept both UUID (id) or slug
         # Try by slug first (most common case from frontend)
@@ -173,9 +182,6 @@ async def create_session(body: CreateSessionRequest, user_id_email: tuple = Depe
         template_id_uuid = tpl.data["id"]  # Get the actual UUID
         draft_json = tpl.data["schema"] or {}
 
-        # Extract user_id and email from dependency
-        user_id, user_email = user_id_email
-        
         # Prefill from user_profile and normalized tables
         if body.prefill:
             prof = supabase.table("user_profile").select("full_name,job_title,location").eq("user_id", user_id).maybe_single().execute()
@@ -186,12 +192,6 @@ async def create_session(body: CreateSessionRequest, user_id_email: tuple = Depe
             education_res = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
             
             if prof.data:
-                # Split full_name into firstName and lastName
-                full_name = prof.data.get("full_name") or ""
-                name_parts = full_name.strip().split(" ", 1)
-                first_name = name_parts[0] if len(name_parts) > 0 else ""
-                last_name = name_parts[1] if len(name_parts) > 1 else ""
-                
                 # Convert normalized data to JSON format for wizard
                 skills_list = []
                 for skill in (skills_res.data or []):
@@ -204,7 +204,6 @@ async def create_session(body: CreateSessionRequest, user_id_email: tuple = Depe
                 experience_list = []
                 for exp in (experience_res.data or []):
                     experience_list.append({
-                        "id": str(exp.get("id", "")),
                         "title": exp.get("title"),
                         "company": exp.get("company"),
                         "location": exp.get("location"),
@@ -217,7 +216,6 @@ async def create_session(body: CreateSessionRequest, user_id_email: tuple = Depe
                 education_list = []
                 for edu in (education_res.data or []):
                     education_list.append({
-                        "id": str(edu.get("id", "")),
                         "school": edu.get("school"),
                         "degree": edu.get("degree"),
                         "field": edu.get("field"),
@@ -227,10 +225,7 @@ async def create_session(body: CreateSessionRequest, user_id_email: tuple = Depe
                 
                 profile_map = {
                     "profile": {
-                        "fullName": full_name,
-                        "firstName": first_name,
-                        "lastName": last_name,
-                        "email": user_email,
+                        "fullName": prof.data.get("full_name"),
                         "headline": prof.data.get("job_title"),
                         "location": prof.data.get("location")
                     },

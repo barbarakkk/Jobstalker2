@@ -262,8 +262,17 @@ export function AIGeneratePage() {
   };
 
   const updateWorkExperience = (id: string, field: keyof WorkExperience, value: any) => {
+    // Convert date values to YYYY-MM format for month inputs
+    let processedValue = value;
+    if ((field === 'startDate' || field === 'endDate') && value) {
+      // If value is in YYYY-MM-DD format, convert to YYYY-MM
+      if (typeof value === 'string' && value.length === 10 && value.includes('-')) {
+        processedValue = value.substring(0, 7); // Extract YYYY-MM
+      }
+    }
+    
     setWorkExperience(workExperience.map(exp => 
-      exp.id === id ? { ...exp, [field]: value } : exp
+      exp.id === id ? { ...exp, [field]: processedValue } : exp
     ));
   };
 
@@ -284,8 +293,17 @@ export function AIGeneratePage() {
   };
 
   const updateEducation = (id: string, field: keyof Education, value: any) => {
+    // Convert date values to YYYY-MM format for month inputs
+    let processedValue = value;
+    if ((field === 'startDate' || field === 'endDate') && value) {
+      // If value is in YYYY-MM-DD format, convert to YYYY-MM
+      if (typeof value === 'string' && value.length === 10 && value.includes('-')) {
+        processedValue = value.substring(0, 7); // Extract YYYY-MM
+      }
+    }
+    
     setEducation(education.map(edu => 
-      edu.id === id ? { ...edu, [field]: value } : edu
+      edu.id === id ? { ...edu, [field]: processedValue } : edu
     ));
   };
 
@@ -368,25 +386,43 @@ export function AIGeneratePage() {
         website: ''
       });
       if (Array.isArray(draft.experience) && draft.experience.length > 0) {
+        // Convert date strings to YYYY-MM format for month inputs
+        const formatDateForMonth = (dateStr: string) => {
+          if (!dateStr) return '';
+          if (dateStr.length === 10 && dateStr.includes('-')) {
+            return dateStr.substring(0, 7); // Extract YYYY-MM from YYYY-MM-DD
+          }
+          return dateStr;
+        };
+        
         setWorkExperience(draft.experience.map((e: any, idx: number) => ({
           id: e.id || `exp-${Date.now()}-${idx}`,
           title: e.title || '',
           company: e.company || '',
           location: e.location || '',
-          startDate: e.startDate || '',
-          endDate: e.endDate || '',
+          startDate: formatDateForMonth(e.startDate || ''),
+          endDate: formatDateForMonth(e.endDate || ''),
           isCurrent: !!e.isCurrent,
           description: e.description || ''
         })));
       }
       if (Array.isArray(draft.education) && draft.education.length > 0) {
+        // Convert date strings to YYYY-MM format for month inputs
+        const formatDateForMonth = (dateStr: string) => {
+          if (!dateStr) return '';
+          if (dateStr.length === 10 && dateStr.includes('-')) {
+            return dateStr.substring(0, 7); // Extract YYYY-MM from YYYY-MM-DD
+          }
+          return dateStr;
+        };
+        
         setEducation(draft.education.map((e: any, idx: number) => ({
           id: e.id || `edu-${Date.now()}-${idx}`,
           school: e.school || '',
           degree: e.degree || '',
           field: e.field || '',
-          startDate: e.startDate || '',
-          endDate: e.endDate || ''
+          startDate: formatDateForMonth(e.startDate || ''),
+          endDate: formatDateForMonth(e.endDate || '')
         })));
       }
       if (Array.isArray(draft.skills) && draft.skills.length > 0) {

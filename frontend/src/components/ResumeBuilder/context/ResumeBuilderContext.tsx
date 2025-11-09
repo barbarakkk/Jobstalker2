@@ -131,6 +131,7 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const saveResume = useCallback(async (title: string, templateId: string, data: ResumeData): Promise<string> => {
     try {
       const token = await getAuthToken();
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -138,7 +139,7 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('/api/resume-builder/save', {
+      const response = await fetch(`${API_BASE_URL}/api/resume-builder/save`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -149,6 +150,8 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to save resume:', errorText);
         throw new Error('Failed to save resume');
       }
 
@@ -166,6 +169,7 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const updateResume = useCallback(async (resumeId: string, title?: string, data?: ResumeData): Promise<void> => {
     try {
       const token = await getAuthToken();
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -177,13 +181,15 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
       if (title !== undefined) updatePayload.title = title;
       if (data !== undefined) updatePayload.resume_data = data;
 
-      const response = await fetch(`/api/resume-builder/${resumeId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/resume-builder/${resumeId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(updatePayload),
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to update resume:', errorText);
         throw new Error('Failed to update resume');
       }
 
@@ -197,16 +203,21 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const loadResume = useCallback(async (resumeId: string): Promise<void> => {
     try {
       const token = await getAuthToken();
-      const headers: Record<string, string> = {};
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/resume-builder/${resumeId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/resume-builder/${resumeId}`, {
         headers,
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to load resume:', errorText);
         throw new Error('Failed to load resume');
       }
 
@@ -225,16 +236,21 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const listResumes = useCallback(async (): Promise<any[]> => {
     try {
       const token = await getAuthToken();
-      const headers: Record<string, string> = {};
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch('/api/resume-builder/list', {
+      const response = await fetch(`${API_BASE_URL}/api/resume-builder/list`, {
         headers,
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to list resumes:', errorText);
         throw new Error('Failed to list resumes');
       }
 
@@ -249,12 +265,15 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const deleteResume = useCallback(async (resumeId: string): Promise<void> => {
     try {
       const token = await getAuthToken();
-      const headers: Record<string, string> = {};
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`/api/resume-builder/${resumeId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/resume-builder/${resumeId}`, {
         method: 'DELETE',
         headers,
       });

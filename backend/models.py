@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 from uuid import UUID
 
@@ -114,6 +114,78 @@ class CreateExperience(BaseModel):
     end_date: Optional[date] = None
     is_current: bool = False
     description: Optional[str] = None
+    
+    @model_validator(mode='before')
+    @classmethod
+    def preprocess_dates(cls, data: Any) -> Any:
+        """Preprocess dates before validation - convert empty strings to None."""
+        if isinstance(data, dict):
+            # Handle start_date
+            if 'start_date' in data:
+                start_date = data.get('start_date')
+                if isinstance(start_date, str):
+                    start_date = start_date.strip()
+                    if start_date == '' or start_date.lower() == 'mm/dd/yyyy' or len(start_date) < 4:
+                        data['start_date'] = None
+                    else:
+                        try:
+                            # Handle ISO format (YYYY-MM-DD)
+                            if 'T' in start_date:
+                                start_date = start_date.split('T')[0]
+                            data['start_date'] = datetime.fromisoformat(start_date).date()
+                        except (ValueError, AttributeError):
+                            # Try MM/DD/YYYY format
+                            try:
+                                if '/' in start_date:
+                                    parts = start_date.split('/')
+                                    if len(parts) == 3:
+                                        month, day, year = parts
+                                        data['start_date'] = datetime(int(year), int(month), int(day)).date()
+                                    else:
+                                        data['start_date'] = None
+                                else:
+                                    data['start_date'] = None
+                            except (ValueError, AttributeError):
+                                data['start_date'] = None
+            
+            # Handle end_date - if is_current is True, set to None
+            if data.get('is_current', False):
+                data['end_date'] = None
+            elif 'end_date' in data:
+                end_date = data.get('end_date')
+                if isinstance(end_date, str):
+                    end_date = end_date.strip()
+                    if end_date == '' or end_date.lower() == 'mm/dd/yyyy' or len(end_date) < 4:
+                        data['end_date'] = None
+                    else:
+                        try:
+                            # Handle ISO format (YYYY-MM-DD)
+                            if 'T' in end_date:
+                                end_date = end_date.split('T')[0]
+                            data['end_date'] = datetime.fromisoformat(end_date).date()
+                        except (ValueError, AttributeError):
+                            # Try MM/DD/YYYY format
+                            try:
+                                if '/' in end_date:
+                                    parts = end_date.split('/')
+                                    if len(parts) == 3:
+                                        month, day, year = parts
+                                        data['end_date'] = datetime(int(year), int(month), int(day)).date()
+                                    else:
+                                        data['end_date'] = None
+                                else:
+                                    data['end_date'] = None
+                            except (ValueError, AttributeError):
+                                data['end_date'] = None
+        
+        return data
+    
+    @model_validator(mode='after')
+    def validate_current_position(self):
+        """If is_current is True, set end_date to None."""
+        if self.is_current:
+            self.end_date = None
+        return self
 
 class UpdateExperience(BaseModel):
     title: Optional[str] = None
@@ -123,6 +195,78 @@ class UpdateExperience(BaseModel):
     end_date: Optional[date] = None
     is_current: Optional[bool] = None
     description: Optional[str] = None
+    
+    @model_validator(mode='before')
+    @classmethod
+    def preprocess_dates(cls, data: Any) -> Any:
+        """Preprocess dates before validation - convert empty strings to None."""
+        if isinstance(data, dict):
+            # Handle start_date
+            if 'start_date' in data:
+                start_date = data.get('start_date')
+                if isinstance(start_date, str):
+                    start_date = start_date.strip()
+                    if start_date == '' or start_date.lower() == 'mm/dd/yyyy' or len(start_date) < 4:
+                        data['start_date'] = None
+                    else:
+                        try:
+                            # Handle ISO format (YYYY-MM-DD)
+                            if 'T' in start_date:
+                                start_date = start_date.split('T')[0]
+                            data['start_date'] = datetime.fromisoformat(start_date).date()
+                        except (ValueError, AttributeError):
+                            # Try MM/DD/YYYY format
+                            try:
+                                if '/' in start_date:
+                                    parts = start_date.split('/')
+                                    if len(parts) == 3:
+                                        month, day, year = parts
+                                        data['start_date'] = datetime(int(year), int(month), int(day)).date()
+                                    else:
+                                        data['start_date'] = None
+                                else:
+                                    data['start_date'] = None
+                            except (ValueError, AttributeError):
+                                data['start_date'] = None
+            
+            # Handle end_date - if is_current is True, set to None
+            if data.get('is_current', False):
+                data['end_date'] = None
+            elif 'end_date' in data:
+                end_date = data.get('end_date')
+                if isinstance(end_date, str):
+                    end_date = end_date.strip()
+                    if end_date == '' or end_date.lower() == 'mm/dd/yyyy' or len(end_date) < 4:
+                        data['end_date'] = None
+                    else:
+                        try:
+                            # Handle ISO format (YYYY-MM-DD)
+                            if 'T' in end_date:
+                                end_date = end_date.split('T')[0]
+                            data['end_date'] = datetime.fromisoformat(end_date).date()
+                        except (ValueError, AttributeError):
+                            # Try MM/DD/YYYY format
+                            try:
+                                if '/' in end_date:
+                                    parts = end_date.split('/')
+                                    if len(parts) == 3:
+                                        month, day, year = parts
+                                        data['end_date'] = datetime(int(year), int(month), int(day)).date()
+                                    else:
+                                        data['end_date'] = None
+                                else:
+                                    data['end_date'] = None
+                            except (ValueError, AttributeError):
+                                data['end_date'] = None
+        
+        return data
+    
+    @model_validator(mode='after')
+    def validate_current_position(self):
+        """If is_current is True, set end_date to None."""
+        if self.is_current is True:
+            self.end_date = None
+        return self
 
 # Education models (normalized table)
 class Education(BaseModel):

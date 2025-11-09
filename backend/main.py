@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException, Depends, Header, Request, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, Header, Request, UploadFile, File, BackgroundTasks, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import ValidationError
 from supabase_client import supabase
 from models import Job, CreateJob, UpdateJob, Profile, CreateProfile, UpdateProfile, ProfileStats, Skill, CreateSkill, UpdateSkill, WorkExperience, CreateExperience, UpdateExperience, Education, CreateEducation, UpdateEducation, FileUploadResponse, ProfilePictureResponse, ProfileResponse
 from uuid import UUID
@@ -71,6 +73,52 @@ if not logger.handlers:
 logger.setLevel(logging.INFO)
 
 app = FastAPI(title="JobStalker API", version="1.0.0")
+
+# Custom exception handler for validation errors
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Convert Pydantic validation errors to user-friendly messages."""
+    errors = exc.errors()
+    
+    # Log technical details to console/terminal
+    print(f"❌ Validation Error on {request.method} {request.url}")
+    print(f"   Technical details: {errors}")
+    
+    # Build user-friendly error messages
+    user_friendly_errors = []
+    for error in errors:
+        field = ".".join(str(loc) for loc in error.get("loc", []))
+        error_type = error.get("type", "")
+        error_msg = error.get("msg", "")
+        
+        # Convert technical errors to user-friendly messages
+        if "missing" in error_type or "required" in error_msg.lower():
+            field_name = field.split(".")[-1] if "." in field else field
+            user_friendly_errors.append(f"Please fill in {field_name.replace('_', ' ').title()}")
+        elif "too_short" in error_type or "too short" in error_msg.lower():
+            if "date" in field.lower() or "date" in error_msg.lower():
+                user_friendly_errors.append("Please enter a valid date")
+            else:
+                user_friendly_errors.append(f"{field.replace('_', ' ').title()} is too short")
+        elif "date" in error_type or "date" in error_msg.lower():
+            user_friendly_errors.append("Please enter a valid date")
+        else:
+            # Generic fallback
+            field_name = field.replace("_", " ").title() if field else "Field"
+            user_friendly_errors.append(f"Invalid {field_name}")
+    
+    # If no user-friendly messages, use a generic one
+    if not user_friendly_errors:
+        user_friendly_errors.append("Please check your input and try again")
+    
+    # Return user-friendly error (only show first error to avoid overwhelming user)
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": user_friendly_errors[0],
+            "errors": user_friendly_errors
+        }
+    )
 
 # Include AI resume routes
 app.include_router(ai_resume_router)
@@ -684,30 +732,50 @@ def get_experience(user_id: str = Depends(get_current_user)):
 def add_experience(experience_data: CreateExperience, user_id: str = Depends(get_current_user)):
     """Add work experience to normalized user_work_experience table"""
     try:
+        # Validate required fields
+        if not experience_data.title or not experience_data.title.strip():
+            raise HTTPException(status_code=400, detail="Please enter a job title")
+        
+        if not experience_data.company or not experience_data.company.strip():
+            raise HTTPException(status_code=400, detail="Please enter a company name")
+        
         exp_dict = {
             "user_id": user_id,
-            "title": experience_data.title,
-            "company": experience_data.company,
-            "location": experience_data.location,
+            "title": experience_data.title.strip(),
+            "company": experience_data.company.strip(),
+            "location": experience_data.location.strip() if experience_data.location else None,
             "start_date": experience_data.start_date.isoformat() if experience_data.start_date else None,
             "end_date": experience_data.end_date.isoformat() if experience_data.end_date else None,
             "is_current": experience_data.is_current,
-            "description": experience_data.description
+            "description": experience_data.description.strip() if experience_data.description else None
         }
         
         response = supabase.table("user_work_experience").insert(exp_dict).execute()
         
         if response.data and len(response.data) > 0:
             return response.data[0]
-        raise HTTPException(status_code=400, detail="Failed to add experience")
+        raise HTTPException(status_code=400, detail="Failed to add experience. Please try again.")
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is (they already have user-friendly messages)
+        raise
     except Exception as e:
-        print(f"Error adding experience: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Failed to add experience: {str(e)}")
+        # Log technical error to console/terminal
+        print(f"❌ Error adding experience (technical): {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Return user-friendly error message
+        raise HTTPException(status_code=400, detail="Failed to add experience. Please check your input and try again.")
 
 @app.put("/api/experience/{experience_id}")
 def update_experience(experience_id: str, experience_data: UpdateExperience, user_id: str = Depends(get_current_user)):
     """Update work experience in normalized user_work_experience table"""
     try:
+        # Validate required fields if they're being updated
+        if experience_data.title is not None and (not experience_data.title or not experience_data.title.strip()):
+            raise HTTPException(status_code=400, detail="Please enter a job title")
+        
+        if experience_data.company is not None and (not experience_data.company or not experience_data.company.strip()):
+            raise HTTPException(status_code=400, detail="Please enter a company name")
         update_dict = {}
         if experience_data.title is not None:
             update_dict["title"] = experience_data.title
@@ -727,16 +795,31 @@ def update_experience(experience_id: str, experience_data: UpdateExperience, use
         if not update_dict:
             raise HTTPException(status_code=400, detail="No fields to update")
         
+        # Strip string fields
+        if "title" in update_dict and update_dict["title"]:
+            update_dict["title"] = update_dict["title"].strip()
+        if "company" in update_dict and update_dict["company"]:
+            update_dict["company"] = update_dict["company"].strip()
+        if "location" in update_dict and update_dict["location"]:
+            update_dict["location"] = update_dict["location"].strip()
+        if "description" in update_dict and update_dict["description"]:
+            update_dict["description"] = update_dict["description"].strip()
+        
         response = supabase.table("user_work_experience").update(update_dict).eq("id", experience_id).eq("user_id", user_id).execute()
         
         if response.data and len(response.data) > 0:
             return response.data[0]
         raise HTTPException(status_code=404, detail="Experience not found")
     except HTTPException:
+        # Re-raise HTTP exceptions as-is (they already have user-friendly messages)
         raise
     except Exception as e:
-        print(f"Error updating experience: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"Failed to update experience: {str(e)}")
+        # Log technical error to console/terminal
+        print(f"❌ Error updating experience (technical): {str(e)}")
+        import traceback
+        traceback.print_exc()
+        # Return user-friendly error message
+        raise HTTPException(status_code=400, detail="Failed to update experience. Please check your input and try again.")
 
 @app.delete("/api/experience/{experience_id}")
 def delete_experience(experience_id: str, user_id: str = Depends(get_current_user)):
