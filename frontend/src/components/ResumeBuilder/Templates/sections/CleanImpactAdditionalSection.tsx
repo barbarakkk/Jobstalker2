@@ -23,7 +23,7 @@ export function CleanImpactAdditionalSection({ data, config, style }: CleanImpac
 
   const showTitle = config?.showTitle !== false;
   const title = config?.title || 'ADDITIONAL INFORMATION';
-  const accentColor = style?.primaryColor || config?.style?.primaryColor || '#1ca3b8';
+  const accentColor: string = String(style?.primaryColor || config?.style?.primaryColor || '#1ca3b8');
 
   // Group skills by category
   const skillsByCategory = skills.reduce((acc, skill) => {

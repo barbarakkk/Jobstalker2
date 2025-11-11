@@ -19,7 +19,7 @@ export function CleanImpactWorkSection({ data, config, style }: CleanImpactWorkS
 
   const showTitle = config?.showTitle !== false;
   const title = config?.title || 'WORK EXPERIENCE';
-  const accentColor = style?.primaryColor || config?.style?.primaryColor || '#1ca3b8';
+  const accentColor: string = String(style?.primaryColor || config?.style?.primaryColor || '#1ca3b8');
 
   // Parse description into bullets (split by newlines or common bullet patterns)
   const parseBullets = (description: string): string[] => {

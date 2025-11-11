@@ -12,7 +12,7 @@ export function WorkExperienceStep({ value, onChange }: StepProps) {
   const add = () => {
     const next = [
       ...items,
-      { id: genId(), title: '', company: '', location: '', startDate: '', endDate: '', isCurrent: false, bullets: [] },
+      { id: genId(), title: '', company: '', location: '', startDate: '', endDate: '', isCurrent: false, description: '' },
     ];
     onChange({ ...value, workExperience: next });
   };
@@ -40,7 +40,7 @@ export function WorkExperienceStep({ value, onChange }: StepProps) {
               <input className="border rounded px-3 py-2 w-full" placeholder="End (YYYY-MM or empty if current)" value={w.endDate || ''} onChange={(e) => updateAt(idx, { endDate: e.target.value })} />
             </div>
           </div>
-          <textarea className="w-full border rounded px-3 py-2 mt-3" placeholder="Bullets (one per line)" value={(w.bullets || []).join('\n')} onChange={(e) => updateAt(idx, { bullets: e.target.value.split('\n').filter(Boolean) })} />
+          <textarea className="w-full border rounded px-3 py-2 mt-3" placeholder="Description (one bullet point per line)" value={w.description || ''} onChange={(e) => updateAt(idx, { description: e.target.value })} />
           <div className="text-right mt-2">
             <button className="text-red-600 text-sm" onClick={() => removeAt(idx)}>Remove</button>
           </div>

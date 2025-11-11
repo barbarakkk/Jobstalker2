@@ -17,7 +17,7 @@ export function CleanImpactSummarySection({ data, config, style }: CleanImpactSu
 
   const showTitle = config?.showTitle !== false;
   const title = config?.title || 'SUMMARY';
-  const accentColor = style?.primaryColor || config?.style?.primaryColor || '#1ca3b8';
+  const accentColor: string = String(style?.primaryColor || config?.style?.primaryColor || '#1ca3b8');
 
   return (
     <section style={containerStyle} className={`clean-impact-section ${config?.className || ''}`}>

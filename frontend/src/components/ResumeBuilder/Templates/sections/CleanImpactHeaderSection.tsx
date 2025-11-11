@@ -16,7 +16,7 @@ export function CleanImpactHeaderSection({ data, config, style }: CleanImpactHea
     ...config?.style,
   };
 
-  const accentColor = style?.primaryColor || config?.style?.primaryColor || '#1ca3b8';
+  const accentColor: string = String(style?.primaryColor || config?.style?.primaryColor || '#1ca3b8');
 
   return (
     <header style={containerStyle} className={`clean-impact-header ${config?.className || ''}`}>

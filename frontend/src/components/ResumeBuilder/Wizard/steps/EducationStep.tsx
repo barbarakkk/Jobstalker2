@@ -12,7 +12,7 @@ export function EducationStep({ value, onChange }: StepProps) {
   const add = () => {
     const next = [
       ...items,
-      { id: genId(), school: '', degree: '', location: '', startDate: '', endDate: '', details: '' },
+      { id: genId(), school: '', degree: '', field: '', startDate: '', endDate: '' },
     ];
     onChange({ ...value, education: next });
   };
@@ -34,13 +34,12 @@ export function EducationStep({ value, onChange }: StepProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input className="border rounded px-3 py-2" placeholder="School" value={e.school || ''} onChange={(ev) => updateAt(idx, { school: (ev.target as any).value })} />
             <input className="border rounded px-3 py-2" placeholder="Degree" value={e.degree || ''} onChange={(ev) => updateAt(idx, { degree: (ev.target as any).value })} />
-            <input className="border rounded px-3 py-2" placeholder="Location" value={e.location || ''} onChange={(ev) => updateAt(idx, { location: (ev.target as any).value })} />
+            <input className="border rounded px-3 py-2" placeholder="Field of Study" value={e.field || ''} onChange={(ev) => updateAt(idx, { field: (ev.target as any).value })} />
             <div className="flex gap-2">
               <input className="border rounded px-3 py-2 w-full" placeholder="Start (YYYY)" value={e.startDate || ''} onChange={(ev) => updateAt(idx, { startDate: (ev.target as any).value })} />
               <input className="border rounded px-3 py-2 w-full" placeholder="End (YYYY)" value={e.endDate || ''} onChange={(ev) => updateAt(idx, { endDate: (ev.target as any).value })} />
             </div>
           </div>
-          <textarea className="w-full border rounded px-3 py-2 mt-3" placeholder="Details (optional)" value={e.details || ''} onChange={(ev) => updateAt(idx, { details: (ev.target as any).value })} />
           <div className="text-right mt-2">
             <button className="text-red-600 text-sm" onClick={() => removeAt(idx)}>Remove</button>
           </div>
