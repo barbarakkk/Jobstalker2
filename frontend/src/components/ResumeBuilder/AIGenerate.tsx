@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
-import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { wizardApi } from '@/lib/api';
 import { supabase } from '@/lib/supabaseClient';
@@ -47,7 +48,7 @@ interface Language {
 export function AIGeneratePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const templateId = searchParams.get('template') || 'modern-two-col';
+  const templateId = searchParams.get('template') || 'modern-professional';
   const { setSelectedTemplate } = useResumeBuilder();
   const [wizardSessionId, setWizardSessionId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -77,6 +78,7 @@ export function AIGeneratePage() {
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
 
   // Wizard steps state
   const [currentStep, setCurrentStep] = useState(1);
@@ -135,19 +137,61 @@ export function AIGeneratePage() {
     try {
       setErrors([]);
       if (step === 1) {
+        console.log('🔍 Validating Step 1 - Personal Info:', {
+          firstName: personalInfo.firstName,
+          lastName: personalInfo.lastName,
+          email: personalInfo.email,
+          firstNameLength: personalInfo.firstName?.length,
+          lastNameLength: personalInfo.lastName?.length,
+          emailLength: personalInfo.email?.length
+        });
         personalInfoSchema.parse(personalInfo);
+        console.log('✅ Step 1 validation passed');
+      } else if (step === 2) {
+        console.log('🔍 Validating Step 2 - Professional Summary:', {
+          summary: summary,
+          summaryLength: summary?.trim().length
+        });
+        if (!summary || !summary.trim()) {
+          setErrors(['Professional Summary is required. Please tell us about yourself.']);
+          console.log('❌ Step 2 validation failed: Summary is empty');
+          return false;
+        }
+        console.log('✅ Step 2 validation passed');
       } else if (step === 3) {
-        // If any item exists, validate required fields of filled items
-        workExperience.forEach((w) => workItemSchema.parse(w));
+        // Filter out empty work experience entries (where title and company are both empty)
+        const filledWorkExp = workExperience.filter(w => 
+          (w.title && w.title.trim().length > 0) || (w.company && w.company.trim().length > 0)
+        );
+        // Only validate filled entries
+        filledWorkExp.forEach((w) => workItemSchema.parse(w));
       } else if (step === 4) {
-        education.forEach((e) => educationItemSchema.parse(e));
+        // Filter out empty education entries (where school and degree are both empty)
+        const filledEducation = education.filter(e => 
+          (e.school && e.school.trim().length > 0) || (e.degree && e.degree.trim().length > 0)
+        );
+        // Only validate filled entries
+        filledEducation.forEach((e) => educationItemSchema.parse(e));
       } else if (step === 5) {
-        skillsSchema.parse(skills);
-        languagesSchema.parse(languages);
+        // Filter out empty skills and languages before validation
+        const filledSkills = skills.filter(s => s.name.trim().length > 0);
+        const filledLanguages = languages.filter(l => l.name.trim().length > 0);
+        // Only validate filled entries
+        if (filledSkills.length > 0) {
+          skillsSchema.parse(filledSkills);
+        }
+        if (filledLanguages.length > 0) {
+          languagesSchema.parse(filledLanguages);
+        }
       }
       return true;
     } catch (e: any) {
-      const msgs = e?.issues?.map((i: any) => i.message) || ['Validation failed'];
+      console.error('❌ Validation error for step', step, ':', e);
+      const msgs = e?.issues?.map((i: any) => {
+        const field = i.path?.join('.') || 'field';
+        return `${field}: ${i.message}`;
+      }) || ['Validation failed'];
+      console.error('❌ Validation error messages:', msgs);
       setErrors(msgs);
       return false;
     }
@@ -191,8 +235,8 @@ export function AIGeneratePage() {
             startDate: e.startDate,
             endDate: e.endDate,
           })),
-          skills: skills.map(s => s.name).filter(Boolean),
-          languages: languages,
+          skills: skills.filter(s => s.name.trim().length > 0).map(s => s.name),
+          languages: languages.filter(l => l.name.trim().length > 0),
           targetRole,
         };
         await wizardApi.patchSession(wizardSessionId, draftPatch, { [`step${currentStep}`]: true }, currentStep);
@@ -211,7 +255,7 @@ export function AIGeneratePage() {
       case 1:
         return !!(personalInfo.firstName && personalInfo.lastName && personalInfo.email);
       case 2:
-        return true; // Summary is optional
+        return !!summary.trim(); // Summary is required
       case 3:
         return true; // Work experience is optional but validate if entries exist
       case 4:
@@ -466,22 +510,129 @@ export function AIGeneratePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('🚀 handleSubmit called - Starting resume generation...');
     setIsGenerating(true);
-    if (!validateStep(1) || !validateStep(3) || !validateStep(4) || !validateStep(5)) {
+    setErrors([]);
+    
+    // Validate all required steps
+    console.log('📋 Validating steps...');
+    const step1Valid = validateStep(1);
+    const step2Valid = validateStep(2);
+    const step3Valid = validateStep(3);
+    const step4Valid = validateStep(4);
+    const step5Valid = validateStep(5);
+    
+    console.log('✅ Validation results:', { step1Valid, step2Valid, step3Valid, step4Valid, step5Valid });
+    
+    if (!step1Valid || !step2Valid || !step3Valid || !step4Valid || !step5Valid) {
+      console.warn('❌ Validation failed, stopping submission');
       setIsGenerating(false);
+      
+      // Show popup dialog with validation errors
+      setShowValidationDialog(true);
+      
+      // Navigate to the first step with errors
+      if (!step1Valid) {
+        console.log('📍 Navigating to Step 1 to fix validation errors');
+        setCurrentStep(1);
+      } else if (!step2Valid) {
+        console.log('📍 Navigating to Step 2 to fix validation errors');
+        setCurrentStep(2);
+      } else if (!step3Valid) {
+        setCurrentStep(3);
+      } else if (!step4Valid) {
+        setCurrentStep(4);
+      } else if (!step5Valid) {
+        setCurrentStep(5);
+      }
+      
+      // Errors are already set by validateStep
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     try {
-      if (!wizardSessionId) throw new Error('Session not ready');
+      if (!wizardSessionId) {
+        console.error('❌ No wizard session ID found');
+        throw new Error('Session not ready. Please refresh the page and try again.');
+      }
+      
+      console.log('✅ Wizard session ID:', wizardSessionId);
+      
+      // Save final step data before completing
+      console.log('Saving final step data before completion...');
+      const draftPatch: any = {
+        profile: {
+          fullName: `${personalInfo.firstName} ${personalInfo.lastName}`.trim(),
+          headline: personalInfo.jobTitle,
+          summary,
+          location: personalInfo.location,
+          email: personalInfo.email,
+          phone: personalInfo.phone,
+          links: {
+            linkedin: personalInfo.linkedin,
+            website: personalInfo.website,
+          },
+        },
+        experience: workExperience.map(e => ({
+          id: e.id,
+          title: e.title,
+          company: e.company,
+          location: e.location,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          isCurrent: e.isCurrent,
+          description: e.description,
+        })),
+        education: education.map(e => ({
+          id: e.id,
+          school: e.school,
+          degree: e.degree,
+          field: e.field,
+          startDate: e.startDate,
+          endDate: e.endDate,
+        })),
+        skills: skills.filter(s => s.name.trim().length > 0).map(s => s.name),
+        languages: languages.filter(l => l.name.trim().length > 0),
+        targetRole,
+      };
+      
+      await wizardApi.patchSession(wizardSessionId, draftPatch, { step6: true }, 6);
+      console.log('Final step data saved');
+      
+      console.log('Completing wizard session:', wizardSessionId);
       const res = await wizardApi.completeSession(wizardSessionId);
+      console.log('Session completed, response:', res);
+      // Ensure the chosen template is active in context and URL
+      try {
+        setSelectedTemplate(templateId as any);
+      } catch (_) {}
+      
+      // Prefer resumeBuilderId as it's compatible with the editor
+      // Fall back to generatedResumeId if resumeBuilderId is not available
       const savedResumeId = res.resumeBuilderId || res.generatedResumeId;
-      navigate(`/resume-builder/edit?resume=${savedResumeId}&template=${encodeURIComponent(templateId)}`);
+      
+      if (!savedResumeId) {
+        throw new Error('Failed to get resume ID from server response');
+      }
+      
+      console.log('✅ Navigating to edit page with resume ID:', savedResumeId, 'Type:', res.resumeBuilderId ? 'resume-builder' : 'generated-resume');
+      const editUrl = `/resume-builder/edit?resume=${savedResumeId}&template=${encodeURIComponent(templateId)}`;
+      console.log('📍 Navigation URL:', editUrl);
+      navigate(editUrl);
     } catch (error) {
-      console.error('Error generating resume:', error);
+      console.error('❌ Error generating resume:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        error
+      });
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate resume. Please try again.';
-      alert(errorMessage);
+      setErrors([errorMessage]);
+      setShowValidationDialog(true); // Show popup for errors too
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
+      console.log('🏁 handleSubmit finished, setting isGenerating to false');
       setIsGenerating(false);
     }
   };
@@ -489,6 +640,45 @@ export function AIGeneratePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <AppHeader active="resume" />
+      
+      {/* Validation Error Popup Dialog */}
+      <Dialog open={showValidationDialog} onOpenChange={setShowValidationDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <DialogTitle className="text-xl font-bold text-red-900">Required Fields Missing</DialogTitle>
+            </div>
+            <DialogDescription className="text-gray-600 pt-2">
+              Please fill in all required fields before generating your resume. You've been taken to the step with errors.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Missing or invalid fields:</p>
+            <ul className="space-y-2">
+              {errors.map((err, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                  <span className="text-red-500 mt-1">•</span>
+                  <span className="flex-1">{err}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={() => {
+                setShowValidationDialog(false);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              Got it, I'll fix these
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">AI Resume Generator</h1>
@@ -639,6 +829,24 @@ export function AIGeneratePage() {
           </div>
         </div>
 
+        {/* Error Display */}
+        {errors.length > 0 && (
+          <div className="mb-6 p-4 rounded-lg bg-red-50 border-2 border-red-200 animate-pulse">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-semibold text-red-900 mb-2">Please fix the following errors before generating your resume:</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  {errors.map((err, idx) => (
+                    <li key={idx} className="text-sm text-red-700 font-medium">{err}</li>
+                  ))}
+                </ul>
+                <p className="text-xs text-red-600 mt-2 italic">You've been taken to the step with errors. Please fill in the required fields and try again.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Step 1: Personal Information */}
           {currentStep === 1 && (
@@ -725,17 +933,23 @@ export function AIGeneratePage() {
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
-              <p className="text-gray-600 mt-1">Optional - AI will generate if empty</p>
+              <p className="text-gray-600 mt-1">Tell us about yourself - This is required</p>
             </div>
             <div>
-              <Label htmlFor="summary">Tell us about yourself (optional - AI will generate if empty)</Label>
+              <Label htmlFor="summary">
+                Tell us about yourself <span className="text-red-500">*</span>
+              </Label>
               <Textarea
                 id="summary"
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
                 placeholder="Brief description of your professional background, key skills, and career objectives..."
                 rows={4}
+                className={errors.some(e => e.includes('Summary')) ? 'border-red-500' : ''}
               />
+              {errors.some(e => e.includes('Summary')) && (
+                <p className="text-red-500 text-sm mt-1">Professional Summary is required</p>
+              )}
               <div className="mt-3 flex items-center gap-3">
                 <Button
                   type="button"
@@ -1129,8 +1343,18 @@ export function AIGeneratePage() {
               ) : (
                 <Button
                   type="submit"
-                  disabled={isGenerating || !personalInfo.firstName || !personalInfo.lastName || !personalInfo.email}
-                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                  disabled={isGenerating || !wizardSessionId}
+                  onClick={(e) => {
+                    console.log('🔘 Generate button clicked');
+                    if (!wizardSessionId) {
+                      console.error('❌ Button clicked but no wizard session ID');
+                      e.preventDefault();
+                      setErrors(['Session not ready. Please refresh the page.']);
+                      return;
+                    }
+                    // Let form submission handle it
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isGenerating ? (
                     <>

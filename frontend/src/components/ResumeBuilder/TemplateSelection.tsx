@@ -94,7 +94,7 @@ export function ResumeTemplateSelectionPage() {
 
   const useTemplate = (templateId: string) => {
     setSelectedTemplate(templateId);
-    navigate(`/resume-builder/ai-generate?template=${encodeURIComponent(templateId)}`);
+    navigate(`/resume-builder/wizard?template=${encodeURIComponent(templateId)}`);
   };
 
 
@@ -182,22 +182,7 @@ export function ResumeTemplateSelectionPage() {
                     <p className="text-sm text-gray-600 mb-4 leading-relaxed">{template.description}</p>
                   )}
                   
-                  {/* Color Palette */}
-                  {template.colors && template.colors.length > 0 && (
-                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-500 font-medium">Colors:</span>
-                      <div className="flex items-center gap-2">
-                        {template.colors.map((color, idx) => (
-                          <div
-                            key={idx}
-                            className="w-4 h-4 rounded-full border-2 border-gray-200 shadow-sm"
-                            style={{ backgroundColor: color }}
-                            title={color}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Color palette removed per UX request */}
                 </div>
               </div>
             ))}

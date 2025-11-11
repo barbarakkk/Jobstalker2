@@ -10,9 +10,21 @@ interface TemplateRendererProps {
   templateId: string;
   data: ResumeData;
   className?: string;
+  overridePrimaryColor?: string;
+  overrideFontFamily?: string;
+  overrideHeaderFont?: string;
+  overrideFontSize?: number;
 }
 
-export function TemplateRenderer({ templateId, data, className }: TemplateRendererProps) {
+export function TemplateRenderer({ 
+  templateId, 
+  data, 
+  className, 
+  overridePrimaryColor,
+  overrideFontFamily,
+  overrideHeaderFont,
+  overrideFontSize
+}: TemplateRendererProps) {
   const [templateConfig, setTemplateConfig] = useState<TemplateConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,12 +103,23 @@ export function TemplateRenderer({ templateId, data, className }: TemplateRender
     undefined
   );
 
+  // Apply font overrides to theme
+  const themeWithOverrides = {
+    ...templateConfig.theme,
+    fontFamily: overrideFontFamily || templateConfig.theme.fontFamily,
+    bodyFontSize: overrideFontSize ? `${overrideFontSize}px` : templateConfig.theme.bodyFontSize,
+  };
+
   return (
     <div 
       className={`resume-template ${className || ''}`}
-      style={containerStyle}
+      style={{
+        ...containerStyle,
+        fontSize: overrideFontSize ? `${overrideFontSize}px` : undefined,
+        fontFamily: overrideFontFamily || undefined,
+      }}
     >
-      <LayoutRenderer layout={templateConfig.layout} theme={templateConfig.theme}>
+      <LayoutRenderer layout={templateConfig.layout} theme={themeWithOverrides}>
         {/* Header sections */}
         {headerSections.map((sectionConfig) => {
           const SectionComponent = getSectionComponent(sectionConfig.type);
@@ -111,7 +134,9 @@ export function TemplateRenderer({ templateId, data, className }: TemplateRender
                   ...sectionConfig.style, 
                   ...{ 
                     color: templateConfig.theme.textColor,
-                    primaryColor: templateConfig.theme.primaryColor 
+                    primaryColor: overridePrimaryColor || templateConfig.theme.primaryColor,
+                    fontFamily: overrideHeaderFont || templateConfig.theme.fontFamily, // Header uses header font
+                    fontSize: overrideFontSize ? `${overrideFontSize}px` : undefined,
                   } 
                 }}
               />
@@ -140,7 +165,9 @@ export function TemplateRenderer({ templateId, data, className }: TemplateRender
                   ...sectionConfig.style, 
                   ...{ 
                     color: templateConfig.theme.textColor,
-                    primaryColor: templateConfig.theme.primaryColor 
+                    primaryColor: overridePrimaryColor || templateConfig.theme.primaryColor,
+                    fontFamily: overrideFontFamily || templateConfig.theme.fontFamily, // Main sections use body font
+                    fontSize: overrideFontSize ? `${overrideFontSize}px` : undefined,
                   } 
                 }}
               />
@@ -169,7 +196,9 @@ export function TemplateRenderer({ templateId, data, className }: TemplateRender
                   ...sectionConfig.style, 
                   ...{ 
                     color: templateConfig.theme.textColor,
-                    primaryColor: templateConfig.theme.primaryColor 
+                    primaryColor: overridePrimaryColor || templateConfig.theme.primaryColor,
+                    fontFamily: overrideFontFamily || templateConfig.theme.fontFamily, // Sidebar uses body font
+                    fontSize: overrideFontSize ? `${overrideFontSize}px` : undefined,
                   } 
                 }}
               />

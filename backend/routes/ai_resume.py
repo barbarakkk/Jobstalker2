@@ -444,11 +444,25 @@ async def get_resume(resume_id: UUID, user_id: str = Depends(get_current_user)):
         # Parse resume_data from JSON string
         resume_data_dict = json.loads(item['resume_data']) if isinstance(item['resume_data'], str) else item['resume_data']
         
+        # Convert template_id from UUID to slug if it's a UUID
+        template_id = item['template_id']
+        try:
+            # Check if it's a UUID (has dashes and is 36 chars)
+            if len(template_id) == 36 and '-' in template_id:
+                # Try to fetch slug from templates table
+                tpl = supabase.table("templates").select("slug").eq("id", template_id).maybe_single().execute()
+                if tpl and hasattr(tpl, 'data') and tpl.data and tpl.data.get("slug"):
+                    template_id = tpl.data["slug"]
+                    print(f"📄 RESUME BUILDER: Converted template UUID to slug: {template_id}")
+        except Exception as e:
+            print(f"⚠️ RESUME BUILDER: Could not convert template UUID to slug: {e}")
+            # Continue with original template_id
+        
         print(f"📄 RESUME BUILDER: Resume loaded successfully")
         return ResumeBuilderData(
             id=UUID(item['id']),
             user_id=UUID(item['user_id']),
-            template_id=item['template_id'],
+            template_id=template_id,
             title=item['title'],
             resume_data=resume_data_dict,
             is_current=item.get('is_current', False),

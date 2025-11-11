@@ -211,9 +211,82 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/resume-builder/${resumeId}`, {
+      // First try to load from resume-builder endpoint
+      let response = await fetch(`${API_BASE_URL}/api/resume-builder/${resumeId}`, {
         headers,
       });
+
+      // If not found, try generated-resumes endpoint
+      if (response.status === 404) {
+        console.log('Resume not found in resume-builder, trying generated-resumes endpoint');
+        response = await fetch(`${API_BASE_URL}/api/generated-resumes/${resumeId}`, {
+          headers,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Failed to load resume from generated-resumes:', errorText);
+          throw new Error('Failed to load resume');
+        }
+
+        const generatedResult = await response.json();
+        // Convert generated resume format to editor format
+        const contentJson = generatedResult.contentJson || {};
+        const profile = contentJson.profile || {};
+        const fullName = profile.fullName || '';
+        const nameParts = fullName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const resumeData: ResumeData = {
+          personalInfo: {
+            firstName,
+            lastName,
+            email: profile.email || '',
+            phone: profile.phone || '',
+            location: profile.location || '',
+            jobTitle: profile.headline || '',
+            linkedin: profile.links?.linkedin || '',
+            website: profile.links?.website || '',
+          },
+          summary: profile.summary || '',
+          workExperience: (contentJson.experience || []).map((e: any, idx: number) => ({
+            id: e.id || `exp-${idx}`,
+            title: e.title || '',
+            company: e.company || '',
+            location: e.location || '',
+            startDate: e.startDate || '',
+            endDate: e.endDate || '',
+            isCurrent: e.isCurrent || false,
+            description: e.description || '',
+          })),
+          education: (contentJson.education || []).map((e: any, idx: number) => ({
+            id: e.id || `edu-${idx}`,
+            school: e.school || '',
+            degree: e.degree || '',
+            field: e.field || '',
+            startDate: e.startDate || '',
+            endDate: e.endDate || '',
+          })),
+          skills: (contentJson.skills || []).map((s: any, idx: number) => ({
+            id: typeof s === 'string' ? `skill-${idx}` : (s.id || `skill-${idx}`),
+            name: typeof s === 'string' ? s : (s.name || ''),
+            category: typeof s === 'string' ? 'Technical' : (s.category || 'Technical'),
+          })),
+          languages: (contentJson.languages || []).map((l: any) => ({
+            name: l.name || '',
+            proficiency: l.proficiency || 'Native',
+          })),
+        };
+
+        setResumeData(resumeData);
+        const templateSlug = generatedResult.templateId || 'modern-professional';
+        setSelectedTemplate(templateSlug);
+        setCurrentResumeId(resumeId);
+        setIsAIGenerated(true);
+        console.log('Context - Generated resume loaded:', resumeId, 'with template:', templateSlug);
+        return;
+      }
 
       if (!response.ok) {
         const errorText = await response.text();

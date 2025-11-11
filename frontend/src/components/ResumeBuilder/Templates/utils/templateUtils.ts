@@ -5,6 +5,11 @@ import { WorkExperienceSection } from '../sections/WorkExperienceSection';
 import { EducationSection } from '../sections/EducationSection';
 import { SkillsSection } from '../sections/SkillsSection';
 import { LanguagesSection } from '../sections/LanguagesSection';
+import { CleanImpactHeaderSection } from '../sections/CleanImpactHeaderSection';
+import { CleanImpactSummarySection } from '../sections/CleanImpactSummarySection';
+import { CleanImpactWorkSection } from '../sections/CleanImpactWorkSection';
+import { CleanImpactEducationSection } from '../sections/CleanImpactEducationSection';
+import { CleanImpactAdditionalSection } from '../sections/CleanImpactAdditionalSection';
 import type { ResumeData } from '@/types/resume';
 
 export function applyStyles(config: StyleConfig | undefined, baseStyles: React.CSSProperties = {}): React.CSSProperties {
@@ -37,6 +42,17 @@ export function getSectionComponent(type: string) {
       return SkillsSection;
     case 'languages':
       return LanguagesSection;
+    // Clean Impact template sections
+    case 'header-clean-impact':
+      return CleanImpactHeaderSection;
+    case 'summary-clean-impact':
+      return CleanImpactSummarySection;
+    case 'work-clean-impact':
+      return CleanImpactWorkSection;
+    case 'education-clean-impact':
+      return CleanImpactEducationSection;
+    case 'additional-clean-impact':
+      return CleanImpactAdditionalSection;
     default:
       return null;
   }

@@ -171,13 +171,23 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
     try:
         # Fetch template schema - accept both UUID (id) or slug
         # Try by slug first (most common case from frontend)
-        tpl = supabase.table("templates").select("id,schema").eq("slug", body.templateId).maybe_single().execute()
-        if not tpl.data:
-            # If not found by slug, try by id (UUID)
-            tpl = supabase.table("templates").select("id,schema").eq("id", body.templateId).maybe_single().execute()
+        try:
+            tpl = supabase.table("templates").select("id,schema").eq("slug", body.templateId).maybe_single().execute()
+        except Exception as e:
+            print(f"Error querying template by slug '{body.templateId}': {e}")
+            tpl = None
         
-        if not tpl.data:
-            raise HTTPException(status_code=404, detail=f"Template not found: {body.templateId}")
+        if not tpl or not hasattr(tpl, 'data') or not tpl.data:
+            # If not found by slug, try by id (UUID)
+            try:
+                tpl = supabase.table("templates").select("id,schema").eq("id", body.templateId).maybe_single().execute()
+            except Exception as e:
+                print(f"Error querying template by id '{body.templateId}': {e}")
+                tpl = None
+        
+        if not tpl or not hasattr(tpl, 'data') or not tpl.data:
+            print(f"Template '{body.templateId}' not found in database")
+            raise HTTPException(status_code=404, detail=f"Template not found: {body.templateId}. Please ensure the template exists in the database.")
         
         template_id_uuid = tpl.data["id"]  # Get the actual UUID
         draft_json = tpl.data["schema"] or {}
@@ -191,7 +201,7 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
             experience_res = supabase.table("user_work_experience").select("*").eq("user_id", user_id).execute()
             education_res = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
             
-            if prof.data:
+            if prof and hasattr(prof, 'data') and prof.data:
                 # Convert normalized data to JSON format for wizard
                 skills_list = []
                 for skill in (skills_res.data or []):
@@ -261,7 +271,7 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
             "created_at": now_iso,
             "updated_at": now_iso
         }).execute()
-        if not ins.data:
+        if not ins or not hasattr(ins, 'data') or not ins.data:
             raise HTTPException(status_code=400, detail="Failed to create session")
         row = ins.data[0]
         return {"id": row["id"], "draftJson": row["draft_json"], "progress": row["progress"]}
@@ -276,7 +286,7 @@ async def patch_session(session_id: str, body: PatchSessionRequest, user_id: str
     try:
         # Load existing session (ownership via RLS)
         sel = supabase.table("wizard_sessions").select("draft_json,progress").eq("id", session_id).single().execute()
-        if not sel.data:
+        if not sel or not hasattr(sel, 'data') or not sel.data:
             raise HTTPException(status_code=404, detail="Session not found")
         draft = sel.data.get("draft_json") or {}
         progress = sel.data.get("progress") or {}
@@ -300,7 +310,7 @@ async def patch_session(session_id: str, body: PatchSessionRequest, user_id: str
             update_obj["last_step"] = body.lastStep
 
         upd = supabase.table("wizard_sessions").update(update_obj).eq("id", session_id).execute()
-        if not upd.data:
+        if not upd or not hasattr(upd, 'data') or not upd.data:
             raise HTTPException(status_code=400, detail="Failed to update session")
         row = upd.data[0]
         return {"draftJson": row["draft_json"], "progress": row["progress"]}
@@ -315,10 +325,13 @@ async def complete_session(session_id: str, user_id: str = Depends(get_current_u
     try:
         # Read session and template
         ses = supabase.table("wizard_sessions").select("template_id,draft_json").eq("id", session_id).single().execute()
-        if not ses.data:
+        if not ses or not hasattr(ses, 'data') or not ses.data:
             raise HTTPException(status_code=404, detail="Session not found")
-        draft = ses.data["draft_json"]
-        template_id = ses.data["template_id"]
+        draft = ses.data.get("draft_json") or {}
+        template_id = ses.data.get("template_id")
+        
+        if not template_id:
+            raise HTTPException(status_code=400, detail="Session missing template_id")
 
         # Create generated resume + first version
         now_iso = datetime.utcnow().isoformat()
@@ -330,7 +343,7 @@ async def complete_session(session_id: str, user_id: str = Depends(get_current_u
             "created_at": now_iso,
             "updated_at": now_iso
         }).execute()
-        if not gres.data:
+        if not gres or not hasattr(gres, 'data') or not gres.data:
             raise HTTPException(status_code=400, detail="Failed to finalize resume")
         resume_id = gres.data[0]["id"]
 
@@ -340,7 +353,7 @@ async def complete_session(session_id: str, user_id: str = Depends(get_current_u
             "content_json": draft,
             "created_at": now_iso
         }).execute()
-        if not v1.data:
+        if not v1 or not hasattr(v1, 'data') or not v1.data:
             raise HTTPException(status_code=400, detail="Failed to create initial version")
 
         # Mark session completed
@@ -361,10 +374,11 @@ async def complete_session(session_id: str, user_id: str = Depends(get_current_u
                 "created_at": now_iso,
                 "updated_at": now_iso,
             }).execute()
-            if rb.data:
+            if rb and hasattr(rb, 'data') and rb.data:
                 resume_builder_id = rb.data[0]["id"]
         except Exception as _e:
             # Ignore: table may not exist in some deployments
+            print(f"Warning: Failed to create resume_builder_data entry: {_e}")
             pass
 
         return {"generatedResumeId": resume_id, "version": 1, "resumeBuilderId": resume_builder_id}
@@ -381,14 +395,27 @@ async def get_generated_resume(resume_id: str, user_id: str = Depends(get_curren
         r = supabase.table("generated_resumes").select("id, template_id, current_version, title, share_token").eq("id", resume_id).single().execute()
         if not r.data:
             raise HTTPException(status_code=404, detail="Generated resume not found")
+        template_id_uuid = r.data.get("template_id")
         vnum = r.data.get("current_version") or 1
+        
+        # Fetch template slug
+        template_slug = None
+        if template_id_uuid:
+            try:
+                tpl = supabase.table("templates").select("slug").eq("id", template_id_uuid).maybe_single().execute()
+                if tpl and hasattr(tpl, 'data') and tpl.data:
+                    template_slug = tpl.data.get("slug")
+            except Exception as e:
+                print(f"Warning: Could not fetch template slug: {e}")
+        
         # Fetch version content
         v = supabase.table("generated_resume_versions").select("version_number, content_json, render_artifact_url, created_at").eq("generated_resume_id", resume_id).eq("version_number", vnum).single().execute()
         if not v.data:
             raise HTTPException(status_code=404, detail="Generated resume version not found")
         return {
             "id": r.data["id"],
-            "templateId": r.data["template_id"],
+            "templateId": template_slug or template_id_uuid,  # Prefer slug, fallback to UUID
+            "templateIdUuid": template_id_uuid,  # Also include UUID for reference
             "currentVersion": vnum,
             "contentJson": v.data["content_json"],
             "renderArtifactUrl": v.data.get("render_artifact_url"),

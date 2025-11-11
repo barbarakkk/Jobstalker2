@@ -15,6 +15,7 @@ export function ResumeEditPage() {
     resumeData, 
     replaceResumeData, 
     selectedTemplate,
+    setSelectedTemplate,
     currentResumeId,
     setCurrentResumeId,
     loadResume,
@@ -25,12 +26,55 @@ export function ResumeEditPage() {
   
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  
+  // Load font settings from localStorage or use defaults
+  const loadFontSettings = () => {
+    try {
+      const saved = localStorage.getItem(`resume-font-settings-${currentResumeId || 'default'}`);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load font settings:', e);
+    }
+    return {};
+  };
+  
+  const [fontSettings, setFontSettings] = useState<{
+    headerFont?: string;
+    bodyFont?: string;
+    fontSize?: number;
+  }>(loadFontSettings());
+
+  // Save font settings to localStorage when they change
+  useEffect(() => {
+    if (currentResumeId || Object.keys(fontSettings).length > 0) {
+      try {
+        localStorage.setItem(
+          `resume-font-settings-${currentResumeId || 'default'}`,
+          JSON.stringify(fontSettings)
+        );
+      } catch (e) {
+        console.error('Failed to save font settings:', e);
+      }
+    }
+  }, [fontSettings, currentResumeId]);
   
   // Get template ID from URL params or context, default to modern-professional
-  const templateId = searchParams.get('template') || selectedTemplate || 'modern-professional';
+  const templateIdFromUrl = searchParams.get('template');
+  const templateId = templateIdFromUrl || selectedTemplate || 'modern-professional';
   
   // Get resume ID from URL params
   const resumeIdFromUrl = searchParams.get('resume');
+
+  // Set template from URL if provided
+  useEffect(() => {
+    if (templateIdFromUrl && templateIdFromUrl !== selectedTemplate) {
+      console.log('Edit Page - Setting template from URL:', templateIdFromUrl);
+      setSelectedTemplate(templateIdFromUrl);
+    }
+  }, [templateIdFromUrl, selectedTemplate, setSelectedTemplate]);
 
   // Load resume if ID is in URL and not already loaded
   useEffect(() => {
@@ -113,8 +157,34 @@ export function ResumeEditPage() {
       <AppHeader active="resume" />
       <div className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Edit Resume</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {/* Subtle status chip for save state */}
+          {saveStatus === 'saving' && (
+            <span className="inline-flex items-center gap-1 text-sm text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-full">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Saving…
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="inline-flex items-center gap-1 text-sm text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-full">
+              <CheckCircle2 className="h-4 w-4" />
+              Saved
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="inline-flex items-center gap-1 text-sm text-red-700 bg-red-50 border border-red-200 px-2.5 py-1 rounded-full">
+              <AlertCircle className="h-4 w-4" />
+              Save failed
+            </span>
+          )}
+          {saveStatus === 'idle' && isDirty && (
+            <span className="inline-flex items-center gap-1 text-sm text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+              •
+              Unsaved changes
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
           <Button 
             onClick={handleManualSave}
             disabled={isSaving || !resumeData}
@@ -147,21 +217,37 @@ export function ResumeEditPage() {
         </div>
       </div>
       <div className="space-y-4">
-        <EditorToolbar onReset={() => window.location.reload()} />
+        <EditorToolbar 
+          onReset={() => {
+            setSelectedColor(null);
+            setFontSettings({});
+            window.location.reload();
+          }}
+          selectedColor={selectedColor}
+          onColorChange={setSelectedColor}
+          fontSettings={fontSettings}
+          onFontSettingsChange={setFontSettings}
+        />
         {/* Live Preview - Responsive */}
-        <div className="bg-gray-100 p-4 rounded-lg border overflow-auto relative">
-          {/* Edit Mode Indicator */}
-          <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium z-10">
-            Edit Mode: ON
-          </div>
-          
+        <div className="bg-gray-50 p-4 rounded-lg border overflow-auto">
           <div className="mx-auto max-w-4xl resume-edit-container">
-            <div className="bg-white rounded-md border border-gray-300 shadow">
-              <div className="p-6" key={`resume-${resumeData?.personalInfo?.email || 'default'}-${resumeData?.summary?.length || 0}-${templateId}`}>
+            <div className="bg-white rounded-md border border-gray-200 shadow-sm">
+              <div 
+                className="p-6" 
+                key={`resume-${resumeData?.personalInfo?.email || 'default'}-${resumeData?.summary?.length || 0}-${templateId}-${selectedColor}-${fontSettings.bodyFont}-${fontSettings.headerFont}-${fontSettings.fontSize}`}
+                style={{
+                  fontFamily: fontSettings.bodyFont || undefined,
+                  fontSize: fontSettings.fontSize ? `${fontSettings.fontSize}px` : undefined,
+                }}
+              >
                 {resumeData && (
                   <TemplateRenderer 
                     templateId={templateId}
                     data={resumeData}
+                    overridePrimaryColor={selectedColor || undefined}
+                    overrideFontFamily={fontSettings.bodyFont}
+                    overrideHeaderFont={fontSettings.headerFont}
+                    overrideFontSize={fontSettings.fontSize}
                   />
                 )}
               </div>

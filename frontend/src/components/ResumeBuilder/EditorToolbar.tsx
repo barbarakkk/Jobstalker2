@@ -1,16 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 
 interface EditorToolbarProps {
   onReset?: () => void;
+  selectedColor?: string | null;
+  onColorChange?: (color: string) => void;
+  fontSettings?: {
+    headerFont?: string;
+    bodyFont?: string;
+    fontSize?: number;
+  };
+  onFontSettingsChange?: (settings: { headerFont?: string; bodyFont?: string; fontSize?: number }) => void;
 }
 
-export function EditorToolbar({ onReset }: EditorToolbarProps) {
-  const [headerFont, setHeaderFont] = useState('PT Serif');
-  const [bodyFont, setBodyFont] = useState('Open Sans');
-  const [fontSize, setFontSize] = useState(14);
+export function EditorToolbar({ 
+  onReset, 
+  selectedColor, 
+  onColorChange,
+  fontSettings = {},
+  onFontSettingsChange
+}: EditorToolbarProps) {
+  const [headerFont, setHeaderFont] = useState(fontSettings.headerFont || 'PT Serif');
+  const [bodyFont, setBodyFont] = useState(fontSettings.bodyFont || 'Open Sans');
+  const [fontSize, setFontSize] = useState(fontSettings.fontSize || 14);
   const [showPageNumbers, setShowPageNumbers] = useState(true);
   const [previewMode, setPreviewMode] = useState(false);
+
+  // Update parent when fonts change
+  const handleHeaderFontChange = (font: string) => {
+    setHeaderFont(font);
+    onFontSettingsChange?.({ ...fontSettings, headerFont: font });
+  };
+
+  const handleBodyFontChange = (font: string) => {
+    setBodyFont(font);
+    onFontSettingsChange?.({ ...fontSettings, bodyFont: font });
+  };
+
+  const handleFontSizeChange = (size: number) => {
+    setFontSize(size);
+    onFontSettingsChange?.({ ...fontSettings, fontSize: size });
+  };
+
+  // Sync local state when props change
+  useEffect(() => {
+    if (fontSettings.headerFont) setHeaderFont(fontSettings.headerFont);
+    if (fontSettings.bodyFont) setBodyFont(fontSettings.bodyFont);
+    if (fontSettings.fontSize) setFontSize(fontSettings.fontSize);
+  }, [fontSettings]);
 
   return (
     <div className="w-full border rounded-lg bg-white/90 backdrop-blur px-3 py-2 shadow-sm flex items-center gap-3 flex-wrap">
@@ -18,7 +55,7 @@ export function EditorToolbar({ onReset }: EditorToolbarProps) {
       <select
         className="text-sm border rounded px-2 py-1"
         value={headerFont}
-        onChange={(e) => setHeaderFont(e.target.value)}
+        onChange={(e) => handleHeaderFontChange(e.target.value)}
       >
         <option>PT Serif</option>
         <option>Inter</option>
@@ -29,7 +66,7 @@ export function EditorToolbar({ onReset }: EditorToolbarProps) {
       <select
         className="text-sm border rounded px-2 py-1"
         value={bodyFont}
-        onChange={(e) => setBodyFont(e.target.value)}
+        onChange={(e) => handleBodyFontChange(e.target.value)}
       >
         <option>Open Sans</option>
         <option>Inter</option>
@@ -40,7 +77,7 @@ export function EditorToolbar({ onReset }: EditorToolbarProps) {
       <select
         className="text-sm border rounded px-2 py-1"
         value={fontSize}
-        onChange={(e) => setFontSize(Number(e.target.value))}
+        onChange={(e) => handleFontSizeChange(Number(e.target.value))}
       >
         {[12, 13, 14, 15, 16].map((s) => (
           <option key={s} value={s}>{s}px</option>
@@ -48,8 +85,18 @@ export function EditorToolbar({ onReset }: EditorToolbarProps) {
       </select>
 
       <div className="ml-2 flex items-center gap-2">
+        <label className="text-xs text-gray-600">Color:</label>
         {["#111827", "#2563eb", "#059669", "#f59e0b"].map((c) => (
-          <button key={c} className="w-4 h-4 rounded-full border" style={{ backgroundColor: c }} aria-label="color" />
+          <button 
+            key={c} 
+            onClick={() => onColorChange?.(c)}
+            className={`w-6 h-6 rounded-full border-2 transition-all hover:scale-110 ${
+              selectedColor === c ? 'border-gray-800 ring-2 ring-offset-1 ring-gray-400' : 'border-gray-300'
+            }`}
+            style={{ backgroundColor: c }}
+            aria-label={`Select color ${c}`}
+            title={`Select ${c}`}
+          />
         ))}
       </div>
 

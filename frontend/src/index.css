@@ -520,3 +520,81 @@ html {
 .template-preview.gray-theme .template-preview-image {
   filter: hue-rotate(0deg) saturate(0.3) brightness(0.9) !important;
 }
+
+/* Clean Impact Template Styles */
+.clean-impact-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.clean-impact-header .w-22 {
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background-color: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.clean-impact-section {
+  margin-top: 18px;
+}
+
+.clean-impact-section h2 {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid;
+}
+
+.clean-impact-work-entry,
+.clean-impact-education-entry {
+  margin-top: 10px;
+  margin-bottom: 8px;
+}
+
+.clean-impact-work-entry > div:first-child,
+.clean-impact-education-entry > div:first-child {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+}
+
+.clean-impact-additional > div {
+  margin-top: 6px;
+  margin-bottom: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.clean-impact-additional .font-bold {
+  font-weight: 700;
+  color: #1c1e21;
+}
+
+/* Print styles for Clean Impact template */
+@media print {
+  .clean-impact-header .w-22 {
+    width: 88px;
+    height: 88px;
+  }
+  
+  .clean-impact-section {
+    page-break-inside: avoid;
+  }
+  
+  .clean-impact-work-entry,
+  .clean-impact-education-entry {
+    page-break-inside: avoid;
+  }
+}
