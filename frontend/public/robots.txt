@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+
+# Disallow admin/auth pages from indexing
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /statistics/
+Disallow: /resume-builder/
+
+# Allow important pages
+Allow: /
+Allow: /login
+Allow: /register
+
+# Sitemap location
+Sitemap: https://jobstalker-ai.com/sitemap.xml
+
+# Crawl delay (optional)
+Crawl-delay: 1
+
