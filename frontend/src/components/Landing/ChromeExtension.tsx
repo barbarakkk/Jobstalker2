@@ -27,6 +27,11 @@ export function ChromeExtension() {
     },
     {
       icon: <Zap className="w-6 h-6" />,
+      title: 'Auto-Fill Applications',
+      description: 'Automatically fill out job application forms on Greenhouse, Lever, and other platforms using your saved profile'
+    },
+    {
+      icon: <CheckCircle className="w-6 h-6" />,
       title: 'Instant Tracking',
       description: 'Start tracking applications immediately without leaving the job page'
     }
@@ -58,8 +63,8 @@ export function ChromeExtension() {
             </h2>
             
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Download our free Chrome extension to save job postings directly from LinkedIn and other platforms. 
-              Track all your applications in one place without switching tabs.
+              Download our free Chrome extension to save job postings from LinkedIn and automatically fill out application forms on Greenhouse, Lever, and other platforms. 
+              Track all your applications in one place without manually entering your information.
             </p>
 
             {/* Features List */}
@@ -98,7 +103,7 @@ export function ChromeExtension() {
             {/* Trust Badge */}
             <div className="mt-8 flex items-center gap-2 text-sm text-gray-600">
               <CheckCircle className="w-5 h-5 text-green-600" />
-              <span>Free to use • No credit card required • Works with LinkedIn</span>
+              <span>Free to use • No credit card required • Works with LinkedIn, Greenhouse, Lever & more</span>
             </div>
           </div>
 
