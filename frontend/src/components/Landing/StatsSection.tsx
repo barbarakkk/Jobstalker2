@@ -2,7 +2,7 @@ import { TrendingUp, Users, Award, Clock } from 'lucide-react';
 
 const stats = [
   {
-    value: '10,000+',
+    value: '1,000+',
     label: 'Professionals helped',
     description: 'Join our growing community of successful job seekers',
     icon: <Users className="w-8 h-8 text-white" />,

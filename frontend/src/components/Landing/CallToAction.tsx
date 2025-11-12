@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Play, CheckCircle, Star, Zap } from 'lucide-react';
+import { ArrowRight, CheckCircle, Star, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function CallToAction() {
@@ -39,8 +39,8 @@ export function CallToAction() {
           
           {/* Subtitle */}
           <p className="text-xl lg:text-2xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Join thousands of professionals who have streamlined their job search with JobStalker AI's 
-            AI-powered platform. Start your free trial today and see the difference.
+            Join 1,000+ professionals who have streamlined their job search with JobStalker AI's 
+            AI-powered platform. Start tracking your applications today and see the difference.
           </p>
 
           {/* CTA Buttons */}
@@ -49,15 +49,8 @@ export function CallToAction() {
               onClick={handleStartFreeTrial}
               className="bg-white text-blue-600 hover:bg-blue-50 px-10 py-5 text-xl font-bold shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 rounded-2xl"
             >
-              Start Free Trial
+              Get Started Free
               <ArrowRight className="w-6 h-6 ml-3" />
-            </Button>
-            <Button 
-              variant="outline" 
-              className="border-2 border-white text-white hover:bg-white hover:text-blue-600 backdrop-blur-sm px-10 py-5 text-xl font-bold rounded-2xl transition-all duration-300 transform hover:scale-105"
-            >
-              <Play className="w-6 h-6 mr-3" />
-              Watch Demo
             </Button>
           </div>
 
@@ -91,7 +84,7 @@ export function CallToAction() {
                   </div>
                 </div>
                 <div className="text-white">
-                  <div className="text-2xl font-bold mb-2">10,000+ professionals</div>
+                  <div className="text-2xl font-bold mb-2">1,000+ professionals</div>
                   <div className="text-blue-100">trust JobStalker AI with their careers</div>
                 </div>
               </div>

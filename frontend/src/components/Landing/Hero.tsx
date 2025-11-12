@@ -1,5 +1,4 @@
-import { Button } from '@/components/ui/button';
-import { Play, Star, TrendingUp, Users, CheckCircle } from 'lucide-react';
+import { Star, TrendingUp, Users } from 'lucide-react';
 import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
 import { useEffect, useRef, useState } from 'react';
 
@@ -88,30 +87,18 @@ export function Hero() {
           </h1>
           
           <p className="text-xl lg:text-2xl text-gray-600 mb-8 leading-relaxed">
-            Streamline your job search with intelligent tracking, interview prep, and personalized analytics. 
-            Built for experienced professionals and tech industry workers.
+            The best tool for job seekers to track job applications and fill application forms on other platforms. 
+            Streamline your job search with intelligent tracking and personalized analytics.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 mb-8">
-            <Button 
-              variant="outline" 
-              className="border-2 border-gray-300 text-gray-700 hover:border-blue-600 hover:text-blue-600 px-8 py-4 text-lg font-semibold bg-white/80 backdrop-blur-sm rounded-lg"
-            >
-              <Play className="w-5 h-5 mr-2" />
-              Watch Demo
-            </Button>
-          </div>
-          
-
-          
-          <div className="flex items-center gap-4 text-sm text-gray-600">
+          <div className="flex items-center gap-4 text-sm text-gray-600 mb-8">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
-              <span>Join 10,000+ professionals</span>
+              <span>Join 1,000+ professionals</span>
             </div>
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
-              <span>95% success rate</span>
+              <span>Trusted by job seekers</span>
             </div>
           </div>
         </div>

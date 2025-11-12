@@ -58,7 +58,7 @@ const features = [
 const stats = [
   { icon: <Sparkles className="w-6 h-6" />, value: '85%', label: 'Success Rate' },
   { icon: <Zap className="w-6 h-6" />, value: '30%', label: 'Faster Placement' },
-  { icon: <Shield className="w-6 h-6" />, value: '10k+', label: 'Professionals' },
+  { icon: <Shield className="w-6 h-6" />, value: '1k+', label: 'Professionals' },
   { icon: <Clock className="w-6 h-6" />, value: '24/7', label: 'AI Support' },
 ];
 
