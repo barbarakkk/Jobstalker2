@@ -1,4 +1,4 @@
-import { Star, TrendingUp, Users } from 'lucide-react';
+import { Star, TrendingUp, Users, CheckCircle } from 'lucide-react';
 import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
 import { useEffect, useRef, useState } from 'react';
 
