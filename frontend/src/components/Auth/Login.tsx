@@ -48,13 +48,17 @@ export function Login() {
     setLoading(true);
     
     try {
+      // Always use current origin for redirect (works for both localhost and production)
       const redirectUrl = redirectUri || `${window.location.origin}/auth/callback`;
       console.log('Google OAuth redirect URL:', redirectUrl);
+      console.log('Current origin:', window.location.origin);
       
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'google',
         options: {
-          redirectTo: redirectUrl
+          redirectTo: redirectUrl,
+          // Skip browser redirect if we're in development (let Supabase handle it)
+          skipBrowserRedirect: false
         }
       });
       
@@ -75,10 +79,13 @@ export function Login() {
     setGithubLoading(true);
     
     try {
+      const redirectUrl = redirectUri || `${window.location.origin}/auth/callback`;
+      console.log('GitHub OAuth redirect URL:', redirectUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({ 
         provider: 'github',
         options: {
-          redirectTo: redirectUri || `${window.location.origin}/auth/callback`
+          redirectTo: redirectUrl
         }
       });
       
@@ -97,12 +104,15 @@ export function Login() {
     setLinkedinLoading(true);
     
     try {
+      const redirectUrl = redirectUri || `${window.location.origin}/auth/callback`;
+      console.log('LinkedIn OAuth redirect URL:', redirectUrl);
+      
       // Supabase uses LinkedIn OIDC. If your project is older and still uses
       // the legacy LinkedIn provider, switch 'linkedin_oidc' to 'linkedin'.
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc' as any,
         options: {
-          redirectTo: redirectUri || `${window.location.origin}/auth/callback`
+          redirectTo: redirectUrl
         }
       });
       
