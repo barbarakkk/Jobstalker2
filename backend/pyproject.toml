@@ -1,7 +1,7 @@
 [project]
 name = "jobstalker-backend"
 version = "1.0.0"
-description = "JobStalker FastAPI Backend Application"
+description = "JobStalker AI FastAPI Backend Application"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

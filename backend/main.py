@@ -72,7 +72,7 @@ if not logger.handlers:
     logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-app = FastAPI(title="JobStalker API", version="1.0.0")
+app = FastAPI(title="JobStalker AI API", version="1.0.0")
 
 # Custom exception handler for validation errors
 @app.exception_handler(RequestValidationError)
@@ -139,6 +139,8 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "https://jobstalker.vercel.app",
+        "https://jobstalker-ai.com",
+        "https://www.jobstalker-ai.com",
     ],
     allow_origin_regex=r"https://.*\.vercel\.app$",
     allow_credentials=True,

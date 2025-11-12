@@ -1,10 +1,10 @@
-// Background script for JobStalker Chrome Extension
-console.log('JobStalker extension background script loaded');
+// Background script for JobStalker AI Chrome Extension
+console.log('JobStalker AI extension background script loaded');
 
 // Configuration
 const CONFIG = {
   // Deployed frontend URL
-  WEB_APP_URL: 'https://jobstalker.vercel.app',
+  WEB_APP_URL: 'https://jobstalker-ai.com',
   // Use your deployed backend URL so the extension can reach the API
   // Update this if your Railway domain is different
   API_BASE_URL: 'https://jobstalker2-production.up.railway.app',
@@ -193,7 +193,7 @@ async function handleSignOut(sendResponse) {
 // Handle opening dashboard
 async function handleOpenDashboard(sendResponse) {
   try {
-    console.log('Opening JobStalker dashboard...');
+    console.log('Opening JobStalker AI dashboard...');
     
     // Open dashboard in new tab
     await chrome.tabs.create({ url: CONFIG.WEB_APP_URL });
@@ -442,9 +442,10 @@ async function reloadDashboardTabs() {
       console.log(`🔄 Tab ${index}: ${tab.url || 'No URL'}`);
     });
     
-    // Find JobStalker tabs (more flexible matching)
+    // Find JobStalker AI tabs (more flexible matching)
   const jobstalkerTabs = tabs.filter(tab => 
       tab.url && (
+        tab.url.includes('jobstalker-ai.com') ||
         tab.url.includes('jobstalker.vercel.app') ||
         tab.url.includes('localhost:3000') || 
         tab.url.includes('127.0.0.1:3000') ||
@@ -453,14 +454,14 @@ async function reloadDashboardTabs() {
       )
     );
     
-    console.log(`🔄 Found ${jobstalkerTabs.length} JobStalker tabs:`, jobstalkerTabs.map(t => t.url));
+    console.log(`🔄 Found ${jobstalkerTabs.length} JobStalker AI tabs:`, jobstalkerTabs.map(t => t.url));
     
     if (jobstalkerTabs.length === 0) {
-      console.log('⚠️ No JobStalker tabs found to reload');
+      console.log('⚠️ No JobStalker AI tabs found to reload');
       return;
     }
     
-    // Reload each JobStalker tab
+    // Reload each JobStalker AI tab
     for (const tab of jobstalkerTabs) {
       try {
         console.log(`🔄 Attempting to reload tab ${tab.id}: ${tab.url}`);
@@ -513,7 +514,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 // Handle installation
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('JobStalker extension installed:', details);
+  console.log('JobStalker AI extension installed:', details);
   
   // Configure side panel globally
   try {

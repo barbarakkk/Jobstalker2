@@ -120,7 +120,7 @@ export function Login() {
     <div className="min-h-screen flex items-center justify-center bg-[#f5f8ff] px-2 font-sans">
       <Card className="w-full max-w-md mx-auto p-8 shadow-lg border-none">
         <div className="flex flex-col items-center mb-6">
-          <img src={ColoredLogoHorizontal} alt="JobStalker" className="h-8 mb-4" />
+          <img src={ColoredLogoHorizontal} alt="JobStalker AI" className="h-8 mb-4" />
           <h2 className="text-2xl font-bold mb-1 text-center">Sign In</h2>
         </div>
         {error && <div className="text-red-500 text-center mb-4">{error}</div>}

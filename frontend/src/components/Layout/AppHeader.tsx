@@ -32,7 +32,7 @@ export function AppHeader({ active = 'jobs' }: AppHeaderProps) {
       <div className="w-full py-6">
         <div className="flex items-center px-4 relative">
           <div className="flex items-center">
-            <img src={ColoredLogoHorizontal} alt="JobStalker" className="h-8 w-auto" />
+            <img src={ColoredLogoHorizontal} alt="JobStalker AI" className="h-8 w-auto" />
           </div>
           <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
             <a href="#" className={linkClass('jobs')} onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>Jobs</a>

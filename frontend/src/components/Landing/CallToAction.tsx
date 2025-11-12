@@ -39,7 +39,7 @@ export function CallToAction() {
           
           {/* Subtitle */}
           <p className="text-xl lg:text-2xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Join thousands of professionals who have streamlined their job search with JobStalker's 
+            Join thousands of professionals who have streamlined their job search with JobStalker AI's 
             AI-powered platform. Start your free trial today and see the difference.
           </p>
 
@@ -92,7 +92,7 @@ export function CallToAction() {
                 </div>
                 <div className="text-white">
                   <div className="text-2xl font-bold mb-2">10,000+ professionals</div>
-                  <div className="text-blue-100">trust JobStalker with their careers</div>
+                  <div className="text-blue-100">trust JobStalker AI with their careers</div>
                 </div>
               </div>
               

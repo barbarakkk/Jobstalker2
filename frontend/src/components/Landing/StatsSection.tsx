@@ -109,7 +109,7 @@ export function StatsSection() {
             <div className="text-center mb-12">
               <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4">What our users say</h3>
               <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Real stories from professionals who have transformed their careers with JobStalker
+                Real stories from professionals who have transformed their careers with JobStalker AI
               </p>
             </div>
             

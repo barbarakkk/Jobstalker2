@@ -20,7 +20,7 @@ export function Header() {
         <Link to="/" className="flex items-center gap-3 -ml-1">
           <img 
             src={ColoredLogoHorizontal} 
-            alt="JobStalker" 
+            alt="JobStalker AI" 
             className="h-8 w-auto"
           />
         </Link>

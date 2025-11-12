@@ -51,7 +51,7 @@ def check_tables_exist():
     """Check if required tables exist"""
     required_tables = [
         'profiles', 'skills', 'work_experience', 
-        'education', 'resumes', 'jobs'
+        'education', 'jobs'
     ]
     
     existing_tables = []

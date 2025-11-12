@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "JobStalker Job Search Companion",
+  "name": "JobStalker AI Job Search Companion",
   "version": "1.0.4",
-  "description": "Save job postings from LinkedIn directly to your JobStalker dashboard with one click.",
+  "description": "Save job postings from LinkedIn directly to your JobStalker AI dashboard with one click.",
   
   "permissions": [
     "activeTab",
@@ -18,7 +18,7 @@
     "http://localhost:3000/*",
     "http://localhost:5173/*",
     "http://localhost:8000/*",
-    "https://*.jobstalker.com/*"
+    "https://*.jobstalker-ai.com/*"
   ],
   
   "background": {
@@ -27,7 +27,7 @@
   
   
   "action": {
-    "default_title": "JobStalker",
+    "default_title": "JobStalker AI",
     "default_icon": {
       "16": "icon16.png",
       "48": "icon48.png",

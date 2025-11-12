@@ -125,7 +125,7 @@ export function Hero() {
                 <div className="flex items-center gap-3">
                   <img 
                     src={ColoredLogoHorizontal} 
-                    alt="JobStalker" 
+                    alt="JobStalker AI" 
                     className="h-8 w-auto"
                   />
                   <div>

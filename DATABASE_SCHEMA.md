@@ -22,7 +22,6 @@
 | `skills` | JSONB | DEFAULT '[]'::jsonb | **⚠️ DEPRECATED** - Use `user_skills` table instead |
 | `work_experience` | JSONB | DEFAULT '[]'::jsonb | **⚠️ DEPRECATED** - Use `user_work_experience` table instead |
 | `education` | JSONB | DEFAULT '[]'::jsonb | **⚠️ DEPRECATED** - Use `user_education` table instead |
-| `resumes` | JSONB | DEFAULT '[]'::jsonb | **⚠️ DEPRECATED** - Use `resumes` table instead |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Creation timestamp |
 | `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Last update timestamp |
 
@@ -31,7 +30,6 @@
 - `idx_user_profile_skills` (GIN) on `skills` - **⚠️ Can be removed if JSONB not used**
 - `idx_user_profile_work_experience` (GIN) on `work_experience` - **⚠️ Can be removed**
 - `idx_user_profile_education` (GIN) on `education` - **⚠️ Can be removed**
-- `idx_user_profile_resumes` (GIN) on `resumes` - **⚠️ Can be removed**
 
 **RLS Policies:** Full CRUD policies (users can only access their own profile)
 
@@ -146,29 +144,7 @@
 
 ### **Resume Tables**
 
-#### 6. **`resumes`** - File uploads for resumes
-**Purpose:** Stores uploaded resume files
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PRIMARY KEY, DEFAULT uuid_generate_v4() | Unique identifier |
-| `user_id` | UUID | NOT NULL, FK → auth.users(id) ON DELETE CASCADE | References user |
-| `filename` | VARCHAR(255) | NOT NULL | Original filename |
-| `file_url` | TEXT | NOT NULL | Storage URL |
-| `file_size` | INTEGER | NOT NULL | File size in bytes |
-| `is_default` | BOOLEAN | DEFAULT FALSE | Is default resume |
-| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | Creation timestamp |
-| `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | Last update timestamp |
-
-**Indexes:**
-- `idx_resumes_user_id` on `user_id`
-- **⚠️ MISSING:** Index on `is_default` for finding default resume
-
-**RLS Policies:** Full CRUD policies
-
----
-
-#### 7. **`resume_builder_data`** - Structured resume data
+#### 6. **`resume_builder_data`** - Structured resume data
 **Purpose:** Stores structured resume data from the resume builder
 
 | Column | Type | Constraints | Description |
@@ -194,7 +170,7 @@
 
 ### **AI Resume Builder Tables**
 
-#### 8. **`templates`** - Resume templates
+#### 7. **`templates`** - Resume templates
 **Purpose:** Stores available resume templates
 
 | Column | Type | Constraints | Description |
@@ -216,7 +192,7 @@
 
 ---
 
-#### 9. **`wizard_sessions`** - AI resume wizard sessions
+#### 8. **`wizard_sessions`** - AI resume wizard sessions
 **Purpose:** Tracks AI-powered resume building wizard sessions
 
 | Column | Type | Constraints | Description |
@@ -240,7 +216,7 @@
 
 ---
 
-#### 10. **`generated_resumes`** - Generated resumes
+#### 9. **`generated_resumes`** - Generated resumes
 **Purpose:** Stores generated resume metadata
 
 | Column | Type | Constraints | Description |
@@ -262,7 +238,7 @@
 
 ---
 
-#### 11. **`generated_resume_versions`** - Resume version history
+#### 10. **`generated_resume_versions`** - Resume version history
 **Purpose:** Stores version history for generated resumes
 
 | Column | Type | Constraints | Description |
@@ -285,7 +261,7 @@
 
 ---
 
-#### 12. **`ai_events`** - AI API call tracking
+#### 11. **`ai_events`** - AI API call tracking
 **Purpose:** Tracks AI API calls for analytics and debugging
 
 | Column | Type | Constraints | Description |
@@ -320,7 +296,6 @@ auth.users (Supabase Auth)
   ├── user_work_experience (1:many)
   ├── user_education (1:many)
   ├── jobs (1:many)
-  ├── resumes (1:many)
   ├── resume_builder_data (1:many)
   ├── wizard_sessions (1:many)
   ├── generated_resumes (1:many)
@@ -342,7 +317,7 @@ wizard_sessions (1:many)
 ## ⚠️ **ISSUES & OPTIMIZATION OPPORTUNITIES**
 
 ### **1. Data Duplication**
-- **Problem:** `user_profile` has JSONB fields (`skills`, `work_experience`, `education`, `resumes`) that duplicate normalized tables
+- **Problem:** `user_profile` has JSONB fields (`skills`, `work_experience`, `education`) that duplicate normalized tables
 - **Impact:** Data inconsistency, storage waste, query complexity
 - **Recommendation:** 
   - ✅ **Keep normalized tables** (`user_skills`, `user_work_experience`, `user_education`)
@@ -350,12 +325,10 @@ wizard_sessions (1:many)
   - ❌ **Remove GIN indexes** on deprecated JSONB fields
 
 ### **2. Missing Indexes**
-- `resumes.is_default` - Needed for finding default resume
 - `templates.is_active` - Needed for filtering active templates
 - `templates.slug` - Needed for template lookups by slug
 
 ### **3. Unused/Redundant Tables**
-- **`resumes` table vs `user_profile.resumes` JSONB** - Decide which to use
 - Check if `resume_builder_data` and `generated_resumes` serve different purposes or can be merged
 
 ### **4. Index Optimization**
@@ -373,7 +346,7 @@ wizard_sessions (1:many)
 
 ### **High Priority**
 1. **Remove deprecated JSONB fields** from `user_profile` after data migration
-2. **Add missing indexes** on `resumes.is_default`, `templates.is_active`, `templates.slug`
+2. **Add missing indexes** on `templates.is_active`, `templates.slug`
 3. **Add composite indexes** for common query patterns
 
 ### **Medium Priority**
@@ -418,8 +391,8 @@ wizard_sessions (1:many)
 
 ## 📊 **TABLE STATISTICS** (Recommended to Monitor)
 
-- Total tables: **12**
-- Tables with RLS: **12**
+- Total tables: **11**
+- Tables with RLS: **11**
 - Tables with JSONB: **6** (consider normalizing)
 - Total indexes: **~30+**
 - Foreign key relationships: **10+**

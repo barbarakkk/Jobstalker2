@@ -355,7 +355,7 @@ export function Dashboard({ }: DashboardProps) {
               <div className="flex items-center">
                 <img 
                   src={ColoredLogoHorizontal} 
-                  alt="JobStalker" 
+                  alt="JobStalker AI" 
                   className="h-8 w-auto"
                 />
               </div>
@@ -384,7 +384,7 @@ export function Dashboard({ }: DashboardProps) {
               <div className="flex items-center">
                 <img 
                   src={ColoredLogoHorizontal} 
-                  alt="JobStalker" 
+                  alt="JobStalker AI" 
                   className="h-8 w-auto"
                 />
               </div>

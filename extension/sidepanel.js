@@ -1,5 +1,5 @@
-// Side panel script for JobStalker extension
-console.log('JobStalker side panel loaded');
+// Side panel script for JobStalker AI extension
+console.log('JobStalker AI side panel loaded');
 
 // DOM elements
 const loading = document.getElementById('loading');
@@ -325,7 +325,7 @@ async function handleSaveJob() {
     if (pageData && pageData.is_job_page === false) {
       console.warn('⚠️ STEP 3.6: Not on a LinkedIn job details page. Aborting save.');
       if (saveJobBtn) {
-        saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+        saveJobBtn.textContent = '📁+ Save Link to JobStalker AI';
         saveJobBtn.disabled = false;
       }
       alert('Please open a LinkedIn job details view (click a job so the details panel loads) before saving.');
@@ -410,7 +410,7 @@ async function handleSaveJob() {
         clearInterval(countdownInterval);
         console.log('✅ STEP 3.13: Resetting form after success...');
         if (saveJobBtn) {
-          saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+          saveJobBtn.textContent = '📁+ Save Link to JobStalker AI';
           saveJobBtn.style.background = '#0a66c2';
           saveJobBtn.disabled = false;
         }
@@ -423,7 +423,7 @@ async function handleSaveJob() {
       console.log('❌ STEP 3.15: Job save failed, handling error...');
       // Reset button state
       if (saveJobBtn) {
-        saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+        saveJobBtn.textContent = '📁+ Save Link to JobStalker AI';
         saveJobBtn.disabled = false;
       }
       

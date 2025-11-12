@@ -28,10 +28,6 @@ CREATE TABLE IF NOT EXISTS public.user_profile (
     education JSONB DEFAULT '[]'::jsonb,
     -- Example structure: [{"school": "University", "degree": "BS", "field": "Computer Science", "start_date": "2016-09", "end_date": "2020-05"}]
     
-    -- Resume information stored as JSON array
-    resumes JSONB DEFAULT '[]'::jsonb,
-    -- Example structure: [{"filename": "resume.pdf", "file_url": "...", "file_size": 1024000, "is_default": true}]
-    
     -- Metadata
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -51,18 +47,6 @@ CREATE TABLE IF NOT EXISTS public.jobs (
     date_applied DATE,
     deadline DATE,
     description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Resumes table for file uploads
-CREATE TABLE IF NOT EXISTS public.resumes (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    filename VARCHAR(255) NOT NULL,
-    file_url TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    is_default BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -122,7 +106,6 @@ CREATE TABLE IF NOT EXISTS public.user_education (
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profile_user_id ON public.user_profile(user_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON public.jobs(user_id);
-CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON public.resumes(user_id);
 CREATE INDEX IF NOT EXISTS idx_resume_builder_data_user_id ON public.resume_builder_data(user_id);
 CREATE INDEX IF NOT EXISTS idx_resume_builder_data_template_id ON public.resume_builder_data(template_id);
 CREATE INDEX IF NOT EXISTS idx_resume_builder_data_resume_data ON public.resume_builder_data USING GIN (resume_data);
@@ -135,7 +118,6 @@ CREATE INDEX IF NOT EXISTS idx_user_education_user_id ON public.user_education(u
 CREATE INDEX IF NOT EXISTS idx_user_profile_skills ON public.user_profile USING GIN (skills);
 CREATE INDEX IF NOT EXISTS idx_user_profile_work_experience ON public.user_profile USING GIN (work_experience);
 CREATE INDEX IF NOT EXISTS idx_user_profile_education ON public.user_profile USING GIN (education);
-CREATE INDEX IF NOT EXISTS idx_user_profile_resumes ON public.user_profile USING GIN (resumes);
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -149,7 +131,6 @@ $$ language 'plpgsql';
 -- Create triggers for updated_at
 CREATE TRIGGER update_user_profile_updated_at BEFORE UPDATE ON public.user_profile FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_jobs_updated_at BEFORE UPDATE ON public.jobs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_resumes_updated_at BEFORE UPDATE ON public.resumes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_resume_builder_data_updated_at BEFORE UPDATE ON public.resume_builder_data FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_skills_updated_at BEFORE UPDATE ON public.user_skills FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_work_experience_updated_at BEFORE UPDATE ON public.user_work_experience FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -158,7 +139,6 @@ CREATE TRIGGER update_user_education_updated_at BEFORE UPDATE ON public.user_edu
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.user_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.jobs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.resumes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.resume_builder_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_work_experience ENABLE ROW LEVEL SECURITY;
@@ -188,19 +168,6 @@ CREATE POLICY "Users can update own jobs" ON public.jobs
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own jobs" ON public.jobs
-    FOR DELETE USING (auth.uid() = user_id);
-
--- Create RLS policies for resumes
-CREATE POLICY "Users can view own resumes" ON public.resumes
-    FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own resumes" ON public.resumes
-    FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own resumes" ON public.resumes
-    FOR UPDATE USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete own resumes" ON public.resumes
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Create RLS policies for resume_builder_data
