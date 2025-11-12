@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { LandingPage } from './components/LandingPage';
-import { Login, Register, ProtectedRoute, AuthCallback } from './components/Auth';
+import { Login, ProtectedRoute, AuthCallback } from './components/Auth';
 import { ExtensionAuth } from './components/Auth/ExtensionAuth';
 import { Dashboard } from './components/Dashboard';
 import JobDetail from './components/Dashboard/JobDetail';
@@ -17,7 +17,6 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
         <Route path="/auth/extension" element={<ExtensionAuth />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

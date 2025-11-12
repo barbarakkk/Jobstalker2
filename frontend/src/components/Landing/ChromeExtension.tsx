@@ -6,7 +6,7 @@ export function ChromeExtension() {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/register');
+    navigate('/login');
   };
 
   const handleChromeStore = () => {

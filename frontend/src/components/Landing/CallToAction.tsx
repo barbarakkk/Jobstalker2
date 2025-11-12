@@ -6,7 +6,7 @@ export function CallToAction() {
   const navigate = useNavigate();
 
   const handleStartFreeTrial = () => {
-    navigate('/register');
+    navigate('/login');
   };
 
   return (

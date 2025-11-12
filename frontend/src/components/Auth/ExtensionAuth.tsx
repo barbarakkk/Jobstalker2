@@ -174,9 +174,9 @@ export function ExtensionAuth() {
         
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <a href="/register" className="text-blue-600 hover:underline">
-              Sign up here
+            New to JobStalker AI?{' '}
+            <a href="/login" className="text-blue-600 hover:underline">
+              Sign in to get started
             </a>
           </p>
         </div>
