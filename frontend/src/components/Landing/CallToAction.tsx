@@ -58,15 +58,7 @@ export function CallToAction() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-12">
             <div className="flex items-center gap-2 text-blue-100 text-lg font-medium">
               <CheckCircle className="w-6 h-6 text-blue-200" />
-              14-day free trial
-            </div>
-            <div className="flex items-center gap-2 text-blue-100 text-lg font-medium">
-              <CheckCircle className="w-6 h-6 text-blue-200" />
               No credit card required
-            </div>
-            <div className="flex items-center gap-2 text-blue-100 text-lg font-medium">
-              <CheckCircle className="w-6 h-6 text-blue-200" />
-              Cancel anytime
             </div>
           </div>
 
