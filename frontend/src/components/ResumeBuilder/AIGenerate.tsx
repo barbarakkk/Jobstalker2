@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
-import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { wizardApi } from '@/lib/api';
@@ -80,6 +80,17 @@ export function AIGeneratePage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
 
+  // Questionnaire state for work experience description
+  const [showQuestionnaireDialog, setShowQuestionnaireDialog] = useState<string | null>(null); // Store exp.id when dialog is open
+  const [questionnaireAnswers, setQuestionnaireAnswers] = useState({
+    whatDidYouDo: '',
+    problemsSolved: '',
+    achievements: '',
+    technologiesUsed: '',
+    impactResults: '',
+  });
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+
   // Wizard steps state
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 6;
@@ -91,10 +102,10 @@ export function AIGeneratePage() {
 
   const steps = [
     { id: 1, name: 'Personal Info', description: 'Basic information' },
-    { id: 2, name: 'Summary', description: 'Professional summary' },
-    { id: 3, name: 'Experience', description: 'Work history' },
-    { id: 4, name: 'Education', description: 'Education background' },
-    { id: 5, name: 'Skills', description: 'Skills & languages' },
+    { id: 2, name: 'Experience', description: 'Work history' },
+    { id: 3, name: 'Education', description: 'Education background' },
+    { id: 4, name: 'Skills', description: 'Skills & languages' },
+    { id: 5, name: 'Summary', description: 'Professional summary' },
     { id: 6, name: 'Target Role', description: 'Final details' },
   ];
 
@@ -148,31 +159,20 @@ export function AIGeneratePage() {
         personalInfoSchema.parse(personalInfo);
         console.log('✅ Step 1 validation passed');
       } else if (step === 2) {
-        console.log('🔍 Validating Step 2 - Professional Summary:', {
-          summary: summary,
-          summaryLength: summary?.trim().length
-        });
-        if (!summary || !summary.trim()) {
-          setErrors(['Professional Summary is required. Please tell us about yourself.']);
-          console.log('❌ Step 2 validation failed: Summary is empty');
-          return false;
-        }
-        console.log('✅ Step 2 validation passed');
-      } else if (step === 3) {
         // Filter out empty work experience entries (where title and company are both empty)
         const filledWorkExp = workExperience.filter(w => 
           (w.title && w.title.trim().length > 0) || (w.company && w.company.trim().length > 0)
         );
         // Only validate filled entries
         filledWorkExp.forEach((w) => workItemSchema.parse(w));
-      } else if (step === 4) {
+      } else if (step === 3) {
         // Filter out empty education entries (where school and degree are both empty)
         const filledEducation = education.filter(e => 
           (e.school && e.school.trim().length > 0) || (e.degree && e.degree.trim().length > 0)
         );
         // Only validate filled entries
         filledEducation.forEach((e) => educationItemSchema.parse(e));
-      } else if (step === 5) {
+      } else if (step === 4) {
         // Filter out empty skills and languages before validation
         const filledSkills = skills.filter(s => s.name.trim().length > 0);
         const filledLanguages = languages.filter(l => l.name.trim().length > 0);
@@ -183,6 +183,17 @@ export function AIGeneratePage() {
         if (filledLanguages.length > 0) {
           languagesSchema.parse(filledLanguages);
         }
+      } else if (step === 5) {
+        console.log('🔍 Validating Step 5 - Professional Summary:', {
+          summary: summary,
+          summaryLength: summary?.trim().length
+        });
+        if (!summary || !summary.trim()) {
+          setErrors(['Professional Summary is required. Please tell us about yourself.']);
+          console.log('❌ Step 5 validation failed: Summary is empty');
+          return false;
+        }
+        console.log('✅ Step 5 validation passed');
       }
       return true;
     } catch (e: any) {
@@ -255,13 +266,13 @@ export function AIGeneratePage() {
       case 1:
         return !!(personalInfo.firstName && personalInfo.lastName && personalInfo.email);
       case 2:
-        return !!summary.trim(); // Summary is required
-      case 3:
         return true; // Work experience is optional but validate if entries exist
-      case 4:
+      case 3:
         return true; // Education is optional
-      case 5:
+      case 4:
         return true; // Skills are optional
+      case 5:
+        return !!summary.trim(); // Summary is required
       case 6:
         return true; // Target role is optional
       default:
@@ -389,6 +400,79 @@ export function AIGeneratePage() {
   };
 
   const { generateWithAI } = useResumeBuilder();
+
+  // Helper function to get auth token
+  const getAuthToken = async (): Promise<string | null> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.access_token || null;
+    } catch (error) {
+      console.error('Error getting auth token:', error);
+      return null;
+    }
+  };
+
+  // Function to generate description from questionnaire
+  const generateDescriptionFromQuestionnaire = async (expId: string) => {
+    const exp = workExperience.find(e => e.id === expId);
+    if (!exp || !exp.title || !exp.company) {
+      alert('Please fill in Job Title and Company first');
+      return;
+    }
+
+    if (!questionnaireAnswers.whatDidYouDo.trim()) {
+      alert('Please answer "What did you do in this role?" - it is required');
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const token = await getAuthToken();
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/ai/generate-work-description`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          job_title: exp.title,
+          company: exp.company,
+          what_did_you_do: questionnaireAnswers.whatDidYouDo,
+          problems_solved: questionnaireAnswers.problemsSolved || undefined,
+          achievements: questionnaireAnswers.achievements || undefined,
+          technologies_used: questionnaireAnswers.technologiesUsed || undefined,
+          impact_results: questionnaireAnswers.impactResults || undefined,
+          target_role: targetRole || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(errorData.detail || 'Failed to generate description');
+      }
+
+      const result = await response.json();
+      updateWorkExperience(expId, 'description', result.description);
+      setShowQuestionnaireDialog(null);
+      setQuestionnaireAnswers({
+        whatDidYouDo: '',
+        problemsSolved: '',
+        achievements: '',
+        technologiesUsed: '',
+        impactResults: '',
+      });
+    } catch (error) {
+      console.error('Error generating description:', error);
+      alert(error instanceof Error ? error.message : 'Failed to generate description. Please try again.');
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
 
   const createWizardSession = async () => {
     setSessionError(null);
@@ -543,6 +627,7 @@ export function AIGeneratePage() {
       } else if (!step4Valid) {
         setCurrentStep(4);
       } else if (!step5Valid) {
+        console.log('📍 Navigating to Step 5 to fix validation errors');
         setCurrentStep(5);
       }
       
@@ -928,53 +1013,8 @@ export function AIGeneratePage() {
           </Card>
           )}
 
-          {/* Step 2: Professional Summary */}
+          {/* Step 2: Work Experience */}
           {currentStep === 2 && (
-          <Card className="p-6 shadow-lg">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
-              <p className="text-gray-600 mt-1">Tell us about yourself - This is required</p>
-            </div>
-            <div>
-              <Label htmlFor="summary">
-                Tell us about yourself <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="summary"
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                placeholder="Brief description of your professional background, key skills, and career objectives..."
-                rows={4}
-                className={errors.some(e => e.includes('Summary')) ? 'border-red-500' : ''}
-              />
-              {errors.some(e => e.includes('Summary')) && (
-                <p className="text-red-500 text-sm mt-1">Professional Summary is required</p>
-              )}
-              <div className="mt-3 flex items-center gap-3">
-                <Button
-                  type="button"
-                  disabled={!wizardSessionId}
-                  onClick={async () => {
-                    if (!wizardSessionId) return;
-                    try {
-                      const r = await wizardApi.generateSummary(wizardSessionId, targetRole || undefined);
-                      setSummary(r.summary);
-                    } catch (e) {
-                      console.error('Generate summary failed', e);
-                    }
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Generate Summary with AI
-                </Button>
-                <span className="text-sm text-gray-500">Uses your skills/experience and Target Role as hints.</span>
-              </div>
-            </div>
-          </Card>
-          )}
-
-          {/* Step 3: Work Experience */}
-          {currentStep === 3 && (
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
               <div className="flex items-center justify-between">
@@ -1056,7 +1096,25 @@ export function AIGeneratePage() {
                     </div>
                   </div>
                   <div>
-                    <Label>Description</Label>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label>Description</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (!exp.title || !exp.company) {
+                            alert('Please fill in Job Title and Company first');
+                            return;
+                          }
+                          setShowQuestionnaireDialog(exp.id);
+                        }}
+                        className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                      >
+                        <Sparkles className="w-4 h-4 mr-1" />
+                        Generate with AI
+                      </Button>
+                    </div>
                     <Textarea
                       value={exp.description}
                       onChange={(e) => updateWorkExperience(exp.id, 'description', e.target.value)}
@@ -1076,8 +1134,8 @@ export function AIGeneratePage() {
           </Card>
           )}
 
-          {/* Step 4: Education */}
-          {currentStep === 4 && (
+          {/* Step 3: Education */}
+          {currentStep === 3 && (
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
               <div className="flex items-center justify-between">
@@ -1159,8 +1217,8 @@ export function AIGeneratePage() {
           </Card>
           )}
 
-          {/* Step 5: Skills & Languages */}
-          {currentStep === 5 && (
+          {/* Step 4: Skills & Languages */}
+          {currentStep === 4 && (
           <>
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
@@ -1274,6 +1332,181 @@ export function AIGeneratePage() {
           </Card>
           </>
           )}
+
+          {/* Step 5: Professional Summary */}
+          {currentStep === 5 && (
+          <Card className="p-6 shadow-lg">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
+              <p className="text-gray-600 mt-1">Tell us about yourself - This is required</p>
+            </div>
+            <div>
+              <Label htmlFor="summary">
+                Tell us about yourself <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="summary"
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                placeholder="Brief description of your professional background, key skills, and career objectives..."
+                rows={4}
+                className={errors.some(e => e.includes('Summary')) ? 'border-red-500' : ''}
+              />
+              {errors.some(e => e.includes('Summary')) && (
+                <p className="text-red-500 text-sm mt-1">Professional Summary is required</p>
+              )}
+              <div className="mt-3 flex items-center gap-3">
+                <Button
+                  type="button"
+                  disabled={!wizardSessionId}
+                  onClick={async () => {
+                    if (!wizardSessionId) return;
+                    try {
+                      const r = await wizardApi.generateSummary(wizardSessionId, targetRole || undefined);
+                      setSummary(r.summary);
+                    } catch (e) {
+                      console.error('Generate summary failed', e);
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Generate Summary with AI
+                </Button>
+                <span className="text-sm text-gray-500">Uses your skills/experience and Target Role as hints.</span>
+              </div>
+            </div>
+          </Card>
+          )}
+
+          {/* Work Experience Description Generator Dialog */}
+          <Dialog open={showQuestionnaireDialog !== null} onOpenChange={(open) => {
+            if (!open) {
+              setShowQuestionnaireDialog(null);
+              setQuestionnaireAnswers({
+                whatDidYouDo: '',
+                problemsSolved: '',
+                achievements: '',
+                technologiesUsed: '',
+                impactResults: '',
+              });
+            }
+          }}>
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+              <DialogHeader>
+                <DialogTitle>Help AI Generate Your Job Description</DialogTitle>
+                <DialogDescription>
+                  Answer these questions to help AI create a professional description. The more details you provide, the better the result.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="whatDidYouDo">
+                    What did you do in this role? <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="whatDidYouDo"
+                    value={questionnaireAnswers.whatDidYouDo}
+                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, whatDidYouDo: e.target.value})}
+                    placeholder="Describe your main responsibilities and daily tasks..."
+                    rows={3}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="problemsSolved">
+                    What problems did you solve?
+                  </Label>
+                  <Textarea
+                    id="problemsSolved"
+                    value={questionnaireAnswers.problemsSolved}
+                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, problemsSolved: e.target.value})}
+                    placeholder="Describe challenges you faced and how you solved them..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="achievements">
+                    What were your key achievements?
+                  </Label>
+                  <Textarea
+                    id="achievements"
+                    value={questionnaireAnswers.achievements}
+                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, achievements: e.target.value})}
+                    placeholder="Mention specific accomplishments, awards, or recognitions..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="technologiesUsed">
+                    What technologies, tools, or skills did you use?
+                  </Label>
+                  <Textarea
+                    id="technologiesUsed"
+                    value={questionnaireAnswers.technologiesUsed}
+                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, technologiesUsed: e.target.value})}
+                    placeholder="List programming languages, frameworks, software, methodologies..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="impactResults">
+                    What was the impact or results? (Include numbers if possible)
+                  </Label>
+                  <Textarea
+                    id="impactResults"
+                    value={questionnaireAnswers.impactResults}
+                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, impactResults: e.target.value})}
+                    placeholder="e.g., Increased sales by 30%, Reduced processing time by 50%, Managed team of 5..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowQuestionnaireDialog(null);
+                    setQuestionnaireAnswers({
+                      whatDidYouDo: '',
+                      problemsSolved: '',
+                      achievements: '',
+                      technologiesUsed: '',
+                      impactResults: '',
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => showQuestionnaireDialog && generateDescriptionFromQuestionnaire(showQuestionnaireDialog)}
+                  disabled={!questionnaireAnswers.whatDidYouDo.trim() || isGeneratingDescription}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isGeneratingDescription ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Description'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Step 6: Target Role */}
           {currentStep === 6 && (

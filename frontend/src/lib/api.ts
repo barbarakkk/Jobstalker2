@@ -169,6 +169,28 @@ export const jobApi = {
   },
 };
 
+// AI API functions
+export const aiApi = {
+  // Analyze job match
+  analyzeJobMatch: async (jobId: string): Promise<{
+    matchScore: number;
+    strengths: string[];
+    improvements: string[];
+    missingSkills: string[];
+    matchedSkills: string[];
+  }> => {
+    return apiCall<{
+      matchScore: number;
+      strengths: string[];
+      improvements: string[];
+      missingSkills: string[];
+      matchedSkills: string[];
+    }>(`/api/ai/job-match/${jobId}`, {
+      method: 'POST',
+    });
+  },
+};
+
 // Health check
 export const healthCheck = async (): Promise<{ message: string }> => {
   return apiCall<{ message: string }>('/ping');

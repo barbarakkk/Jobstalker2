@@ -78,6 +78,20 @@ class AIGenerateResponse(BaseModel):
     success: bool = True
     message: str = "Resume generated successfully"
 
+class WorkDescriptionQuestionnaire(BaseModel):
+    job_title: str
+    company: str
+    what_did_you_do: str  # Main responsibilities
+    problems_solved: Optional[str] = None
+    achievements: Optional[str] = None
+    technologies_used: Optional[str] = None
+    impact_results: Optional[str] = None
+    target_role: Optional[str] = None
+
+class WorkDescriptionResponse(BaseModel):
+    description: str
+    success: bool = True
+
 # Authentication dependency
 async def get_current_user(authorization: Optional[str] = Header(None)):
     """Enhanced authentication check with Supabase verification"""
@@ -313,6 +327,64 @@ async def generate_resume(request: AIGenerateRequest, user_id: str = Depends(get
     except Exception as e:
         print(f"❌ AI RESUME: Error generating resume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate resume: {str(e)}")
+
+@router.post("/api/ai/generate-work-description", response_model=WorkDescriptionResponse)
+async def generate_work_description(
+    questionnaire: WorkDescriptionQuestionnaire, 
+    user_id: str = Depends(get_current_user)
+):
+    """Generate professional work experience description from questionnaire answers"""
+    try:
+        print(f"🤖 AI WORK DESC: Generating description for user {user_id}")
+        print(f"🤖 AI WORK DESC: Job: {questionnaire.job_title} at {questionnaire.company}")
+        
+        client = get_openai_client()
+        
+        prompt = f"""
+        Create a professional work experience description for a resume based on the following information:
+        
+        Job Title: {questionnaire.job_title}
+        Company: {questionnaire.company}
+        
+        What they did: {questionnaire.what_did_you_do}
+        Problems solved: {questionnaire.problems_solved or 'Not specified'}
+        Key achievements: {questionnaire.achievements or 'Not specified'}
+        Technologies/tools used: {questionnaire.technologies_used or 'Not specified'}
+        Impact/results: {questionnaire.impact_results or 'Not specified'}
+        Target role: {questionnaire.target_role or 'General professional role'}
+        
+        Write 3-5 professional bullet points that:
+        1. Use strong action verbs (e.g., Developed, Implemented, Led, Optimized, Designed, Managed)
+        2. Quantify achievements with numbers, percentages, or metrics where possible
+        3. Highlight problem-solving and impact
+        4. Show progression and results
+        5. Are tailored for the target role if specified
+        6. Sound professional and compelling
+        
+        Format as bullet points, each starting with a strong action verb. Make it concise and impactful.
+        """
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert resume writer. Create compelling work experience descriptions with quantified achievements."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=400,
+            temperature=0.7
+        )
+        
+        description = response.choices[0].message.content.strip()
+        
+        print(f"🤖 AI WORK DESC: Description generated successfully")
+        
+        return WorkDescriptionResponse(
+            description=description,
+            success=True
+        )
+    except Exception as e:
+        print(f"❌ AI WORK DESC: Error generating description: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate description: {str(e)}")
 
 @router.get("/api/ai/health")
 async def ai_health_check():
