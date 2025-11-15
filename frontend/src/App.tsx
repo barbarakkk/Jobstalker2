@@ -74,6 +74,7 @@ function App() {
             } 
           />
           {/* Resume Builder routes */}
+          {/* All wizard routes use AIGeneratePage with 6-step flow: Personal Info → Experience → Education → Skills → Summary → Target Role */}
           <Route 
             path="/resume-builder" 
             element={
