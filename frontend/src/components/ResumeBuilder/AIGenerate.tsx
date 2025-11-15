@@ -84,9 +84,7 @@ export function AIGeneratePage() {
   const [showQuestionnaireDialog, setShowQuestionnaireDialog] = useState<string | null>(null); // Store exp.id when dialog is open
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState({
     whatDidYouDo: '',
-    problemsSolved: '',
     achievements: '',
-    technologiesUsed: '',
     impactResults: '',
   });
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
@@ -443,9 +441,7 @@ export function AIGeneratePage() {
           job_title: exp.title,
           company: exp.company,
           what_did_you_do: questionnaireAnswers.whatDidYouDo,
-          problems_solved: questionnaireAnswers.problemsSolved || undefined,
           achievements: questionnaireAnswers.achievements || undefined,
-          technologies_used: questionnaireAnswers.technologiesUsed || undefined,
           impact_results: questionnaireAnswers.impactResults || undefined,
           target_role: targetRole || undefined,
         }),
@@ -461,9 +457,7 @@ export function AIGeneratePage() {
       setShowQuestionnaireDialog(null);
       setQuestionnaireAnswers({
         whatDidYouDo: '',
-        problemsSolved: '',
         achievements: '',
-        technologiesUsed: '',
         impactResults: '',
       });
     } catch (error) {
@@ -1386,18 +1380,16 @@ export function AIGeneratePage() {
               setShowQuestionnaireDialog(null);
               setQuestionnaireAnswers({
                 whatDidYouDo: '',
-                problemsSolved: '',
                 achievements: '',
-                technologiesUsed: '',
                 impactResults: '',
               });
             }
           }}>
-            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+            <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto bg-white">
               <DialogHeader>
                 <DialogTitle>Help AI Generate Your Job Description</DialogTitle>
                 <DialogDescription>
-                  Answer these questions to help AI create a professional description. The more details you provide, the better the result.
+                  Answer these 3 questions to help AI create a professional description.
                 </DialogDescription>
               </DialogHeader>
               
@@ -1418,20 +1410,6 @@ export function AIGeneratePage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="problemsSolved">
-                    What problems did you solve?
-                  </Label>
-                  <Textarea
-                    id="problemsSolved"
-                    value={questionnaireAnswers.problemsSolved}
-                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, problemsSolved: e.target.value})}
-                    placeholder="Describe challenges you faced and how you solved them..."
-                    rows={2}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
                   <Label htmlFor="achievements">
                     What were your key achievements?
                   </Label>
@@ -1440,20 +1418,6 @@ export function AIGeneratePage() {
                     value={questionnaireAnswers.achievements}
                     onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, achievements: e.target.value})}
                     placeholder="Mention specific accomplishments, awards, or recognitions..."
-                    rows={2}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="technologiesUsed">
-                    What technologies, tools, or skills did you use?
-                  </Label>
-                  <Textarea
-                    id="technologiesUsed"
-                    value={questionnaireAnswers.technologiesUsed}
-                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, technologiesUsed: e.target.value})}
-                    placeholder="List programming languages, frameworks, software, methodologies..."
                     rows={2}
                     className="mt-1"
                   />
@@ -1482,9 +1446,7 @@ export function AIGeneratePage() {
                     setShowQuestionnaireDialog(null);
                     setQuestionnaireAnswers({
                       whatDidYouDo: '',
-                      problemsSolved: '',
                       achievements: '',
-                      technologiesUsed: '',
                       impactResults: '',
                     });
                   }}

@@ -74,40 +74,40 @@ export function Hero() {
       <div className="relative container mx-auto flex flex-col lg:flex-row items-center justify-between gap-16 px-4 lg:px-8">
         {/* Left: Text Content */}
         <div className="flex-1 max-w-2xl text-center lg:text-left">
-          <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 text-blue-700 font-semibold text-sm shadow-sm">
-            <Star className="w-4 h-4" />
+          <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 text-blue-700 font-semibold text-sm shadow-sm animate-fadeInUp animation-delay-100">
+            <Star className="w-4 h-4 animate-pulse-slow" />
             AI-Powered Job Search Platform
           </div>
           
-          <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
+          <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight animate-fadeInUp animation-delay-200">
             Your AI Job Search{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent animate-pulse-slow">
               Companion
             </span>
           </h1>
           
-          <p className="text-xl lg:text-2xl text-gray-600 mb-8 leading-relaxed">
+          <p className="text-xl lg:text-2xl text-gray-600 mb-8 leading-relaxed animate-fadeInUp animation-delay-300">
             The best tool for job seekers to track job applications and fill application forms on other platforms. 
             Streamline your job search with intelligent tracking and personalized analytics.
           </p>
           
-          <div className="flex items-center gap-4 text-sm text-gray-600 mb-8">
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
+          <div className="flex items-center gap-4 text-sm text-gray-600 mb-8 animate-fadeInUp animation-delay-400">
+            <div className="flex items-center gap-2 hover:text-blue-600 transition-colors duration-300 cursor-default">
+              <Users className="w-4 h-4 animate-float" />
               <span>Join 1,000+ professionals</span>
             </div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
+            <div className="flex items-center gap-2 hover:text-blue-600 transition-colors duration-300 cursor-default">
+              <TrendingUp className="w-4 h-4 animate-float animation-delay-200" />
               <span>Trusted by job seekers</span>
             </div>
           </div>
         </div>
 
         {/* Right: Interactive Demo */}
-        <div className="flex-1 max-w-lg">
+        <div className="flex-1 max-w-lg animate-slideInRight animation-delay-300">
           <div className="relative">
             {/* Main Demo Card */}
-            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 transform transition-all duration-500 will-change-transform" style={cardTilt}>
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 transform transition-all duration-500 will-change-transform hover:shadow-3xl hover:scale-105" style={cardTilt}>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <img 
@@ -127,36 +127,32 @@ export function Hero() {
               
               {/* Status Cards */}
               <div className="grid grid-cols-5 gap-2 mb-4">
-                <div className="bg-white border border-gray-200 rounded-lg p-2 text-center transition-transform duration-300 hover:-translate-y-1">
-                  <div className="text-lg font-bold text-gray-900">0</div>
-                  <div className="text-xs text-gray-600">Bookmarked</div>
-                </div>
-                <div className="bg-yellow-100 border border-yellow-200 rounded-lg p-2 text-center transition-transform duration-300 hover:-translate-y-1">
-                  <div className="text-lg font-bold text-gray-900">1</div>
-                  <div className="text-xs text-gray-600">Applying</div>
-                </div>
-                <div className="bg-blue-100 border border-blue-200 rounded-lg p-2 text-center transition-transform duration-300 hover:-translate-y-1">
-                  <div className="text-lg font-bold text-gray-900">2</div>
-                  <div className="text-xs text-gray-600">Applied</div>
-                </div>
-                <div className="bg-purple-100 border border-purple-200 rounded-lg p-2 text-center transition-transform duration-300 hover:-translate-y-1">
-                  <div className="text-lg font-bold text-gray-900">1</div>
-                  <div className="text-xs text-gray-600">Interviewing</div>
-                </div>
-                <div className="bg-green-100 border border-green-200 rounded-lg p-2 text-center transition-transform duration-300 hover:-translate-y-1">
-                  <div className="text-lg font-bold text-gray-900">1</div>
-                  <div className="text-xs text-gray-600">Accepted</div>
-                </div>
+                {[
+                  { bg: 'bg-white', border: 'border-gray-200', count: '0', label: 'Bookmarked', delay: 0 },
+                  { bg: 'bg-yellow-100', border: 'border-yellow-200', count: '1', label: 'Applying', delay: 0.1 },
+                  { bg: 'bg-blue-100', border: 'border-blue-200', count: '2', label: 'Applied', delay: 0.2 },
+                  { bg: 'bg-purple-100', border: 'border-purple-200', count: '1', label: 'Interviewing', delay: 0.3 },
+                  { bg: 'bg-green-100', border: 'border-green-200', count: '1', label: 'Accepted', delay: 0.4 }
+                ].map((card, index) => (
+                  <div 
+                    key={index}
+                    className={`${card.bg} ${card.border} rounded-lg p-2 text-center transition-all duration-300 hover:-translate-y-2 hover:scale-110 hover:shadow-lg animate-fadeInUp`}
+                    style={{ animationDelay: `${card.delay}s` }}
+                  >
+                    <div className="text-lg font-bold text-gray-900">{card.count}</div>
+                    <div className="text-xs text-gray-600">{card.label}</div>
+                  </div>
+                ))}
               </div>
               
               {/* Sample Job */}
-              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 transition-transform duration-300 hover:-translate-y-1">
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 transition-all duration-500 hover:-translate-y-2 hover:shadow-lg hover:scale-105 animate-fadeInUp animation-delay-500">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-semibold text-gray-900 text-sm">Senior Developer</div>
                     <div className="text-xs text-gray-600">TechCorp</div>
                   </div>
-                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${jobs[0].statusColor}`}>
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${jobs[0].statusColor} animate-pulse-slow`}>
                     {jobs[0].status}
                   </div>
                 </div>
@@ -164,9 +160,9 @@ export function Hero() {
             </div>
 
             {/* Floating Elements */}
-            <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 transform -rotate-12 transition-transform duration-500 hover:-translate-y-1" style={blobParallax(-0.5)}>
+            <div className="absolute -top-4 -right-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 transform -rotate-12 transition-all duration-500 hover:-translate-y-2 hover:rotate-0 hover:shadow-xl animate-float" style={blobParallax(-0.5)}>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center animate-pulse-slow">
                   <CheckCircle className="w-4 h-4 text-green-600" />
                 </div>
                 <div className="text-xs">
@@ -176,9 +172,9 @@ export function Hero() {
               </div>
             </div>
 
-            <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 transform rotate-12 transition-transform duration-500 hover:-translate-y-1" style={blobParallax(0.5)}>
+            <div className="absolute -bottom-4 -left-4 bg-white rounded-xl shadow-lg border border-gray-200 p-3 transform rotate-12 transition-all duration-500 hover:-translate-y-2 hover:rotate-0 hover:shadow-xl animate-float animation-delay-2000" style={blobParallax(0.5)}>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center animate-pulse-slow">
                   <Star className="w-4 h-4 text-blue-600" />
                 </div>
                 <div className="text-xs">

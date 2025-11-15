@@ -1,14 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Chrome, Download, Zap, Bookmark, Link2, CheckCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export function ChromeExtension() {
-  const navigate = useNavigate();
-
-  const handleGetStarted = () => {
-    navigate('/login');
-  };
-
   const handleChromeStore = () => {
     // Replace with your actual Chrome Web Store URL when published
     window.open('https://chrome.google.com/webstore', '_blank');
@@ -90,13 +83,6 @@ export function ChromeExtension() {
               >
                 <Download className="w-5 h-5 mr-2" />
                 Download from Chrome Store
-              </Button>
-              <Button
-                onClick={handleGetStarted}
-                variant="outline"
-                className="border-2 border-gray-300 text-gray-700 hover:border-blue-600 hover:text-blue-600 px-8 py-6 text-lg font-semibold bg-white/80 backdrop-blur-sm rounded-xl transition-all duration-300"
-              >
-                Get Started Free
               </Button>
             </div>
 

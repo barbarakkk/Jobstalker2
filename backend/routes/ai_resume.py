@@ -347,9 +347,7 @@ async def generate_work_description(
         Company: {questionnaire.company}
         
         What they did: {questionnaire.what_did_you_do}
-        Problems solved: {questionnaire.problems_solved or 'Not specified'}
         Key achievements: {questionnaire.achievements or 'Not specified'}
-        Technologies/tools used: {questionnaire.technologies_used or 'Not specified'}
         Impact/results: {questionnaire.impact_results or 'Not specified'}
         Target role: {questionnaire.target_role or 'General professional role'}
         
