@@ -87,7 +87,7 @@ export function Hero() {
           </h1>
           
           <p className="text-xl lg:text-2xl text-gray-600 mb-8 leading-relaxed animate-fadeInUp animation-delay-300">
-            The best tool for job seekers to track job applications and fill application forms on other platforms. 
+            The best tool for job seekers to track job applications, save jobs from LinkedIn, and build professional resumes with AI. 
             Streamline your job search with intelligent tracking and personalized analytics.
           </p>
           

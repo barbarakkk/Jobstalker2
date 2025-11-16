@@ -261,6 +261,7 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
             draft_json = {**draft_json, **body.seed}
 
         now_iso = datetime.utcnow().isoformat()
+        # Explicitly select the inserted row to ensure it's returned
         ins = supabase.table("wizard_sessions").insert({
             "user_id": user_id,
             "template_id": template_id_uuid,  # Use the actual UUID, not the slug
@@ -270,15 +271,31 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
             "last_step": 1,
             "created_at": now_iso,
             "updated_at": now_iso
-        }).execute()
-        if not ins or not hasattr(ins, 'data') or not ins.data:
-            raise HTTPException(status_code=400, detail="Failed to create session")
+        }).select("*").execute()
+        
+        if not ins or not hasattr(ins, 'data') or not ins.data or len(ins.data) == 0:
+            raise HTTPException(
+                status_code=500, 
+                detail="Failed to create session: Insert succeeded but no data returned. This may indicate a database migration issue or RLS policy problem."
+            )
         row = ins.data[0]
         return {"id": row["id"], "draftJson": row["draft_json"], "progress": row["progress"]}
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create session: {e}")
+        import traceback
+        error_details = str(e)
+        error_trace = traceback.format_exc()
+        print(f"Error creating wizard session: {error_details}")
+        print(f"Traceback: {error_trace}")
+        
+        # Check if it's a Supabase/PostgREST error
+        if "Missing response" in error_details or "204" in error_details:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database error: The wizard_sessions table may not exist or RLS policies may be blocking the operation. Please ensure the migration '20251103_ai_resume_builder.sql' has been run. Original error: {error_details}"
+            )
+        raise HTTPException(status_code=500, detail=f"Failed to create session: {error_details}")
 
 
 @router.patch("/api/wizard/sessions/{session_id}")

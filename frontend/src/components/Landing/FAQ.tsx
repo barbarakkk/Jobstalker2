@@ -4,19 +4,23 @@ import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react';
 const faqs = [
   {
     question: "What is JobStalker AI?",
-    answer: "JobStalker AI is an AI-powered job search platform that helps you track job applications, automatically fill out application forms on platforms like Greenhouse and Lever, and provides intelligent analytics to improve your job search success rate."
+    answer: "JobStalker AI is an AI-powered job search platform that helps you track job applications, save jobs from LinkedIn using our Chrome extension, build professional resumes with AI, and provides intelligent analytics to improve your job search success rate."
   },
   {
-    question: "How does the AI job matching work?",
-    answer: "Our AI analyzes your profile, skills, and experience, then matches you with relevant job postings based on compatibility. It also provides insights on how well you match each position and suggests improvements."
+    question: "How does the Chrome extension work?",
+    answer: "Our Chrome extension allows you to save job postings directly from LinkedIn with one click. When you're viewing a job on LinkedIn, click the extension icon to open the side panel, then click 'Save Job'. Our AI will extract all job details and add it to your dashboard automatically."
   },
   {
-    question: "Can I track applications from multiple job boards?",
-    answer: "Yes! You can track applications from LinkedIn, Indeed, company websites, and any other source. Our Chrome extension makes it easy to save jobs from anywhere, and you can also manually add applications."
+    question: "Can I track applications from multiple sources?",
+    answer: "Yes! You can track applications from LinkedIn (using our Chrome extension), Indeed, company websites, and any other source. You can also manually add job applications directly from your dashboard."
+  },
+  {
+    question: "What is the Resume Builder?",
+    answer: "Our AI-powered Resume Builder helps you create professional resumes in minutes. Choose from multiple templates, fill in your information through our guided wizard, and let AI generate professional summaries and optimize your resume content. Export your resume as PDF when ready."
   },
   {
     question: "How do I get started?",
-    answer: "Simply sign up for a free account, complete your profile with your skills and experience, and start tracking your job applications. Download our Chrome extension to enable auto-fill features."
+    answer: "Simply sign up for a free account with Google OAuth, complete your profile with your skills, work experience, and education. Then download our Chrome extension to start saving jobs from LinkedIn, or manually add jobs from your dashboard. You can also use our Resume Builder to create professional resumes."
   }
 ];
 

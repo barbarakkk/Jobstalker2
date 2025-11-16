@@ -7,6 +7,7 @@ import { Features } from './Landing/Features';
 import { StatsSection } from './Landing/StatsSection';
 import { CallToAction } from './Landing/CallToAction';
 import { FAQ } from './Landing/FAQ';
+import { ChromeExtension } from './Landing/ChromeExtension';
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -53,6 +54,7 @@ export function LandingPage() {
       <Header />
       <Hero />
       <Features />
+      <ChromeExtension />
       <StatsSection />
       <FAQ />
       <CallToAction />

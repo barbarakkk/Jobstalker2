@@ -1,38 +1,45 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Target, User, BarChart2, Search, Calendar, FileText, Sparkles, Zap, Shield, Clock, TrendingUp, Award, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Target, BarChart2, Search, Calendar, FileText, Sparkles, Zap, Shield, Clock, TrendingUp, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
 const features = [
   {
     title: 'Smart Application Tracking',
-    description: 'Keep track of all your job applications with intelligent status updates, automated reminders, and progress insights.',
+    description: 'Keep track of all your job applications with intelligent status updates, progress insights, and detailed job information.',
     icon: <Target className="w-8 h-8 text-white" />,
     gradient: 'from-blue-500 to-blue-600',
     bgGradient: 'from-blue-50 to-blue-100',
-    highlight: 'AI-powered insights'
+    highlight: 'Track all applications'
   },
   {
-    title: 'Interview Preparation',
-    description: 'Get personalized interview prep with company-specific questions, behavioral coaching, and mock interview sessions.',
-    icon: <User className="w-8 h-8 text-white" />,
+    title: 'AI Resume Builder',
+    description: 'Create professional resumes in minutes with our AI-powered builder. Choose from multiple templates, use AI to generate summaries, and export as PDF.',
+    icon: <FileText className="w-8 h-8 text-white" />,
     gradient: 'from-blue-600 to-blue-700',
     bgGradient: 'from-blue-50 to-blue-100',
-    highlight: 'Company-specific prep',
-    comingSoon: true
+    highlight: 'AI-powered templates'
   },
   {
     title: 'Advanced Analytics',
-    description: 'Track your job search performance with detailed analytics, success metrics, and personalized recommendations.',
+    description: 'Track your job search performance with detailed analytics, success metrics, conversion rates, and visual insights.',
     icon: <BarChart2 className="w-8 h-8 text-white" />,
     gradient: 'from-blue-700 to-blue-800',
     bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'Performance insights'
   },
   {
+    title: 'Chrome Extension',
+    description: 'Save jobs directly from LinkedIn with one click. Our AI automatically extracts job details and syncs them to your dashboard.',
+    icon: <Zap className="w-8 h-8 text-white" />,
+    gradient: 'from-blue-500 to-blue-600',
+    bgGradient: 'from-blue-50 to-blue-100',
+    highlight: 'One-click save'
+  },
+  {
     title: 'AI Job Matching',
     description: 'Our AI algorithms match you with relevant opportunities based on your skills, experience, and career goals.',
     icon: <Search className="w-8 h-8 text-white" />,
-    gradient: 'from-blue-500 to-blue-600',
+    gradient: 'from-blue-600 to-blue-700',
     bgGradient: 'from-blue-50 to-blue-100',
     highlight: 'Smart matching',
     comingSoon: true
@@ -41,17 +48,9 @@ const features = [
     title: 'Schedule Management',
     description: 'Organize interviews, follow-ups, and deadlines with integrated calendar management and smart notifications.',
     icon: <Calendar className="w-8 h-8 text-white" />,
-    gradient: 'from-blue-600 to-blue-700',
-    bgGradient: 'from-blue-50 to-blue-100',
-    highlight: 'Smart scheduling'
-  },
-  {
-    title: 'Resume Optimization',
-    description: 'AI-powered resume analysis and optimization for better ATS compatibility and maximum impact.',
-    icon: <FileText className="w-8 h-8 text-white" />,
     gradient: 'from-blue-700 to-blue-800',
     bgGradient: 'from-blue-50 to-blue-100',
-    highlight: 'ATS optimized',
+    highlight: 'Smart scheduling',
     comingSoon: true
   },
 ];
