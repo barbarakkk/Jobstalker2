@@ -18,6 +18,7 @@ export interface WorkExperience {
   startDate: string;
   endDate: string;
   isCurrent: boolean;
+  jobType?: string;
   description: string;
 }
 
@@ -25,7 +26,6 @@ export interface Education {
   id: string;
   school: string;
   degree: string;
-  field: string;
   startDate: string;
   endDate: string;
 }

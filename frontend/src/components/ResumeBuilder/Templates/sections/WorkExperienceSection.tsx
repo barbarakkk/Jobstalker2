@@ -53,7 +53,10 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
               <div className="flex-1">
               <div className="font-semibold text-gray-900" style={{ color: String(primaryColor) }}>{work.title}</div>
               {work.company && (
-                <div className="font-medium text-sm" style={{ color: String(primaryColor), opacity: 0.8 }}>{work.company}</div>
+                <div className="font-medium text-sm" style={{ color: String(primaryColor), opacity: 0.8 }}>
+                  {work.company}
+                  {work.jobType && <span className="ml-2 text-xs">• {work.jobType}</span>}
+                </div>
               )}
               </div>
               <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">

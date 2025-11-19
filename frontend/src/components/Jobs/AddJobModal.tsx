@@ -131,8 +131,9 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-2xl bg-white border border-gray-200">
-        <DialogHeader className="space-y-3">
+      <DialogContent className="sm:max-w-2xl bg-white border border-gray-200 max-h-[90vh] flex flex-col p-0">
+        {/* Fixed Header */}
+        <DialogHeader className="space-y-3 px-6 pt-6 pb-4 flex-shrink-0 border-b border-gray-200">
           <DialogTitle className="text-xl font-bold text-gray-900">
             {mode === 'edit' ? 'Edit Job' : 'Add New Job'}
           </DialogTitle>
@@ -141,18 +142,20 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
           </DialogDescription>
         </DialogHeader>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center space-x-2">
-              <div className="w-4 h-4 bg-red-100 rounded-full flex items-center justify-center">
-                <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 bg-red-100 rounded-full flex items-center justify-center">
+                  <div className="w-2 h-2 bg-red-600 rounded-full"></div>
+                </div>
+                <p className="text-red-800 text-sm font-medium">{error}</p>
               </div>
-              <p className="text-red-800 text-sm font-medium">{error}</p>
             </div>
-          </div>
-        )}
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} id="job-form" className="space-y-6">
           {/* Job Title and Company */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -224,10 +227,10 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
                 value={formData.status}
                 onValueChange={(value) => handleInputChange('status', value as any)}
               >
-                <SelectTrigger className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500">
+                <SelectTrigger className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500 w-full">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                <SelectContent className="bg-white border border-gray-200 shadow-lg z-[110]">
                   <SelectItem value="Bookmarked" className="hover:bg-gray-50 focus:bg-gray-50">Bookmarked</SelectItem>
                   <SelectItem value="Applying" className="hover:bg-gray-50 focus:bg-gray-50">Applying</SelectItem>
                   <SelectItem value="Applied" className="hover:bg-gray-50 focus:bg-gray-50">Applied</SelectItem>
@@ -242,10 +245,10 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
                 value={formData.excitement_level?.toString() || '3'}
                 onValueChange={(value) => handleInputChange('excitement_level', parseInt(value))}
               >
-                <SelectTrigger className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500">
+                <SelectTrigger className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500 w-full">
                   <SelectValue placeholder="Select rating" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                <SelectContent className="bg-white border border-gray-200 shadow-lg z-[110]">
                   <SelectItem value="1" className="hover:bg-gray-50 focus:bg-gray-50">⭐ 1 - Not excited</SelectItem>
                   <SelectItem value="2" className="hover:bg-gray-50 focus:bg-gray-50">⭐⭐ 2 - Somewhat interested</SelectItem>
                   <SelectItem value="3" className="hover:bg-gray-50 focus:bg-gray-50">⭐⭐⭐ 3 - Interested</SelectItem>
@@ -282,28 +285,58 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-sm font-semibold text-gray-900">Description</Label>
+            <Label htmlFor="description" className="text-sm font-semibold text-gray-900">
+              Description
+              <span className="text-xs font-normal text-gray-500 ml-2">(max 15,000 characters)</span>
+            </Label>
             <Textarea
               id="description"
               value={formData.description || ''}
-              onChange={(e) => handleInputChange('description', e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.length <= 15000) {
+                  handleInputChange('description', value);
+                }
+              }}
               placeholder="Add a job description..."
-              rows={4}
-              className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+              rows={6}
+              maxLength={15000}
+              className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500 resize-y min-h-[120px] max-h-[400px]"
             />
+            <div className="flex justify-between items-center">
+              <p className={`text-xs ${(formData.description?.length || 0) > 14000 ? 'text-orange-600 font-semibold' : 'text-gray-500'}`}>
+                {(formData.description?.length || 0).toLocaleString()} / 15,000 characters
+              </p>
+              {(formData.description?.length || 0) > 14000 && (
+                <p className="text-xs text-orange-600 font-medium">
+                  Approaching character limit
+                </p>
+              )}
+            </div>
           </div>
+          </form>
+        </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end pt-4">
-            <Button
-              type="submit"
-              disabled={loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg px-6 py-3"
-            >
-              {loading ? (mode === 'edit' ? 'Updating...' : 'Adding...') : (mode === 'edit' ? 'Update Job' : 'Add Job')}
-            </Button>
-          </div>
-        </form>
+        {/* Fixed Footer with Submit Button */}
+        <div className="flex-shrink-0 border-t border-gray-200 bg-gray-50 px-6 py-4 flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClose}
+            disabled={loading}
+            className="px-6 py-2"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="job-form"
+            disabled={loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-lg px-6 py-2"
+          >
+            {loading ? (mode === 'edit' ? 'Updating...' : 'Adding...') : (mode === 'edit' ? 'Update Job' : 'Add Job')}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

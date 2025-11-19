@@ -12,7 +12,7 @@ export function EducationStep({ value, onChange }: StepProps) {
   const add = () => {
     const next = [
       ...items,
-      { id: genId(), school: '', degree: '', field: '', startDate: '', endDate: '' },
+      { id: genId(), school: '', degree: '', startDate: '', endDate: '' },
     ];
     onChange({ ...value, education: next });
   };
@@ -34,7 +34,6 @@ export function EducationStep({ value, onChange }: StepProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <input className="border rounded px-3 py-2" placeholder="School" value={e.school || ''} onChange={(ev) => updateAt(idx, { school: (ev.target as any).value })} />
             <input className="border rounded px-3 py-2" placeholder="Degree" value={e.degree || ''} onChange={(ev) => updateAt(idx, { degree: (ev.target as any).value })} />
-            <input className="border rounded px-3 py-2" placeholder="Field of Study" value={e.field || ''} onChange={(ev) => updateAt(idx, { field: (ev.target as any).value })} />
             <div className="flex gap-2">
               <input className="border rounded px-3 py-2 w-full" placeholder="Start (YYYY)" value={e.startDate || ''} onChange={(ev) => updateAt(idx, { startDate: (ev.target as any).value })} />
               <input className="border rounded px-3 py-2 w-full" placeholder="End (YYYY)" value={e.endDate || ''} onChange={(ev) => updateAt(idx, { endDate: (ev.target as any).value })} />

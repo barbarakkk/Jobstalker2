@@ -65,6 +65,7 @@ export function CleanImpactWorkSection({ data, config, style }: CleanImpactWorkS
                     style={{ color: '#1c1e21' }}
                   >
                     {work.title}, {work.company}
+                    {work.jobType && <span className="ml-2 text-xs font-normal" style={{ color: '#5a6b7a' }}>• {work.jobType}</span>}
                   </div>
                 </div>
                 <div 

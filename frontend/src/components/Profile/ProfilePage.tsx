@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { 
-  MapPin, 
   Edit, 
   Trash2, 
   Plus, 
@@ -31,16 +30,20 @@ import {
   Profile, 
   Skill, 
   WorkExperience, 
-  Education, 
+  Education,
+  Language,
   ProfileStats,
   CreateExperienceData,
-  CreateEducationData
+  CreateEducationData,
+  CreateLanguageData,
+  UpdateProfileData
 } from '@/lib/types';
 import { 
   profileApi, 
   skillsApi, 
   experienceApi, 
-  educationApi 
+  educationApi,
+  languagesApi
 } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
@@ -76,8 +79,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     full_name: '',
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
     job_title: '',
-    location: ''
+    location: '',
+    professional_summary: '',
+    social_links: [] as { platform: string; url: string }[]
   });
 
   // Account deletion
@@ -148,6 +157,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   // Experience
   const [experience, setExperience] = useState<WorkExperience[]>([]);
   const [education, setEducation] = useState<Education[]>([]);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [isAddingLanguage, setIsAddingLanguage] = useState(false);
+  const [newLanguageName, setNewLanguageName] = useState('');
+  const [newLanguageProficiency, setNewLanguageProficiency] = useState<'Beginner' | 'Intermediate' | 'Advanced' | 'Native'>('Intermediate');
   const [showExperienceModal, setShowExperienceModal] = useState(false);
   const [showEducationModal, setShowEducationModal] = useState(false);
   const [editingExperience, setEditingExperience] = useState<WorkExperience | null>(null);
@@ -166,7 +179,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   const [educationForm, setEducationForm] = useState<CreateEducationData>({
     school: '',
     degree: '',
-    field_of_study: '',
     start_date: '',
     end_date: ''
   });
@@ -206,11 +218,33 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       // Load profile data first (most important)
       const profileData = await profileApi.getProfile();
       console.log('Profile data loaded:', profileData);
+      
+      // If email is missing from backend, fetch it from Supabase auth as fallback
+      let email = profileData.email;
+      if (!email) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.email) {
+            email = user.email;
+            // Update profileData with email
+            profileData.email = email;
+          }
+        } catch (authError) {
+          console.warn('Could not fetch email from auth:', authError);
+        }
+      }
+      
       setProfile(profileData);
       setProfileForm({
         full_name: profileData.full_name || '',
+        first_name: profileData.first_name || '',
+        last_name: profileData.last_name || '',
+        email: email || '',
+        phone: profileData.phone || '',
         job_title: profileData.job_title || '',
-        location: profileData.location || ''
+        location: profileData.location || '',
+        professional_summary: profileData.professional_summary || '',
+        social_links: profileData.social_links || []
       });
 
       // Load stats data (quick to load)
@@ -225,7 +259,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       Promise.allSettled([
         skillsApi.getSkills(),
         experienceApi.getExperience(),
-        educationApi.getEducation()
+        educationApi.getEducation(),
+        languagesApi.getLanguages()
       ]).then((results) => {
         // Handle skills
         if (results[0].status === 'fulfilled') {
@@ -245,7 +280,26 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         if (results[2].status === 'fulfilled') {
           setEducation(results[2].value);
         } else {
-          console.warn('Failed to load education:', results[2].reason);
+          // Silently handle education load failures - non-critical
+          const error = results[2].reason;
+          if (error instanceof Error && !error.message.includes('Server disconnected')) {
+            console.warn('Failed to load education:', error);
+          }
+          // Set empty array if education fails to load
+          setEducation([]);
+        }
+
+        // Handle languages
+        if (results[3].status === 'fulfilled') {
+          setLanguages(results[3].value);
+        } else {
+          // Silently handle language load failures - non-critical
+          const error = results[3].reason;
+          if (error instanceof Error && !error.message.includes('Server disconnected')) {
+            console.warn('Failed to load languages:', error);
+          }
+          // Set empty array if languages fails to load
+          setLanguages([]);
         }
       });
 
@@ -266,12 +320,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       setIsSaving(true);
       setError(null);
 
-             // Map frontend fields to backend fields
-       const backendData = {
-         full_name: profileForm.full_name,
-         job_title: profileForm.job_title,
-         location: profileForm.location
-       };
+      // Include personal information and social links
+      const backendData: UpdateProfileData = {
+        first_name: profileForm.first_name,
+        last_name: profileForm.last_name,
+        phone: profileForm.phone,
+        social_links: profileForm.social_links || [],  // Include social links
+        // email is managed by auth.users, not user_profile - removed from update
+      };
 
       const updatedProfile = await profileApi.updateProfile(backendData);
       
@@ -279,8 +335,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
        setProfile(updatedProfile);
                setProfileForm({
            full_name: updatedProfile.full_name || '',
+           first_name: updatedProfile.first_name || '',
+           last_name: updatedProfile.last_name || '',
+           email: updatedProfile.email || '',
+           phone: updatedProfile.phone || '',
            job_title: updatedProfile.job_title || '',
-           location: updatedProfile.location || ''
+           location: updatedProfile.location || '',
+           professional_summary: updatedProfile.professional_summary || '',
+           social_links: updatedProfile.social_links || []
          });
       
       setIsEditingProfile(false);
@@ -294,6 +356,38 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
     }
   };
 
+  // Save social links separately
+  const handleSocialLinksSave = async () => {
+    if (!profile) return;
+
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      // Save only social links
+      const backendData: UpdateProfileData = {
+        social_links: profileForm.social_links || []
+      };
+
+      const updatedProfile = await profileApi.updateProfile(backendData);
+      
+      // Update both the profile and the form state
+      setProfile(updatedProfile);
+      setProfileForm({
+        ...profileForm,
+        social_links: updatedProfile.social_links || []
+      });
+      
+      setIsEditingProfile(false);
+      setSuccessMessage('Social links saved successfully!');
+      
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to save social links');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Skills management
   const handleAddSkill = async () => {
@@ -428,7 +522,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       setEducationForm({
         school: '',
         degree: '',
-        field_of_study: '',
         start_date: '',
         end_date: ''
       });
@@ -466,8 +559,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       setProfile(refreshedProfile);
       setProfileForm({
         full_name: refreshedProfile.full_name || '',
+        first_name: refreshedProfile.first_name || '',
+        last_name: refreshedProfile.last_name || '',
+        email: refreshedProfile.email || '',
+        phone: refreshedProfile.phone || '',
         job_title: refreshedProfile.job_title || '',
-        location: refreshedProfile.location || ''
+        location: refreshedProfile.location || '',
+        professional_summary: refreshedProfile.professional_summary || '',
+        social_links: refreshedProfile.social_links || []
       });
       setSuccessMessage('Profile refreshed successfully!');
       
@@ -564,65 +663,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
               <div className="flex flex-col items-center space-y-4">
                 {/* Profile Info */}
                 <div className="text-center w-full">
-                  {isEditingProfile ? (
-                    <div className="space-y-3">
-                      <Input
-                        value={profileForm.full_name}
-                        onChange={(e) => setProfileForm({...profileForm, full_name: e.target.value})}
-                        placeholder="Full Name"
-                        className="text-center font-semibold border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                                        value={profileForm.job_title}
-                onChange={(e) => setProfileForm({...profileForm, job_title: e.target.value})}
-                        placeholder="Current Role"
-                        className="text-center text-gray-600 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <Input
-                        value={profileForm.location}
-                        onChange={(e) => setProfileForm({...profileForm, location: e.target.value})}
-                        placeholder="Location"
-                        className="text-center text-gray-600 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      />
-                      <div className="flex space-x-2">
-                        <Button 
-                          onClick={handleProfileSave}
-                          disabled={isSaving}
-                          size="sm"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                        >
-                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                          Save
-                        </Button>
-                        <Button 
-                          onClick={() => setIsEditingProfile(false)}
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 className="font-semibold text-lg text-gray-900">{profile?.full_name || 'Your Name'}</h3>
-                      <p className="text-gray-600">{profile?.job_title || 'Your Role'}</p>
-                      <div className="flex items-center justify-center mt-2 text-gray-500">
-                        <MapPin className="w-4 h-4 mr-1" />
-                        <span>{profile?.location || 'Location'}</span>
-                      </div>
-                      <Button 
-                        onClick={() => setIsEditingProfile(true)}
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 border-gray-300 text-gray-700 hover:bg-gray-100"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit Profile
-                      </Button>
-                    </div>
-                  )}
+                  <div>
+                    <h3 className="font-semibold text-lg text-gray-900">
+                      {profile?.first_name && profile?.last_name 
+                        ? `${profile.first_name} ${profile.last_name}` 
+                        : profile?.full_name || 'Your Name'}
+                    </h3>
+                    <p className="text-gray-600 mt-1">{profile?.email || 'No email'}</p>
+                    <p className="text-gray-500 text-sm mt-1">{profile?.phone || 'No phone'}</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -848,7 +897,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900">{edu.degree}</h4>
                           <p className="text-gray-600">{edu.school}</p>
-                          <p className="text-sm text-gray-500">{edu.field_of_study}</p>
                           <p className="text-sm text-gray-500">
                             {formatDate(edu.start_date)} - {edu.end_date ? formatDate(edu.end_date) : 'Present'}
                           </p>
@@ -863,7 +911,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                               setEducationForm({
                                 school: edu.school,
                                 degree: edu.degree,
-                                field_of_study: edu.field_of_study,
                                 start_date: edu.start_date,
                                 end_date: edu.end_date || ''
                               });
@@ -893,6 +940,438 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
 
             {/* Account Tab */}
             <TabsContent value="account" className="space-y-6">
+              {/* Personal Information */}
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-semibold text-gray-900">Personal Information</CardTitle>
+                      <CardDescription className="text-gray-600">Update your personal details</CardDescription>
+                    </div>
+                    {!isEditingProfile && (
+                      <Button 
+                        onClick={() => setIsEditingProfile(true)}
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditingProfile ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>First Name</Label>
+                          <Input
+                            value={profileForm.first_name}
+                            onChange={(e) => setProfileForm({...profileForm, first_name: e.target.value})}
+                            placeholder="First Name"
+                          />
+                        </div>
+                        <div>
+                          <Label>Last Name</Label>
+                          <Input
+                            value={profileForm.last_name}
+                            onChange={(e) => setProfileForm({...profileForm, last_name: e.target.value})}
+                            placeholder="Last Name"
+                          />
+                        </div>
+                        <div>
+                          <Label>Email</Label>
+                          <Input
+                            type="email"
+                            value={profileForm.email}
+                            onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
+                            placeholder="Email"
+                            disabled
+                            className="bg-gray-100 cursor-not-allowed"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">Email is managed by your account settings</p>
+                        </div>
+                        <div>
+                          <Label>Phone</Label>
+                          <Input
+                            value={profileForm.phone}
+                            onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
+                            placeholder="Phone"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button 
+                          onClick={() => setIsEditingProfile(false)}
+                          variant="outline"
+                          size="sm"
+                          className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleProfileSave}
+                          disabled={isSaving}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                          Save
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span className="text-sm font-medium text-gray-600">First Name:</span>
+                        <span className="text-sm text-gray-900">{profile?.first_name || 'Not set'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span className="text-sm font-medium text-gray-600">Last Name:</span>
+                        <span className="text-sm text-gray-900">{profile?.last_name || 'Not set'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                        <span className="text-sm font-medium text-gray-600">Email:</span>
+                        <span className="text-sm text-gray-900">{profile?.email || 'Not set'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-sm font-medium text-gray-600">Phone:</span>
+                        <span className="text-sm text-gray-900">{profile?.phone || 'Not set'}</span>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Social Links */}
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-gray-900">Social & Professional Links</CardTitle>
+                  <CardDescription className="text-gray-600">Manage your social media and professional profiles</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditingProfile ? (
+                    <>
+                      {profileForm.social_links.map((link, index) => (
+                        <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                          <div className="md:col-span-4">
+                            <Label>Platform</Label>
+                            <Select
+                              value={link.platform}
+                              onValueChange={(value) => {
+                                const updated = [...profileForm.social_links];
+                                updated[index] = { ...updated[index], platform: value };
+                                setProfileForm({...profileForm, social_links: updated});
+                              }}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                                <SelectItem value="GitHub">GitHub</SelectItem>
+                                <SelectItem value="Portfolio">Portfolio</SelectItem>
+                                <SelectItem value="Twitter">Twitter</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="md:col-span-7">
+                            <Label>URL</Label>
+                            <Input
+                              value={link.url}
+                              onChange={(e) => {
+                                const updated = [...profileForm.social_links];
+                                updated[index] = { ...updated[index], url: e.target.value };
+                                setProfileForm({...profileForm, social_links: updated});
+                              }}
+                              placeholder="https://..."
+                            />
+                          </div>
+                          <div className="md:col-span-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                const updated = profileForm.social_links.filter((_, i) => i !== index);
+                                setProfileForm({...profileForm, social_links: updated});
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setProfileForm({
+                            ...profileForm,
+                            social_links: [...profileForm.social_links, { platform: 'LinkedIn', url: '' }]
+                          });
+                        }}
+                        className="w-full"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Social Link
+                      </Button>
+                      <div className="flex gap-2 pt-4 border-t">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setIsEditingProfile(false);
+                            // Reset form to match current profile
+                            if (profile) {
+                              setProfileForm({
+                                ...profileForm,
+                                social_links: profile.social_links || []
+                              });
+                            }
+                          }}
+                          disabled={isSaving}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={handleSocialLinksSave}
+                          disabled={isSaving}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {isSaving ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <Save className="h-4 w-4 mr-2" />
+                              Save
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-2">
+                      {profile?.social_links && profile.social_links.length > 0 ? (
+                        profile.social_links.map((link, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <strong className="text-gray-700 font-medium">{link.platform}:</strong>
+                                <a 
+                                  href={link.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-blue-600 hover:underline truncate"
+                                >
+                                  {link.url}
+                                </a>
+                              </div>
+                            </div>
+                            <div className="flex gap-2 ml-4">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setIsEditingProfile(true);
+                                  // Ensure the link is in the form state
+                                  const linkExists = profileForm.social_links.some(
+                                    (l) => l.platform === link.platform && l.url === link.url
+                                  );
+                                  if (!linkExists) {
+                                    setProfileForm({
+                                      ...profileForm,
+                                      social_links: [...profileForm.social_links, { ...link }]
+                                    });
+                                  }
+                                }}
+                                className="h-8 w-8"
+                                title="Edit link"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setIsEditingProfile(true);
+                                  // Remove the link from form state
+                                  const updated = profileForm.social_links.filter(
+                                    (l, i) => !(l.platform === link.platform && l.url === link.url)
+                                  );
+                                  setProfileForm({
+                                    ...profileForm,
+                                    social_links: updated
+                                  });
+                                }}
+                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                title="Remove link"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-gray-500 py-2">No social links added</p>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setIsEditingProfile(true);
+                          // If no links exist, add a new one
+                          if (!profileForm.social_links || profileForm.social_links.length === 0) {
+                            setProfileForm({
+                              ...profileForm,
+                              social_links: [{ platform: 'LinkedIn', url: '' }]
+                            });
+                          }
+                        }}
+                        className="w-full mt-2"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {profile?.social_links && profile.social_links.length > 0 ? 'Add Another Link' : 'Add Social Link'}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Languages */}
+              <Card className="bg-white border border-gray-200 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-gray-900">Languages</CardTitle>
+                  <CardDescription className="text-gray-600">Manage your language proficiencies</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {languages.length > 0 ? (
+                    <div className="space-y-2">
+                      {languages.map((lang) => (
+                        <div key={lang.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <strong>{lang.language}</strong> - <span className="text-gray-600">{lang.proficiency}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              if (lang.id) {
+                                try {
+                                  await languagesApi.deleteLanguage(lang.id);
+                                  setLanguages(languages.filter(l => l.id !== lang.id));
+                                  setSuccessMessage('Language deleted successfully!');
+                                  setTimeout(() => setSuccessMessage(null), 3000);
+                                } catch (error) {
+                                  setError(error instanceof Error ? error.message : 'Failed to delete language');
+                                }
+                              }
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">No languages added</p>
+                  )}
+                  {isAddingLanguage ? (
+                    <div className="space-y-3 p-4 border rounded-lg bg-gray-50">
+                      <div>
+                        <Label htmlFor="language-name">Language Name</Label>
+                        <Input
+                          id="language-name"
+                          value={newLanguageName}
+                          onChange={(e) => setNewLanguageName(e.target.value)}
+                          placeholder="e.g., English, Spanish, French"
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="language-proficiency">Proficiency</Label>
+                        <Select
+                          value={newLanguageProficiency}
+                          onValueChange={(value) => setNewLanguageProficiency(value as 'Beginner' | 'Intermediate' | 'Advanced' | 'Native')}
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Beginner">Beginner</SelectItem>
+                            <SelectItem value="Intermediate">Intermediate</SelectItem>
+                            <SelectItem value="Advanced">Advanced</SelectItem>
+                            <SelectItem value="Native">Native</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setIsAddingLanguage(false);
+                            setNewLanguageName('');
+                            setNewLanguageProficiency('Intermediate');
+                          }}
+                          className="flex-1"
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          onClick={async () => {
+                            if (!newLanguageName.trim()) {
+                              setError('Please enter a language name');
+                              return;
+                            }
+                            try {
+                              setError(null);
+                              const newLang = await languagesApi.createLanguage({
+                                language: newLanguageName.trim(),
+                                proficiency: newLanguageProficiency
+                              });
+                              setLanguages([...languages, newLang]);
+                              setSuccessMessage('Language added successfully!');
+                              setTimeout(() => setSuccessMessage(null), 3000);
+                              setIsAddingLanguage(false);
+                              setNewLanguageName('');
+                              setNewLanguageProficiency('Intermediate');
+                            } catch (error) {
+                              setError(error instanceof Error ? error.message : 'Failed to add language');
+                            }
+                          }}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsAddingLanguage(true)}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Language
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card className="bg-white border border-gray-200 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-xl font-semibold text-red-600">Danger Zone</CardTitle>
@@ -1038,15 +1517,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                   className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                 />
               </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-900">Field of Study</label>
-              <Input
-                value={educationForm.field_of_study}
-                onChange={(e) => setEducationForm({...educationForm, field_of_study: e.target.value})}
-                placeholder="Computer Science"
-                className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

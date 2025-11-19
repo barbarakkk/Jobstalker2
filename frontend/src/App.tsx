@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login, ProtectedRoute, AuthCallback } from './components/Auth';
 import { ExtensionAuth } from './components/Auth/ExtensionAuth';
 import { LandingPage } from './components/LandingPage';
+import { RegistrationComplete } from './components/Auth/RegistrationComplete';
 
 // Lazy load components for better performance - only load when needed
 const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
@@ -33,6 +34,14 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/auth/extension" element={<ExtensionAuth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route 
+            path="/register/complete" 
+            element={
+              <ProtectedRoute>
+                <RegistrationComplete />
+              </ProtectedRoute>
+            } 
+          />
           <Route 
             path="/dashboard" 
             element={

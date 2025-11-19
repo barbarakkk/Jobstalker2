@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from supabase_client import supabase
-from models import Job, CreateJob, UpdateJob, Profile, CreateProfile, UpdateProfile, ProfileStats, Skill, CreateSkill, UpdateSkill, WorkExperience, CreateExperience, UpdateExperience, Education, CreateEducation, UpdateEducation, FileUploadResponse, ProfilePictureResponse, ProfileResponse
+from models import Job, CreateJob, UpdateJob, Profile, CreateProfile, UpdateProfile, ProfileStats, Skill, CreateSkill, UpdateSkill, WorkExperience, CreateExperience, UpdateExperience, Education, CreateEducation, UpdateEducation, Language, CreateLanguage, UpdateLanguage, FileUploadResponse, ProfilePictureResponse, ProfileResponse
 from uuid import UUID
 from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
@@ -25,6 +25,7 @@ from routes.profile import router as profile_router
 from routes.skills import router as skills_router
 from routes.experience import router as experience_router
 from routes.education import router as education_router
+from routes.languages import router as languages_router
 from routes.jobs import router as jobs_router
 from routes.ai_extraction import router as ai_extraction_router
 from routes.ai_match import router as ai_match_router
@@ -127,25 +128,15 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         }
     )
 
-# Include AI resume routes
-app.include_router(ai_resume_router)
-app.include_router(wizard_router)
-app.include_router(profile_router)
-app.include_router(skills_router)
-app.include_router(experience_router)
-app.include_router(education_router)
-app.include_router(jobs_router)
-app.include_router(ai_extraction_router)
-app.include_router(ai_match_router)
-
-
-
-# Add CORS middleware - must be added BEFORE other middleware
+# Add CORS middleware - must be added BEFORE routers and other middleware
 # This allows frontend applications to make requests to this backend
 # Order matters: CORS middleware must be first to handle preflight requests
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+
+# Get allowed origins from environment or use defaults
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()] if allowed_origins_env else []
+if not allowed_origins:
+    allowed_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5174",
@@ -155,7 +146,14 @@ app.add_middleware(
         "https://jobstalker.vercel.app",
         "https://jobstalker-ai.com",
         "https://www.jobstalker-ai.com",
-    ],
+    ]
+
+# Log CORS configuration for debugging
+print(f"🌐 CORS Configuration: Allowing origins: {allowed_origins}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
     allow_origin_regex=r"https://.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
@@ -163,6 +161,18 @@ app.add_middleware(
     expose_headers=["*"],
     max_age=3600,
 )
+
+# Include AI resume routes - AFTER CORS middleware
+app.include_router(ai_resume_router)
+app.include_router(wizard_router)
+app.include_router(profile_router)
+app.include_router(skills_router)
+app.include_router(experience_router)
+app.include_router(education_router)
+app.include_router(languages_router)
+app.include_router(jobs_router)
+app.include_router(ai_extraction_router)
+app.include_router(ai_match_router)
 
 # Rely on CORSMiddleware for preflight handling and headers
 
@@ -209,7 +219,7 @@ lock = threading.Lock()
 
 RATE_LIMIT_GLOBAL_PER_MIN = 100  # per IP fallback
 RATE_LIMIT_USER_PER_MIN = 30     # per user default
-RATE_LIMIT_USER_AI_PER_MIN = 5   # per user AI endpoints
+RATE_LIMIT_USER_AI_PER_MIN = 30  # per user AI endpoints (increased for better UX during resume building)
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
@@ -267,7 +277,8 @@ async def rate_limit_middleware(request: Request, call_next):
             "X-RateLimit-Remaining": "0",
             "Retry-After": "60",
         }
-        return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded. Please try again later."}, headers=headers)
+        error_msg = f"Rate limit exceeded. You can make up to {limit} AI requests per minute. Please wait a moment before trying again."
+        return JSONResponse(status_code=429, content={"detail": error_msg}, headers=headers)
 
     response = await call_next(request)
     # Add headers

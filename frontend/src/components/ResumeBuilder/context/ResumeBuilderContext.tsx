@@ -131,7 +131,8 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const saveResume = useCallback(async (title: string, templateId: string, data: ResumeData): Promise<string> => {
     try {
       const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -169,7 +170,8 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const updateResume = useCallback(async (resumeId: string, title?: string, data?: ResumeData): Promise<void> => {
     try {
       const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -203,7 +205,8 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const loadResume = useCallback(async (resumeId: string): Promise<void> => {
     try {
       const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -309,7 +312,8 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const listResumes = useCallback(async (): Promise<any[]> => {
     try {
       const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -338,7 +342,8 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   const deleteResume = useCallback(async (resumeId: string): Promise<void> => {
     try {
       const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };

@@ -37,7 +37,33 @@ export function AuthCallback() {
         }
 
         if (data.session) {
-          // User is authenticated, redirect to dashboard
+          // Check if profile is complete
+          try {
+            const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+              (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
+            const response = await fetch(`${API_BASE_URL}/api/profile`, {
+              headers: {
+                'Authorization': `Bearer ${data.session.access_token}`
+              }
+            });
+            
+            if (response.ok) {
+              const profile = await response.json();
+              // Only consider profile complete if explicitly marked as completed
+              // Don't check for fields - user must complete the full wizard
+              const isProfileComplete = profile.profile_completed === true;
+              
+              if (!isProfileComplete) {
+                navigate('/register/complete');
+                return;
+              }
+            }
+          } catch (err) {
+            console.error('Error checking profile:', err);
+            // If profile check fails, still allow user to proceed (they can complete profile later)
+          }
+          
+          // User is authenticated and profile is complete, redirect to dashboard
           navigate('/dashboard');
         } else {
           // No session found, redirect to login

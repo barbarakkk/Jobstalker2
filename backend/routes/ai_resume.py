@@ -5,6 +5,7 @@ import openai
 import os
 import sys
 import json
+import re
 from datetime import datetime
 from uuid import UUID
 from pathlib import Path
@@ -36,13 +37,13 @@ class WorkExperience(BaseModel):
     startDate: str
     endDate: str
     isCurrent: bool = False
+    jobType: Optional[str] = None
     description: str
 
 class Education(BaseModel):
     id: str
     school: str
     degree: str
-    field: str
     startDate: str
     endDate: str
 
@@ -234,30 +235,40 @@ def enhance_work_experience(work_experience: List[WorkExperience], target_role: 
     for exp in work_experience:
         if not exp.description or len(exp.description.strip()) < 20:
             # Generate description if missing or too short
-            prompt = f"""
-            Create a professional job description for this role:
+            target_role_context = f"Target Role: {target_role}" if target_role else "Target Role: General professional role"
             
+            prompt = f"""
+            Create a professional job description tailored specifically for the target role.
+            
+            {target_role_context}
             Job Title: {exp.title}
             Company: {exp.company}
             Duration: {exp.startDate} - {exp.endDate if not exp.isCurrent else 'Present'}
             Current Description: {exp.description or 'No description provided'}
-            Target Role: {target_role or 'General professional role'}
+            
+            CRITICAL: Tailor the language, terminology, and emphasis to match the target role:
+            - Use industry-specific terminology for the target role
+            - Emphasize skills and achievements relevant to the target role
+            - Frame responsibilities to highlight transferable skills that apply to the target role
+            - Use action verbs appropriate for the target role industry
             
             Write 3-4 bullet points that:
-            1. Use action verbs and quantify achievements where possible
-            2. Highlight relevant skills and responsibilities
-            3. Show impact and results
-            4. Are tailored for the target role
-            5. Sound professional and compelling
+            1. Use action verbs appropriate for the target role
+            2. Highlight skills and responsibilities relevant to the target role
+            3. Show impact and results (if mentioned in current description)
+            4. Use terminology that resonates with the target role industry
+            5. Sound professional and compelling for the target role
             
             Format as bullet points, each starting with a strong action verb.
             """
+            
+            system_message = f"You are an expert resume writer specializing in {target_role if target_role else 'professional'} roles. Create compelling job descriptions tailored specifically for {target_role if target_role else 'the target position'}."
             
             try:
                 response = client.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "You are an expert resume writer. Create compelling job descriptions with quantified achievements."},
+                        {"role": "system", "content": system_message},
                         {"role": "user", "content": prompt}
                     ],
                     max_tokens=300,
@@ -338,41 +349,168 @@ async def generate_work_description(
         print(f"🤖 AI WORK DESC: Generating description for user {user_id}")
         print(f"🤖 AI WORK DESC: Job: {questionnaire.job_title} at {questionnaire.company}")
         
+        # Fetch user skills from database
+        try:
+            skills_response = supabase.table("user_skills").select("name").eq("user_id", user_id).execute()
+            user_skills = [skill.get("name", "") for skill in (skills_response.data or []) if skill.get("name")]
+            print(f"🤖 AI WORK DESC: Found {len(user_skills)} skills: {', '.join(user_skills[:5])}")
+        except Exception as e:
+            print(f"⚠️ Could not fetch user skills: {str(e)}")
+            user_skills = []
+        
         client = get_openai_client()
         
-        prompt = f"""
-        Create a professional work experience description for a resume based on the following information:
+        skills_context = f"User's skills from profile: {', '.join(user_skills) if user_skills else 'None listed'}"
         
+        # Check if impact/results were provided
+        has_impact = questionnaire.impact_results and questionnaire.impact_results.strip() and questionnaire.impact_results.lower() not in ['none', 'none provided', 'n/a', 'na']
+        
+        target_role_context = f"Target Role: {questionnaire.target_role}" if questionnaire.target_role else "Target Role: Not specified"
+        
+        prompt = f"""
+        You are an expert resume writer specializing in crafting compelling, professional work experience descriptions. Transform the user's work experience into polished, impactful bullet points that stand out to recruiters.
+
+        {target_role_context}
         Job Title: {questionnaire.job_title}
         Company: {questionnaire.company}
         
         What they did: {questionnaire.what_did_you_do}
-        Key achievements: {questionnaire.achievements or 'Not specified'}
-        Impact/results: {questionnaire.impact_results or 'Not specified'}
-        Target role: {questionnaire.target_role or 'General professional role'}
+        Impact/results: {questionnaire.impact_results if has_impact else 'NOT PROVIDED - DO NOT ADD ANY METRICS OR RESULTS'}
+        User's skills: {', '.join(user_skills) if user_skills else 'None listed'}
         
-        Write 3-5 professional bullet points that:
-        1. Use strong action verbs (e.g., Developed, Implemented, Led, Optimized, Designed, Managed)
-        2. Quantify achievements with numbers, percentages, or metrics where possible
-        3. Highlight problem-solving and impact
-        4. Show progression and results
-        5. Are tailored for the target role if specified
-        6. Sound professional and compelling
+        CRITICAL REQUIREMENTS FOR PROFESSIONAL OUTPUT:
+        1. Use powerful, industry-appropriate action verbs (Led, Architected, Optimized, Transformed, Spearheaded, Implemented, Delivered, etc.)
+        2. Start each bullet with a strong action verb - avoid weak verbs like "Helped", "Assisted", "Worked on"
+        3. Use industry-specific terminology and technical language appropriate for the target role
+        4. Write in past tense (unless current role) with confident, achievement-oriented language
+        5. Each bullet should be 12-25 words - substantial enough to show impact
+        6. Use parallel structure across bullets for professional appearance
         
-        Format as bullet points, each starting with a strong action verb. Make it concise and impactful.
+        OUTPUT FORMAT:
+        - Generate 2-3 bullet points
+        - Each bullet MUST start with a bullet symbol (•)
+        - Format: "• [Action verb] [description with metrics if available]"
+        - Include metrics/percentages in ONE sentence per bullet when impact is provided
+        - Place metrics at the end of the bullet for maximum impact
+        
+        PROFESSIONAL WRITING STANDARDS:
+        - Use quantifiable language when impact is provided (e.g., "increased efficiency by 40%", "reduced costs by $50K", "improved performance by 25%")
+        - Include scope/scale when relevant (team size, project size, budget, etc.)
+        - Show progression and growth when applicable
+        - Highlight technical depth and complexity
+        - Emphasize leadership, collaboration, and strategic thinking when relevant
+        - Use professional terminology: "collaborated" not "worked with", "delivered" not "did", "architected" not "made"
+        
+        TAILORING FOR TARGET ROLE:
+        - If target role is "Software Developer/Engineer": emphasize technical architecture, code quality, system design, scalability, best practices
+        - If target role is "Data Analyst/Scientist": emphasize data insights, statistical analysis, visualization, predictive modeling, business intelligence
+        - If target role is "Project Manager": emphasize stakeholder management, delivery, risk mitigation, team coordination, strategic planning
+        - If target role is "Product Manager": emphasize product strategy, user research, roadmap planning, cross-functional collaboration, metrics-driven decisions
+        - If target role is "Designer": emphasize user experience, design systems, creative problem-solving, user research, visual design
+        - Use terminology that resonates with the target role's industry and level
+        
+        IMPACT/RESULTS HANDLING:
+        {"- CRITICAL: When impact/results are provided, include the metrics/percentages in ONE sentence within the relevant bullet point" if has_impact else "- DO NOT mention any impact, results, metrics, or achievements - focus ONLY on what they did"}
+        {"- Format metrics naturally: 'increased X by Y%', 'reduced Z by $W', 'improved performance by N%', 'achieved M% success rate'" if has_impact else ""}
+        {"- Place metrics at the end of the bullet for maximum impact" if has_impact else ""}
+        
+        SKILL INTEGRATION:
+        - Naturally weave in relevant skills from the user's skill list when they align with the description
+        - Prioritize skills that are most relevant to the target role
+        - Use technical skill names appropriately (e.g., "React", "Python", "AWS") when contextually relevant
+        
+        ABSOLUTE PROHIBITIONS:
+        - NO percentages, metrics, or numbers unless explicitly provided in "Impact/results"
+        - NO generic filler phrases ("responsible for", "duties included", "helped with")
+        - NO achievements/results language (resulting in, leading to, contributed to) unless impact is provided
+        - NO typical job responsibilities that weren't mentioned in "What they did"
+        - NO first-person language (I, my, me) - use third person or implied subject
+        - NO casual language or slang
+        
+        EXAMPLES OF PROFESSIONAL OUTPUT:
+        
+        Example 1 (Software Developer, with impact):
+        User input: "I wrote code for the website and fixed bugs" + Impact: "improved performance by 30%"
+        Output:
+        • Architected and developed responsive web applications using modern JavaScript frameworks, improving system performance by 30%
+        • Debugged and resolved critical production issues, ensuring 99.9% system uptime and optimal user experience
+        • Collaborated with cross-functional teams to implement new features, reducing development cycle time by 25%
+        
+        Example 2 (Data Analyst, with impact):
+        User input: "I analyzed sales data and created reports" + Impact: "helped increase sales by 25%"
+        Output:
+        • Analyzed complex sales datasets to identify trends and generate actionable business insights, resulting in 25% sales increase
+        • Developed automated reporting dashboards that reduced reporting time by 40% and improved data accuracy
+        • Presented findings to executive leadership, influencing strategic business initiatives and driving revenue growth
+        
+        Example 3 (Project Manager, with impact):
+        User input: "I managed projects and coordinated with team members" + Impact: "delivered projects on time with 95% success rate"
+        Output:
+        • Led end-to-end project execution for 15+ projects, coordinating cross-functional teams and achieving 95% on-time delivery success rate
+        • Established project governance frameworks and risk mitigation strategies, reducing project delays by 30%
+        • Facilitated stakeholder communication and managed expectations, maintaining 95% client satisfaction rate
+        
+        Now generate 2-3 professional, impactful bullet points with bullet symbols (•). Make it compelling, specific, and tailored to the target role. {"Include metrics and percentages when impact is provided." if has_impact else "Focus only on responsibilities - no metrics."}
         """
+        
+        system_message = f"""You are an expert resume writer with 15+ years of experience crafting compelling work experience descriptions for Fortune 500 companies. 
+        Your writing is:
+        - Professional and polished
+        - Industry-specific and technically accurate
+        - Achievement-oriented and impactful
+        - Tailored to the target role
+        - Free of generic filler language
+        
+        Generate 2-3 professional bullet points with bullet symbols (•). Use strong action verbs, industry terminology, and highlight technical depth. 
+        {"Include metrics and percentages when impact/results are provided, placing them in one sentence per bullet." if has_impact else "NO percentages, metrics, or achievements unless explicitly provided by the user."}"""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert resume writer. Create compelling work experience descriptions with quantified achievements."},
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=400,
-            temperature=0.7
+            max_tokens=250,
+            temperature=0.3
         )
         
         description = response.choices[0].message.content.strip()
+        
+        # Post-process to ensure maximum 3 bullets, keep bullet symbols, and clean up formatting
+        lines = description.split('\n')
+        # Get all non-empty lines and ensure they have bullet symbols
+        bullet_lines = []
+        for line in lines:
+            cleaned = line.strip()
+            if cleaned:
+                # Ensure bullet symbol is present, add if missing
+                if not re.match(r'^[•\-\*\u2022\u2023\u25E6\u2043\u2219]', cleaned):
+                    cleaned = '• ' + cleaned
+                else:
+                    # Normalize to use • symbol
+                    cleaned = re.sub(r'^[•\-\*\u2022\u2023\u25E6\u2043\u2219]\s*', '• ', cleaned)
+                bullet_lines.append(cleaned)
+        
+        # If impact wasn't provided, remove any metrics/percentages that might have been hallucinated
+        if not has_impact:
+            final_bullets = []
+            for bullet in bullet_lines:
+                # Remove percentage patterns unless they're part of skill names (like "C++")
+                cleaned = re.sub(r'\b\d+%', '', bullet)
+                cleaned = re.sub(r'\b\d+\s*(percent|percentage)', '', cleaned, flags=re.IGNORECASE)
+                cleaned = re.sub(r'\b(increased|decreased|reduced|improved|enhanced)\s+by\s+\d+', '', cleaned, flags=re.IGNORECASE)
+                cleaned = re.sub(r'\b(resulting in|leading to|contributing to)\s+[^,]+', '', cleaned, flags=re.IGNORECASE)
+                cleaned = re.sub(r'\s+', ' ', cleaned).strip()  # Clean up extra spaces
+                if cleaned:
+                    final_bullets.append(cleaned)
+            bullet_lines = final_bullets
+        
+        if len(bullet_lines) > 3:
+            # Take only the first 3 bullets
+            description = '\n'.join(bullet_lines[:3])
+            print(f"⚠️ AI WORK DESC: Generated {len(bullet_lines)} bullets, truncated to 3")
+        else:
+            description = '\n'.join(bullet_lines)
         
         print(f"🤖 AI WORK DESC: Description generated successfully")
         

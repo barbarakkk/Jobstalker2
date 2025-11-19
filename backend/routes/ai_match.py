@@ -27,6 +27,17 @@ async def analyze_job_match(job_id: UUID, user_id: str = Depends(get_current_use
         job_description = job.get("description", "") or ""
         job_title = job.get("job_title", "")
         company = job.get("company", "")
+        location = job.get("location", "")
+        salary = job.get("salary", "")
+        
+        # Check if job description is meaningful (more than just a few words or common non-descriptive text)
+        job_desc_cleaned = job_description.strip().lower()
+        minimal_descriptions = ["haha", "test", "n/a", "na", "none", "tbd", "tba", ""]
+        is_minimal_description = (
+            len(job_desc_cleaned) < 50 or 
+            job_desc_cleaned in minimal_descriptions or
+            len(job_desc_cleaned.split()) < 10
+        )
         
         # Get user profile data
         profile_response = supabase.table("user_profile").select("*").eq("user_id", user_id).execute()
@@ -44,6 +55,31 @@ async def analyze_job_match(job_id: UUID, user_id: str = Depends(get_current_use
         education_response = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
         education = education_response.data or []
         
+        # Prepare detailed work experience summary
+        work_exp_details = []
+        for exp in work_experience[:5]:
+            exp_text = f"- {exp.get('title', 'N/A')} at {exp.get('company', 'N/A')}"
+            if exp.get('start_date'):
+                exp_text += f" ({exp.get('start_date')}"
+                if exp.get('end_date'):
+                    exp_text += f" - {exp.get('end_date')}"
+                elif exp.get('is_current'):
+                    exp_text += " - Present"
+                exp_text += ")"
+            if exp.get('description'):
+                exp_text += f"\n  Description: {exp.get('description', '')[:300]}"
+            work_exp_details.append(exp_text)
+        
+        # Prepare detailed education summary
+        education_details = []
+        for edu in education[:3]:
+            edu_text = f"- {edu.get('degree', 'N/A')}"
+            if edu.get('school'):
+                edu_text += f" from {edu.get('school', 'N/A')}"
+            if edu.get('start_date') or edu.get('end_date'):
+                edu_text += f" ({edu.get('start_date', '')} - {edu.get('end_date', '')})"
+            education_details.append(edu_text)
+        
         # Prepare user profile summary
         user_profile_summary = f"""
         User Profile:
@@ -54,46 +90,88 @@ async def analyze_job_match(job_id: UUID, user_id: str = Depends(get_current_use
         Skills: {', '.join(user_skills) if user_skills else 'None listed'}
         
         Work Experience ({len(work_experience)} positions):
-        {chr(10).join([f"- {exp.get('title', 'N/A')} at {exp.get('company', 'N/A')} ({exp.get('description', 'No description')[:200]})" for exp in work_experience[:5]])}
+        {chr(10).join(work_exp_details) if work_exp_details else 'No work experience listed'}
         
         Education ({len(education)} entries):
-        {chr(10).join([f"- {edu.get('degree', 'N/A')} in {edu.get('field_of_study', 'N/A')} from {edu.get('school', 'N/A')}" for edu in education[:3]])}
+        {chr(10).join(education_details) if education_details else 'No education listed'}
         """
+        
+        # Handle minimal job descriptions
+        if is_minimal_description:
+            return {
+                "matchScore": 0,
+                "strengths": [
+                    "Unable to analyze match - job description is too minimal",
+                    "Please add a detailed job description to get accurate match analysis"
+                ],
+                "improvements": [
+                    "Add a complete job description with requirements, skills, and responsibilities",
+                    "Include details about required experience and qualifications",
+                    "Add information about job duties and responsibilities"
+                ],
+                "missingSkills": [],
+                "matchedSkills": []
+            }
         
         # Use OpenAI to analyze match
         client = get_openai_client()
         
-        prompt = f"""
-        Analyze how well this user's profile matches the job requirements.
+        # Use full job description (up to 8000 chars to capture complete job posting)
+        job_desc_text = job_description[:8000]
         
-        JOB POSTING:
-        Title: {job_title}
-        Company: {company}
-        Description: {job_description[:2000]}
-        
-        USER PROFILE:
-        {user_profile_summary}
-        
-        Please provide a detailed analysis in JSON format with the following structure:
-        {{
-            "matchScore": <number between 0-100>,
-            "strengths": [<array of 3-5 strengths where user matches well>],
-            "improvements": [<array of 3-5 recommendations for improvement>],
-            "missingSkills": [<array of skills mentioned in job but not in user profile>],
-            "matchedSkills": [<array of skills that match between job and user profile>]
-        }}
-        
-        Be specific and actionable. Focus on skills, experience, and qualifications.
-        Return ONLY valid JSON, no other text.
-        """
+        prompt = f"""You are an expert career counselor and job matching analyst. Your task is to analyze how well a candidate's profile matches a specific job posting.
+
+JOB POSTING DETAILS:
+- Job Title: {job_title}
+- Company: {company}
+- Location: {location if location else 'Not specified'}
+- Salary: {salary if salary else 'Not specified'}
+
+FULL JOB DESCRIPTION AND REQUIREMENTS:
+{job_desc_text}
+
+CANDIDATE PROFILE:
+{user_profile_summary}
+
+ANALYSIS INSTRUCTIONS:
+1. Carefully read the ENTIRE job description above, paying special attention to:
+   - Required skills and technologies
+   - Required experience and qualifications
+   - Education requirements
+   - Job responsibilities and duties
+   - Preferred qualifications
+   - Any specific requirements mentioned
+
+2. Compare the candidate's profile against these requirements:
+   - Match their skills against required skills mentioned in the job description
+   - Compare their work experience against required experience mentioned in the job description
+   - Check if their education meets the requirements mentioned in the job description
+   - Identify gaps and strengths based on what's ACTUALLY mentioned in the job description
+
+3. Provide a detailed analysis in JSON format with this exact structure:
+{{
+    "matchScore": <number between 0-100, where 100 is perfect match>,
+    "strengths": [<array of 3-5 specific strengths where candidate matches well, be SPECIFIC about what from the job description they match - quote or reference actual requirements>],
+    "improvements": [<array of 3-5 actionable recommendations based on what's ACTUALLY missing from the job description - reference specific requirements>],
+    "missingSkills": [<array of specific skills/technologies that are EXPLICITLY mentioned in the job description but NOT in the candidate's profile>],
+    "matchedSkills": [<array of skills/technologies that are EXPLICITLY mentioned in the job description AND ARE in the candidate's profile>]
+}}
+
+CRITICAL REQUIREMENTS:
+- Base your analysis STRICTLY and ONLY on what is actually written in the job description above
+- Do NOT make assumptions or add requirements that are not in the job description
+- Be specific - quote or reference actual text from the job description when possible
+- If a skill or requirement is not mentioned in the job description, do NOT include it in missingSkills
+- Only include skills in matchedSkills if they are explicitly mentioned in the job description AND in the candidate's profile
+- Return ONLY valid JSON, no other text or markdown formatting"""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert career counselor and job matching analyst. Return only valid JSON."},
+                {"role": "system", "content": "You are an expert career counselor and job matching analyst. You analyze job postings in detail and compare them against candidate profiles. Always return only valid JSON without any markdown formatting or additional text."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=1500,
+            max_tokens=2000,
             temperature=0.3
         )
         

@@ -1,11 +1,12 @@
 """Profile management routes"""
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, Header
 from fastapi.encoders import jsonable_encoder
 from supabase_client import supabase
 from models import ProfileResponse, UpdateProfile, ProfileStats
 from datetime import datetime
 from utils.dependencies import get_current_user
 from utils.file_upload import upload_profile_picture_to_supabase
+from typing import Optional
 import sys
 from pathlib import Path
 
@@ -15,11 +16,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 router = APIRouter()
 
 @router.get("/api/profile", response_model=ProfileResponse)
-def get_profile(user_id: str = Depends(get_current_user)):
+def get_profile(user_id: str = Depends(get_current_user), authorization: Optional[str] = Header(None)):
     """Get user profile with normalized data"""
     try:
         # Get basic profile
-        profile_response = supabase.table("user_profile").select("*").eq("user_id", user_id).execute()
+        try:
+            profile_response = supabase.table("user_profile").select("*").eq("user_id", user_id).execute()
+        except Exception as e:
+            error_msg = str(e).lower()
+            if "connection" in error_msg or "disconnected" in error_msg or "network" in error_msg:
+                raise HTTPException(status_code=503, detail="Database connection error. Please try again.")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
         
         if profile_response.data and len(profile_response.data) > 0:
             profile = profile_response.data[0]
@@ -31,8 +38,11 @@ def get_profile(user_id: str = Depends(get_current_user)):
                 "job_title": "Your Role",
                 "location": "Your Location"
             }
-            insert_response = supabase.table("user_profile").insert(default_profile).execute()
-            profile = insert_response.data[0]
+            try:
+                insert_response = supabase.table("user_profile").insert(default_profile).execute()
+                profile = insert_response.data[0]
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to create profile: {str(e)}")
         
         # Fetch normalized data (handle case where tables might not exist yet)
         try:
@@ -56,17 +66,57 @@ def get_profile(user_id: str = Depends(get_current_user)):
             print(f"Warning: Could not fetch education: {str(e)}")
             profile["education"] = []
         
+        try:
+            languages_response = supabase.table("user_languages").select("*").eq("user_id", user_id).execute()
+            profile["languages"] = languages_response.data or []
+        except Exception as e:
+            print(f"Warning: Could not fetch languages: {str(e)}")
+            profile["languages"] = []
+        
+        # Ensure profile_completed defaults to False if not set
+        if "profile_completed" not in profile or profile["profile_completed"] is None:
+            profile["profile_completed"] = False
+        
+        # Fetch email from auth.users (email is managed by auth, not user_profile)
+        # Use admin API to get user email by user_id (more reliable than token)
+        try:
+            # First check if email exists in user_profile (fallback)
+            if "email" in profile and profile["email"]:
+                pass  # Email already in profile
+            else:
+                # Use admin API to get user from auth.users
+                user_response = supabase.auth.admin.get_user_by_id(user_id)
+                if user_response and user_response.user and user_response.user.email:
+                    profile["email"] = user_response.user.email
+                else:
+                    profile["email"] = None
+        except Exception as e:
+            print(f"Warning: Could not fetch email from auth.users: {str(e)}")
+            # Fallback to email in user_profile if it exists
+            if "email" not in profile or not profile["email"]:
+                profile["email"] = None
+        
         return ProfileResponse(**profile)
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error getting profile: {str(e)}")
+        error_msg = str(e).lower()
+        if "connection" in error_msg or "disconnected" in error_msg or "network" in error_msg:
+            raise HTTPException(status_code=503, detail="Database connection error. Please try again.")
         raise HTTPException(status_code=400, detail=f"Failed to get profile: {str(e)}")
 
 @router.post("/api/profile/update", response_model=ProfileResponse)
-def update_profile(profile_data: UpdateProfile, user_id: str = Depends(get_current_user)):
+def update_profile(profile_data: UpdateProfile, user_id: str = Depends(get_current_user), authorization: Optional[str] = Header(None)):
     """Update user profile"""
     try:
         data = jsonable_encoder(profile_data, exclude_unset=True)
         data["updated_at"] = datetime.utcnow().isoformat()
+        
+        # Remove email if it exists - email is managed by auth.users, not user_profile
+        # The email column might not exist in user_profile table
+        if "email" in data:
+            del data["email"]
         
         # Check if profile exists
         existing = supabase.table("user_profile").select("id").eq("user_id", user_id).execute()
@@ -80,7 +130,22 @@ def update_profile(profile_data: UpdateProfile, user_id: str = Depends(get_curre
             response = supabase.table("user_profile").insert(data).execute()
         
         if response.data:
-            return ProfileResponse(**response.data[0])
+            updated_profile = response.data[0]
+            # Fetch email from auth.users (email is managed by auth, not user_profile)
+            try:
+                # Use admin API to get user email by user_id (more reliable than token)
+                if "email" not in updated_profile or not updated_profile["email"]:
+                    user_response = supabase.auth.admin.get_user_by_id(user_id)
+                    if user_response and user_response.user and user_response.user.email:
+                        updated_profile["email"] = user_response.user.email
+                    else:
+                        updated_profile["email"] = None
+            except Exception as e:
+                print(f"Warning: Could not fetch email from auth.users: {str(e)}")
+                # Fallback to email in user_profile if it exists
+                if "email" not in updated_profile or not updated_profile["email"]:
+                    updated_profile["email"] = None
+            return ProfileResponse(**updated_profile)
         raise HTTPException(status_code=400, detail="Profile update failed")
     except Exception as e:
         print(f"Error updating profile: {str(e)}")
@@ -152,6 +217,31 @@ def get_profile_stats(user_id: str = Depends(get_current_user)):
     except Exception as e:
         print(f"Error getting profile stats: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Failed to get profile stats: {str(e)}")
+
+@router.post("/api/profile/complete")
+def complete_profile(user_id: str = Depends(get_current_user)):
+    """Mark user profile as completed"""
+    try:
+        data = {"profile_completed": True, "updated_at": datetime.utcnow().isoformat()}
+        
+        # Check if profile exists
+        existing = supabase.table("user_profile").select("id").eq("user_id", user_id).execute()
+        
+        if existing.data:
+            # Update existing profile
+            response = supabase.table("user_profile").update(data).eq("user_id", user_id).execute()
+        else:
+            # Create new profile with completed flag
+            data["user_id"] = user_id
+            data["full_name"] = "User"
+            response = supabase.table("user_profile").insert(data).execute()
+        
+        if response.data:
+            return {"success": True, "message": "Profile marked as completed"}
+        raise HTTPException(status_code=400, detail="Failed to mark profile as completed")
+    except Exception as e:
+        print(f"Error completing profile: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Failed to complete profile: {str(e)}")
 
 @router.delete("/api/profile")
 def delete_profile(user_id: str = Depends(get_current_user)):

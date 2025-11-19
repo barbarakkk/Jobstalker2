@@ -40,9 +40,6 @@ export function CleanImpactEducationSection({ data, config, style }: CleanImpact
       )}
       <div className="space-y-4">
         {education.map((edu) => {
-          // Parse field into potential details/bullets
-          const details = edu.field ? [edu.field] : [];
-          
           return (
             <div key={edu.id} className="clean-impact-education-entry">
               <div className="flex items-start justify-between gap-4 mb-2">
@@ -69,26 +66,6 @@ export function CleanImpactEducationSection({ data, config, style }: CleanImpact
                   {edu.startDate} — {edu.endDate}
                 </div>
               </div>
-              
-              {details.length > 0 && (
-                <ul className="list-none pl-4 space-y-1" style={{ marginLeft: '16px' }}>
-                  {details.map((detail, index) => (
-                    <li 
-                      key={index} 
-                      className="text-sm"
-                      style={{ 
-                        color: '#1c1e21',
-                        marginTop: '3px',
-                        marginBottom: '3px',
-                        listStyle: 'disc',
-                        listStylePosition: 'outside'
-                      }}
-                    >
-                      {detail}
-                    </li>
-                  ))}
-                </ul>
-              )}
             </div>
           );
         })}

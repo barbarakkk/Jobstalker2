@@ -1,9 +1,10 @@
-import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, ProfileStats, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData } from './types';
+import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, Language, ProfileStats, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData, CreateLanguageData, UpdateLanguageData } from './types';
 import { supabase } from './supabaseClient';
 
 // Base URL for the backend API. In production, set VITE_API_BASE_URL in a .env file.
-// Falls back to localhost for local backend development.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Falls back to localhost ONLY in development mode. In production, this must be set.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
 
 // Helper function to get auth token
 const getAuthToken = async (): Promise<string | null> => {
@@ -76,7 +77,14 @@ const apiCall = async <T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error(`API Error [${endpoint}]:`, errorData);
+      
+      // Only log errors for critical endpoints, suppress "Server disconnected" for non-critical endpoints
+      const isNonCriticalEndpoint = endpoint.includes('/education') || endpoint.includes('/languages');
+      const isServerDisconnected = errorData.detail && errorData.detail.includes('Server disconnected');
+      
+      if (!isNonCriticalEndpoint || !isServerDisconnected) {
+        console.error(`API Error [${endpoint}]:`, errorData);
+      }
       
       // Handle authentication errors
       if (response.status === 401) {
@@ -98,9 +106,17 @@ const apiCall = async <T>(
         throw new Error(userMessage);
       }
       
-      // Handle rate limiting
+      // Handle rate limiting - use backend's detailed error message
       if (response.status === 429) {
-        throw new Error('Too many requests. Please try again later.');
+        const retryAfter = response.headers.get('Retry-After') || '60';
+        const rateLimit = response.headers.get('X-RateLimit-Limit') || '30';
+        const errorMsg = errorData.detail || `Rate limit exceeded. You can make up to ${rateLimit} AI requests per minute. Please wait a moment before trying again.`;
+        throw new Error(errorMsg);
+      }
+      
+      // For non-critical endpoints with server disconnected errors, return empty array instead of throwing
+      if (isNonCriticalEndpoint && isServerDisconnected) {
+        return [];
       }
       
       throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
@@ -115,6 +131,10 @@ const apiCall = async <T>(
   } catch (error) {
     console.error(`API call failed [${endpoint}]:`, error);
     if (error instanceof Error) {
+      // Provide more specific error messages for common network issues
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        throw new Error(`Unable to connect to server. Please check if the backend is running and your network connection. Endpoint: ${endpoint}`);
+      }
       throw error;
     }
     throw new Error('Network error. Please check your connection.');
@@ -275,6 +295,13 @@ export const profileApi = {
       method: 'DELETE',
     });
   },
+
+  // Mark profile as completed
+  completeProfile: async (): Promise<{ success: boolean; message: string }> => {
+    return apiCall<{ success: boolean; message: string }>('/api/profile/complete', {
+      method: 'POST',
+    });
+  },
 };
 
 // Skills API functions
@@ -370,6 +397,37 @@ export const educationApi = {
   // Delete education
   deleteEducation: async (id: string): Promise<void> => {
     return apiCall<void>(`/api/education/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Languages API functions
+export const languagesApi = {
+  // Get user languages
+  getLanguages: async (): Promise<Language[]> => {
+    return apiCall<Language[]>('/api/languages');
+  },
+
+  // Create language
+  createLanguage: async (data: CreateLanguageData): Promise<Language> => {
+    return apiCall<Language>('/api/languages', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update language
+  updateLanguage: async (id: string, data: UpdateLanguageData): Promise<Language> => {
+    return apiCall<Language>(`/api/languages/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete language
+  deleteLanguage: async (id: string): Promise<void> => {
+    return apiCall<void>(`/api/languages/${id}`, {
       method: 'DELETE',
     });
   },

@@ -194,17 +194,100 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
 
         # Prefill from user_profile and normalized tables
         if body.prefill:
-            prof = supabase.table("user_profile").select("full_name,job_title,location").eq("user_id", user_id).maybe_single().execute()
+            # Fetch all profile fields including first_name, last_name, phone, professional_summary, social_links
+            # Use .execute() instead of .maybe_single() to avoid 204 errors (same pattern as profile.py)
+            prof = None
+            try:
+                profile_response = supabase.table("user_profile").select(
+                    "full_name,first_name,last_name,phone,job_title,location,professional_summary,social_links"
+                ).eq("user_id", user_id).execute()
+                
+                # Check if data exists (same pattern as profile.py)
+                if profile_response.data and len(profile_response.data) > 0:
+                    # Create a mock object with .data attribute to match existing code
+                    prof = type('obj', (object,), {'data': profile_response.data[0]})()
+                else:
+                    prof = None
+            except Exception as e:
+                error_str = str(e)
+                # Handle 204 errors specifically - might be PostgREST quirk
+                if "204" in error_str or "Missing response" in error_str:
+                    # Try again - sometimes 204 is a false negative
+                    try:
+                        profile_response = supabase.table("user_profile").select(
+                            "full_name,first_name,last_name,phone,job_title,location,professional_summary,social_links"
+                        ).eq("user_id", user_id).execute()
+                        if profile_response.data and len(profile_response.data) > 0:
+                            prof = type('obj', (object,), {'data': profile_response.data[0]})()
+                        else:
+                            prof = None
+                    except Exception as retry_error:
+                        print(f"Warning: Could not fetch user profile after retry: {str(retry_error)}")
+                        prof = None
+                else:
+                    print(f"Warning: Could not fetch user profile: {error_str}")
+                    prof = None
             
-            # Fetch from normalized tables
-            skills_res = supabase.table("user_skills").select("*").eq("user_id", user_id).execute()
-            experience_res = supabase.table("user_work_experience").select("*").eq("user_id", user_id).execute()
-            education_res = supabase.table("user_education").select("*").eq("user_id", user_id).execute()
+            # Fetch from normalized tables in parallel using threading for better performance
+            import concurrent.futures
+            
+            def fetch_skills():
+                try:
+                    return supabase.table("user_skills").select("*").eq("user_id", user_id).execute()
+                except Exception as e:
+                    print(f"Warning: Could not fetch skills: {str(e)}")
+                    return type('obj', (object,), {'data': []})()
+            
+            def fetch_experience():
+                try:
+                    return supabase.table("user_work_experience").select("*").eq("user_id", user_id).execute()
+                except Exception as e:
+                    print(f"Warning: Could not fetch work experience: {str(e)}")
+                    return type('obj', (object,), {'data': []})()
+            
+            def fetch_education():
+                try:
+                    return supabase.table("user_education").select("*").eq("user_id", user_id).execute()
+                except Exception as e:
+                    print(f"Warning: Could not fetch education: {str(e)}")
+                    return type('obj', (object,), {'data': []})()
+            
+            def fetch_languages():
+                try:
+                    return supabase.table("user_languages").select("*").eq("user_id", user_id).execute()
+                except Exception as e:
+                    print(f"Warning: Could not fetch languages: {str(e)}")
+                    return type('obj', (object,), {'data': []})()
+            
+            def fetch_user_email():
+                try:
+                    user_response = supabase.auth.admin.get_user_by_id(user_id)
+                    if user_response and user_response.user and user_response.user.email:
+                        return user_response.user.email
+                    return None
+                except Exception as e:
+                    print(f"Warning: Could not fetch email from auth.users: {str(e)}")
+                    return None
+            
+            # Execute all queries in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                skills_future = executor.submit(fetch_skills)
+                experience_future = executor.submit(fetch_experience)
+                education_future = executor.submit(fetch_education)
+                languages_future = executor.submit(fetch_languages)
+                email_future = executor.submit(fetch_user_email)
+                
+                # Wait for all to complete
+                skills_res = skills_future.result()
+                experience_res = experience_future.result()
+                education_res = education_future.result()
+                languages_res = languages_future.result()
+                user_email = email_future.result()
             
             if prof and hasattr(prof, 'data') and prof.data:
                 # Convert normalized data to JSON format for wizard
                 skills_list = []
-                for skill in (skills_res.data or []):
+                for skill in ((skills_res.data if skills_res else []) or []):
                     skills_list.append({
                         "name": skill.get("name"),
                         "proficiency": skill.get("proficiency"),
@@ -212,7 +295,7 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
                     })
                 
                 experience_list = []
-                for exp in (experience_res.data or []):
+                for exp in ((experience_res.data if experience_res else []) or []):
                     experience_list.append({
                         "title": exp.get("title"),
                         "company": exp.get("company"),
@@ -224,7 +307,7 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
                     })
                 
                 education_list = []
-                for edu in (education_res.data or []):
+                for edu in ((education_res.data if education_res else []) or []):
                     education_list.append({
                         "school": edu.get("school"),
                         "degree": edu.get("degree"),
@@ -233,15 +316,32 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
                         "endDate": edu.get("end_date")
                     })
                 
+                # Convert languages from user_languages table
+                languages_list = []
+                for lang in ((languages_res.data if languages_res else []) or []):
+                    languages_list.append({
+                        "name": lang.get("language"),  # Note: column is "language" not "name"
+                        "proficiency": lang.get("proficiency")
+                    })
+                
+                # Build profile map with all fields
                 profile_map = {
                     "profile": {
                         "fullName": prof.data.get("full_name"),
+                        "firstName": prof.data.get("first_name"),
+                        "lastName": prof.data.get("last_name"),
+                        "email": user_email,  # From auth.users
+                        "phone": prof.data.get("phone"),
                         "headline": prof.data.get("job_title"),
-                        "location": prof.data.get("location")
+                        "location": prof.data.get("location"),
+                        "professionalSummary": prof.data.get("professional_summary"),
+                        "summary": prof.data.get("professional_summary"),  # Also map to summary for compatibility
+                        "socialLinks": prof.data.get("social_links") or []
                     },
                     "skills": skills_list,
                     "experience": experience_list,
-                    "education": education_list
+                    "education": education_list,
+                    "languages": languages_list
                 }
                 # Shallow merge where target keys exist
                 for k, v in profile_map.items():
@@ -255,31 +355,128 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
                                 draft_json[k] = {**draft_json[k], **{kk: vv for kk, vv in v.items() if vv is not None}}
                             else:
                                 draft_json[k] = v
+            elif prof is None:
+                # Profile doesn't exist, but that's okay - continue without prefill
+                print(f"Warning: No profile found for user {user_id}, continuing without prefill")
 
         # Apply optional seed
         if body.seed and isinstance(body.seed, dict):
             draft_json = {**draft_json, **body.seed}
 
         now_iso = datetime.utcnow().isoformat()
-        # Explicitly select the inserted row to ensure it's returned
-        ins = supabase.table("wizard_sessions").insert({
-            "user_id": user_id,
-            "template_id": template_id_uuid,  # Use the actual UUID, not the slug
-            "draft_json": draft_json,
-            "progress": {"step": 1},
-            "status": "active",
-            "last_step": 1,
-            "created_at": now_iso,
-            "updated_at": now_iso
-        }).select("*").execute()
+        import time
         
-        if not ins or not hasattr(ins, 'data') or not ins.data or len(ins.data) == 0:
-            raise HTTPException(
-                status_code=500, 
-                detail="Failed to create session: Insert succeeded but no data returned. This may indicate a database migration issue or RLS policy problem."
-            )
-        row = ins.data[0]
-        return {"id": row["id"], "draftJson": row["draft_json"], "progress": row["progress"]}
+        # Insert the session - PostgREST Python client doesn't support .select() after .insert()
+        # So we insert without select, then query back immediately
+        try:
+            # Insert without select - this should work reliably
+            result = supabase.table("wizard_sessions").insert({
+                "user_id": user_id,
+                "template_id": template_id_uuid,
+                "draft_json": draft_json,
+                "progress": {"step": 1},
+                "status": "active",
+                "last_step": 1,
+                "created_at": now_iso,
+                "updated_at": now_iso
+            }).execute()
+            
+            # Try to get ID from response if available
+            session_id = None
+            if result and hasattr(result, 'data') and result.data and len(result.data) > 0:
+                session_id = str(result.data[0]["id"])
+                print(f"Insert succeeded with ID from response: {session_id}")
+                return {"id": session_id, "draftJson": result.data[0]["draft_json"], "progress": result.data[0]["progress"]}
+        except Exception as insert_error:
+            error_str = str(insert_error)
+            print(f"Insert error (may still have succeeded): {error_str}")
+            
+            # PostgREST can throw 204 errors even on successful inserts
+            if "Missing response" in error_str or "204" in error_str or "Postgrest couldn't retrieve response" in error_str:
+                print("PostgREST 204 error detected - insert likely succeeded, will query back")
+            else:
+                # Check if it's a real error
+                if "duplicate key" in error_str.lower() or "unique constraint" in error_str.lower():
+                    print(f"Real insert error: {error_str}")
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Failed to create session: {error_str}"
+                    )
+                # For other errors, assume it might have succeeded and try to query back
+                print(f"Assuming insert succeeded despite error: {error_str}")
+        
+        # Query back the session we just created (with shorter delays)
+        # Reduced retries and delays to avoid big delays
+        max_retries = 3
+        retry_delay = 0.1  # Reduced from 0.2s
+        
+        for attempt in range(max_retries):
+            if attempt > 0:
+                # Shorter delays for retries
+                delay = retry_delay * attempt  # 0.1s, 0.2s instead of 0.4s, 0.6s, etc.
+                print(f"Retrying session query (attempt {attempt + 1}/{max_retries}) after {delay}s delay")
+                time.sleep(delay)
+            else:
+                # Very short initial delay
+                time.sleep(0.1)
+            
+            try:
+                # Query by filters to find the most recent session
+                recent = supabase.table("wizard_sessions").select("*").eq("user_id", user_id).eq("template_id", template_id_uuid).eq("status", "active").order("created_at", desc=True).limit(1).execute()
+                
+                if recent and hasattr(recent, 'data') and recent.data and len(recent.data) > 0:
+                    row = recent.data[0]
+                    # Verify this is recent (within last 10 seconds) to avoid returning old sessions
+                    try:
+                        created_str = row["created_at"]
+                        # Handle different timestamp formats
+                        if created_str.endswith('Z'):
+                            created_time = datetime.fromisoformat(created_str.replace('Z', '+00:00'))
+                        else:
+                            created_time = datetime.fromisoformat(created_str)
+                        
+                        now_time = datetime.utcnow()
+                        if created_time.tzinfo:
+                            now_time = now_time.replace(tzinfo=created_time.tzinfo)
+                        else:
+                            created_time = created_time.replace(tzinfo=None)
+                            now_time = now_time.replace(tzinfo=None)
+                        
+                        time_diff = abs((now_time - created_time).total_seconds())
+                        
+                        if time_diff < 10:  # Created within last 10 seconds (reduced from 30)
+                            print(f"Found session by query (created {time_diff:.2f}s ago): {row['id']}")
+                            return {"id": str(row["id"]), "draftJson": row["draft_json"], "progress": row["progress"]}
+                        else:
+                            if attempt < max_retries - 1:
+                                print(f"Found session but it's too old ({time_diff:.2f}s ago), retrying...")
+                                continue  # Retry
+                    except Exception as time_error:
+                        # If timestamp parsing fails, assume it's the right one (better than failing)
+                        print(f"Timestamp parsing error (assuming correct): {time_error}")
+                        return {"id": str(row["id"]), "draftJson": row["draft_json"], "progress": row["progress"]}
+                
+                # If we get here, didn't find the session yet
+                if attempt < max_retries - 1:
+                    continue
+                    
+            except Exception as query_error:
+                error_str = str(query_error)
+                print(f"Query error on attempt {attempt + 1}: {error_str}")
+                if attempt < max_retries - 1:
+                    continue  # Retry
+                else:
+                    # Last attempt failed
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Session was created but could not be retrieved after {max_retries} attempts. Please try refreshing the page."
+                    )
+        
+        # If we exhausted all retries
+        raise HTTPException(
+            status_code=500,
+            detail="Session was created but could not be retrieved. Please try refreshing the page or creating a new session."
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -289,11 +486,12 @@ async def create_session(body: CreateSessionRequest, user_id: str = Depends(get_
         print(f"Error creating wizard session: {error_details}")
         print(f"Traceback: {error_trace}")
         
-        # Check if it's a Supabase/PostgREST error
-        if "Missing response" in error_details or "204" in error_details:
+        # Don't show misleading error about table not existing
+        # The table exists, this is a PostgREST issue
+        if "Missing response" in error_details or "204" in error_details or "Postgrest couldn't retrieve response" in error_details:
             raise HTTPException(
                 status_code=500,
-                detail=f"Database error: The wizard_sessions table may not exist or RLS policies may be blocking the operation. Please ensure the migration '20251103_ai_resume_builder.sql' has been run. Original error: {error_details}"
+                detail=f"Session creation encountered a database communication issue. The session may have been created successfully. Please try refreshing the page or creating a new session."
             )
         raise HTTPException(status_code=500, detail=f"Failed to create session: {error_details}")
 
@@ -482,6 +680,11 @@ async def create_generated_resume_version(resume_id: str, body: NewVersionReques
         raise HTTPException(status_code=500, detail=f"Failed to create version: {e}")
 
 
+@router.options("/api/ai/profile-summary")
+async def profile_summary_options():
+    """Handle CORS preflight for profile summary endpoint"""
+    return {"status": "ok"}
+
 @router.post("/api/ai/profile-summary")
 async def generate_profile_summary(body: ProfileSummaryRequest, user_id: str = Depends(get_current_user)):
     try:
@@ -497,18 +700,39 @@ async def generate_profile_summary(body: ProfileSummaryRequest, user_id: str = D
         years = profile.get("yearsExperience") or None
         skills = draft.get("skills", []) or []
         achievements = draft.get("achievements", []) or []
+        target_role = draft.get("targetRole") or body.promptHints or ""
+        work_experience = draft.get("experience", []) or []
+        education = draft.get("education", []) or []
 
         client = get_openai_client()
+        
+        # Build context about work experience
+        experience_summary = ""
+        if work_experience:
+            for exp in work_experience[:5]:  # Limit to 5 most recent
+                exp_title = exp.get("title", "")
+                exp_company = exp.get("company", "")
+                exp_desc = exp.get("description", "")
+                if exp_title and exp_company:
+                    experience_summary += f"- {exp_title} at {exp_company}"
+                    if exp_desc:
+                        experience_summary += f": {exp_desc[:100]}"
+                    experience_summary += "\n"
+        
         system_prompt = (
-            "You are a resume assistant. Output a concise 2-3 sentence first-person professional summary. "
-            "Focus on quantified impact and key skills."
+            f"You are an expert resume writer specializing in {target_role if target_role else 'professional'} roles. "
+            f"Create a compelling professional summary tailored specifically for a {target_role if target_role else 'professional'} position. "
+            "Write in first-person, 2-3 sentences. Emphasize relevant experience, skills, and achievements that match the target role."
         )
+        
         user_content = {
+            "targetRole": target_role,
             "fullName": full_name,
             "headline": headline,
             "yearsExperience": years,
             "skills": skills[:20],
-            "achievements": achievements[:10],
+            "workExperience": experience_summary,
+            "education": [f"{e.get('degree', '')} from {e.get('school', '')}" for e in education[:3]],
             "hints": body.promptHints or ""
         }
         started = datetime.utcnow()

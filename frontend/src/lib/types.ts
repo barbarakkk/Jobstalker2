@@ -49,13 +49,29 @@ export interface ApiResponse<T> {
 }
 
 // Profile-related interfaces
+export interface SocialLink {
+  platform: string;
+  url: string;
+}
+
 export interface Profile {
   id: string;
   user_id: string;
   full_name: string;
-  job_title: string;
-  location: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  job_title?: string;
+  location?: string;
+  professional_summary?: string;
+  social_links?: SocialLink[];
+  profile_completed?: boolean;
   profile_picture_url?: string;
+  skills?: Skill[];
+  work_experience?: WorkExperience[];
+  education?: Education[];
+  languages?: Language[];
   created_at: string;
   updated_at: string;
 }
@@ -82,10 +98,17 @@ export interface Education {
   id?: string;
   school: string;
   degree: string;
-  field_of_study: string;
   start_date: string;
   end_date?: string;
   added_at: string;
+}
+
+export interface Language {
+  id?: string;
+  language: string;
+  proficiency: 'Beginner' | 'Intermediate' | 'Advanced' | 'Native';
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Resume interface removed - using AI-generated resumes instead
@@ -98,11 +121,18 @@ export interface ProfileStats {
 
 export interface CreateProfileData {
   full_name: string;
-  job_title: string;
-  location: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  job_title?: string;
+  location?: string;
+  professional_summary?: string;
+  social_links?: SocialLink[];
 }
 
-export interface UpdateProfileData extends Partial<CreateProfileData> {
+export interface UpdateProfileData extends Partial<Omit<CreateProfileData, 'email'>> {
+  profile_completed?: boolean;
 }
 
 export interface CreateSkillData {
@@ -123,7 +153,14 @@ export interface CreateExperienceData {
 export interface CreateEducationData {
   school: string;
   degree: string;
-  field_of_study: string;
   start_date: string;
   end_date?: string;
+}
+
+export interface CreateLanguageData {
+  language: string;
+  proficiency: 'Beginner' | 'Intermediate' | 'Advanced' | 'Native';
+}
+
+export interface UpdateLanguageData extends Partial<CreateLanguageData> {
 } 

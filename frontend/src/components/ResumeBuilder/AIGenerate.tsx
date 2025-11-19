@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
-import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Sparkles, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { wizardApi } from '@/lib/api';
@@ -22,6 +23,7 @@ interface WorkExperience {
   startDate: string;
   endDate: string;
   isCurrent: boolean;
+  jobType?: string;
   description: string;
 }
 
@@ -29,7 +31,6 @@ interface Education {
   id: string;
   school: string;
   degree: string;
-  field: string;
   startDate: string;
   endDate: string;
 }
@@ -38,6 +39,7 @@ interface Skill {
   id: string;
   name: string;
   category: string;
+  level?: string;
 }
 
 interface Language {
@@ -64,9 +66,12 @@ export function AIGeneratePage() {
     phone: '',
     location: '',
     jobTitle: '',
-    linkedin: '',
-    website: ''
+    professionalSummary: ''
   });
+
+  const [socialLinks, setSocialLinks] = useState<{ platform: string; url: string }[]>([
+    { platform: 'LinkedIn', url: '' }
+  ]);
 
   const [summary, setSummary] = useState('');
   const [workExperience, setWorkExperience] = useState<WorkExperience[]>([]);
@@ -77,6 +82,7 @@ export function AIGeneratePage() {
 
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
 
@@ -84,14 +90,13 @@ export function AIGeneratePage() {
   const [showQuestionnaireDialog, setShowQuestionnaireDialog] = useState<string | null>(null); // Store exp.id when dialog is open
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState({
     whatDidYouDo: '',
-    achievements: '',
     impactResults: '',
   });
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   // Wizard steps state
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 8;
 
   useEffect(() => {
     setSelectedTemplate(templateId as any);
@@ -100,11 +105,13 @@ export function AIGeneratePage() {
 
   const steps = [
     { id: 1, name: 'Personal Info', description: 'Basic information' },
-    { id: 2, name: 'Experience', description: 'Work history' },
-    { id: 3, name: 'Education', description: 'Education background' },
-    { id: 4, name: 'Skills', description: 'Skills & languages' },
-    { id: 5, name: 'Summary', description: 'Professional summary' },
-    { id: 6, name: 'Target Role', description: 'Final details' },
+    { id: 2, name: 'Social Links', description: 'Social & professional profiles' },
+    { id: 3, name: 'Skills', description: 'Professional skills' },
+    { id: 4, name: 'Education', description: 'Education background' },
+    { id: 5, name: 'Experience', description: 'Work history' },
+    { id: 6, name: 'Languages', description: 'Language proficiencies' },
+    { id: 7, name: 'Target Role', description: 'Target position' },
+    { id: 8, name: 'Summary', description: 'Professional summary' },
   ];
 
   // Zod schemas per step
@@ -115,8 +122,7 @@ export function AIGeneratePage() {
     phone: z.string().optional(),
     location: z.string().optional(),
     jobTitle: z.string().optional(),
-    linkedin: z.string().optional(),
-    website: z.string().optional(),
+    professionalSummary: z.string().optional(),
   });
 
   const workItemSchema = z.object({
@@ -134,7 +140,6 @@ export function AIGeneratePage() {
     id: z.string().min(1),
     school: z.string().min(1, 'School is required'),
     degree: z.string().min(1, 'Degree is required'),
-    field: z.string().optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
   });
@@ -157,41 +162,47 @@ export function AIGeneratePage() {
         personalInfoSchema.parse(personalInfo);
         console.log('✅ Step 1 validation passed');
       } else if (step === 2) {
-        // Filter out empty work experience entries (where title and company are both empty)
-        const filledWorkExp = workExperience.filter(w => 
-          (w.title && w.title.trim().length > 0) || (w.company && w.company.trim().length > 0)
-        );
-        // Only validate filled entries
-        filledWorkExp.forEach((w) => workItemSchema.parse(w));
+        // Social Links step - no validation needed (optional)
+        return true;
       } else if (step === 3) {
+        // Skills step - optional, validate if entries exist
+        const filledSkills = skills.filter(s => s.name.trim().length > 0);
+        // Only validate filled entries
+        if (filledSkills.length > 0) {
+          skillsSchema.parse(filledSkills);
+        }
+      } else if (step === 4) {
         // Filter out empty education entries (where school and degree are both empty)
         const filledEducation = education.filter(e => 
           (e.school && e.school.trim().length > 0) || (e.degree && e.degree.trim().length > 0)
         );
         // Only validate filled entries
         filledEducation.forEach((e) => educationItemSchema.parse(e));
-      } else if (step === 4) {
-        // Filter out empty skills and languages before validation
-        const filledSkills = skills.filter(s => s.name.trim().length > 0);
+      } else if (step === 5) {
+        // Filter out empty work experience entries (where title and company are both empty)
+        const filledWorkExp = workExperience.filter(w => 
+          (w.title && w.title.trim().length > 0) || (w.company && w.company.trim().length > 0)
+        );
+        // Only validate filled entries
+        filledWorkExp.forEach((w) => workItemSchema.parse(w));
+      } else if (step === 6) {
+        // Filter out empty languages before validation
         const filledLanguages = languages.filter(l => l.name.trim().length > 0);
         // Only validate filled entries
-        if (filledSkills.length > 0) {
-          skillsSchema.parse(filledSkills);
-        }
         if (filledLanguages.length > 0) {
           languagesSchema.parse(filledLanguages);
         }
-      } else if (step === 5) {
-        console.log('🔍 Validating Step 5 - Professional Summary:', {
+      } else if (step === 8) {
+        console.log('🔍 Validating Step 8 - Professional Summary:', {
           summary: summary,
           summaryLength: summary?.trim().length
         });
         if (!summary || !summary.trim()) {
           setErrors(['Professional Summary is required. Please tell us about yourself.']);
-          console.log('❌ Step 5 validation failed: Summary is empty');
+          console.log('❌ Step 8 validation failed: Summary is empty');
           return false;
         }
-        console.log('✅ Step 5 validation passed');
+        console.log('✅ Step 8 validation passed');
       }
       return true;
     } catch (e: any) {
@@ -217,14 +228,12 @@ export function AIGeneratePage() {
           profile: {
             fullName: `${personalInfo.firstName} ${personalInfo.lastName}`.trim(),
             headline: personalInfo.jobTitle,
-            summary,
+            summary: summary || personalInfo.professionalSummary,
+            professionalSummary: personalInfo.professionalSummary,
             location: personalInfo.location,
             email: personalInfo.email,
             phone: personalInfo.phone,
-            links: {
-              linkedin: personalInfo.linkedin,
-              website: personalInfo.website,
-            },
+            socialLinks: socialLinks.filter(link => link.url.trim() !== ''),
           },
           experience: workExperience.map(e => ({
             id: e.id,
@@ -234,13 +243,13 @@ export function AIGeneratePage() {
             startDate: e.startDate,
             endDate: e.endDate,
             isCurrent: e.isCurrent,
+            jobType: e.jobType,
             description: e.description,
           })),
           education: education.map(e => ({
             id: e.id,
             school: e.school,
             degree: e.degree,
-            field: e.field,
             startDate: e.startDate,
             endDate: e.endDate,
           })),
@@ -264,15 +273,19 @@ export function AIGeneratePage() {
       case 1:
         return !!(personalInfo.firstName && personalInfo.lastName && personalInfo.email);
       case 2:
-        return true; // Work experience is optional but validate if entries exist
+        return true; // Social Links are optional
       case 3:
-        return true; // Education is optional
-      case 4:
         return true; // Skills are optional
+      case 4:
+        return true; // Education is optional
       case 5:
-        return !!summary.trim(); // Summary is required
+        return true; // Work experience is optional but validate if entries exist
       case 6:
+        return true; // Languages are optional
+      case 7:
         return true; // Target role is optional
+      case 8:
+        return !!summary.trim(); // Summary is required
       default:
         return true;
     }
@@ -309,6 +322,7 @@ export function AIGeneratePage() {
       startDate: '',
       endDate: '',
       isCurrent: false,
+      jobType: '',
       description: ''
     };
     setWorkExperience([...workExperience, newExp]);
@@ -338,7 +352,6 @@ export function AIGeneratePage() {
       id: `edu-${Date.now()}`,
       school: '',
       degree: '',
-      field: '',
       startDate: '',
       endDate: ''
     };
@@ -368,7 +381,8 @@ export function AIGeneratePage() {
     const newSkill: Skill = {
       id: `skill-${Date.now()}`,
       name: '',
-      category: 'Technical'
+      category: 'Technical',
+      level: 'Intermediate'
     };
     setSkills([...skills, newSkill]);
   };
@@ -426,7 +440,8 @@ export function AIGeneratePage() {
     setIsGeneratingDescription(true);
     try {
       const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
@@ -441,7 +456,6 @@ export function AIGeneratePage() {
           job_title: exp.title,
           company: exp.company,
           what_did_you_do: questionnaireAnswers.whatDidYouDo,
-          achievements: questionnaireAnswers.achievements || undefined,
           impact_results: questionnaireAnswers.impactResults || undefined,
           target_role: targetRole || undefined,
         }),
@@ -449,7 +463,17 @@ export function AIGeneratePage() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(errorData.detail || 'Failed to generate description');
+        
+        // Handle rate limiting specifically
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After') || '60';
+          const rateLimit = response.headers.get('X-RateLimit-Limit') || '30';
+          const retrySeconds = parseInt(retryAfter, 10);
+          const retryMinutes = Math.ceil(retrySeconds / 60);
+          throw new Error(`Rate limit exceeded. You can make up to ${rateLimit} AI requests per minute. Please wait ${retryMinutes} minute${retryMinutes > 1 ? 's' : ''} before trying again.`);
+        }
+        
+        throw new Error(errorData.detail || `Failed to generate description (${response.status})`);
       }
 
       const result = await response.json();
@@ -457,12 +481,12 @@ export function AIGeneratePage() {
       setShowQuestionnaireDialog(null);
       setQuestionnaireAnswers({
         whatDidYouDo: '',
-        achievements: '',
         impactResults: '',
       });
     } catch (error) {
       console.error('Error generating description:', error);
-      alert(error instanceof Error ? error.message : 'Failed to generate description. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate description. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsGeneratingDescription(false);
     }
@@ -471,6 +495,24 @@ export function AIGeneratePage() {
   const createWizardSession = async () => {
     setSessionError(null);
     setIsCreatingSession(true);
+    
+    // Optimistically load user email from auth immediately (fast, no API call needed)
+    let userEmail = '';
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      userEmail = user?.email || '';
+      
+      // Prefill basic info immediately with email while session loads
+      if (userEmail) {
+        setPersonalInfo(prev => ({
+          ...prev,
+          email: userEmail
+        }));
+      }
+    } catch (e) {
+      console.warn('Could not fetch user email:', e);
+    }
+    
     try {
       console.log('Creating wizard session with templateId:', templateId);
       const res = await wizardApi.createSession(templateId, true);
@@ -483,30 +525,24 @@ export function AIGeneratePage() {
       const draft = res.draftJson || {} as any;
       const profile = draft.profile || {};
       
-      // Get user email from Supabase auth as fallback
-      let userEmail = '';
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        userEmail = user?.email || '';
-      } catch (e) {
-        console.warn('Could not fetch user email:', e);
-      }
-      
       if (profile.summary && typeof profile.summary === 'string') {
         setSummary(profile.summary);
       }
       
-      // Prefill personal info from profile
+      // Prefill personal info from profile (now with all data from backend)
       setPersonalInfo({
         firstName: profile.firstName || profile.fullName?.split(' ')[0] || '',
         lastName: profile.lastName || profile.fullName?.split(' ').slice(1).join(' ') || '',
         email: profile.email || userEmail,
-        phone: '',
+        phone: profile.phone || '',
         location: profile.location || '',
         jobTitle: profile.headline || '',
-        linkedin: '',
-        website: ''
+        professionalSummary: profile.professionalSummary || profile.summary || ''
       });
+      // Load social links if available
+      if (profile.socialLinks && Array.isArray(profile.socialLinks)) {
+        setSocialLinks(profile.socialLinks.length > 0 ? profile.socialLinks : [{ platform: 'LinkedIn', url: '' }]);
+      }
       if (Array.isArray(draft.experience) && draft.experience.length > 0) {
         // Convert date strings to YYYY-MM format for month inputs
         const formatDateForMonth = (dateStr: string) => {
@@ -525,6 +561,7 @@ export function AIGeneratePage() {
           startDate: formatDateForMonth(e.startDate || ''),
           endDate: formatDateForMonth(e.endDate || ''),
           isCurrent: !!e.isCurrent,
+          jobType: e.jobType || '',
           description: e.description || ''
         })));
       }
@@ -542,7 +579,6 @@ export function AIGeneratePage() {
           id: e.id || `edu-${Date.now()}-${idx}`,
           school: e.school || '',
           degree: e.degree || '',
-          field: e.field || '',
           startDate: formatDateForMonth(e.startDate || ''),
           endDate: formatDateForMonth(e.endDate || '')
         })));
@@ -595,14 +631,16 @@ export function AIGeneratePage() {
     // Validate all required steps
     console.log('📋 Validating steps...');
     const step1Valid = validateStep(1);
-    const step2Valid = validateStep(2);
-    const step3Valid = validateStep(3);
-    const step4Valid = validateStep(4);
-    const step5Valid = validateStep(5);
+    const step2Valid = validateStep(2); // Social Links - optional
+    const step3Valid = validateStep(3); // Skills - optional
+    const step4Valid = validateStep(4); // Education - optional
+    const step5Valid = validateStep(5); // Experience - optional
+    const step6Valid = validateStep(6); // Languages - optional
+    const step8Valid = validateStep(8); // Summary - required
     
-    console.log('✅ Validation results:', { step1Valid, step2Valid, step3Valid, step4Valid, step5Valid });
+    console.log('✅ Validation results:', { step1Valid, step2Valid, step3Valid, step4Valid, step5Valid, step6Valid, step8Valid });
     
-    if (!step1Valid || !step2Valid || !step3Valid || !step4Valid || !step5Valid) {
+    if (!step1Valid || !step8Valid) {
       console.warn('❌ Validation failed, stopping submission');
       setIsGenerating(false);
       
@@ -613,16 +651,9 @@ export function AIGeneratePage() {
       if (!step1Valid) {
         console.log('📍 Navigating to Step 1 to fix validation errors');
         setCurrentStep(1);
-      } else if (!step2Valid) {
-        console.log('📍 Navigating to Step 2 to fix validation errors');
-        setCurrentStep(2);
-      } else if (!step3Valid) {
-        setCurrentStep(3);
-      } else if (!step4Valid) {
-        setCurrentStep(4);
-      } else if (!step5Valid) {
-        console.log('📍 Navigating to Step 5 to fix validation errors');
-        setCurrentStep(5);
+      } else if (!step8Valid) {
+        console.log('📍 Navigating to Step 8 to fix validation errors');
+        setCurrentStep(8);
       }
       
       // Errors are already set by validateStep
@@ -644,14 +675,12 @@ export function AIGeneratePage() {
         profile: {
           fullName: `${personalInfo.firstName} ${personalInfo.lastName}`.trim(),
           headline: personalInfo.jobTitle,
-          summary,
+          summary: summary || personalInfo.professionalSummary,
+          professionalSummary: personalInfo.professionalSummary,
           location: personalInfo.location,
           email: personalInfo.email,
           phone: personalInfo.phone,
-          links: {
-            linkedin: personalInfo.linkedin,
-            website: personalInfo.website,
-          },
+          socialLinks: socialLinks.filter(link => link.url.trim() !== ''),
         },
         experience: workExperience.map(e => ({
           id: e.id,
@@ -661,13 +690,13 @@ export function AIGeneratePage() {
           startDate: e.startDate,
           endDate: e.endDate,
           isCurrent: e.isCurrent,
+          jobType: e.jobType,
           description: e.description,
         })),
         education: education.map(e => ({
           id: e.id,
           school: e.school,
           degree: e.degree,
-          field: e.field,
           startDate: e.startDate,
           endDate: e.endDate,
         })),
@@ -676,7 +705,7 @@ export function AIGeneratePage() {
         targetRole,
       };
       
-      await wizardApi.patchSession(wizardSessionId, draftPatch, { step6: true }, 6);
+      await wizardApi.patchSession(wizardSessionId, draftPatch, { step8: true }, 8);
       console.log('Final step data saved');
       
       console.log('Completing wizard session:', wizardSessionId);
@@ -800,16 +829,16 @@ export function AIGeneratePage() {
         {/* Wizard Steps Indicator */}
         <div className="mb-8">
           {/* Desktop: Full step indicator */}
-          <div className="hidden md:flex items-center justify-between mb-4">
+          <div className="hidden md:flex items-start justify-between mb-4 w-full">
             {steps.map((step, index) => (
-              <div key={step.id} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
+              <div key={step.id} className="flex items-start flex-1" style={{ minWidth: 0 }}>
+                <div className="flex flex-col items-center flex-1 w-full">
                   <button
                     type="button"
                     onClick={() => goToStep(step.id)}
                     disabled={!validateCurrentStep() && step.id > currentStep}
                     className={cn(
-                      "flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-200",
+                      "flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-200 flex-shrink-0",
                       currentStep === step.id
                         ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-110"
                         : currentStep > step.id
@@ -824,22 +853,16 @@ export function AIGeneratePage() {
                       <span className="font-semibold">{step.id}</span>
                     )}
                   </button>
-                  <div className="mt-2 text-center">
+                  <div className="mt-2 text-center w-full">
                     <p className={cn(
-                      "text-xs font-medium",
+                      "text-xs font-medium truncate",
                       currentStep === step.id ? "text-blue-600" : currentStep > step.id ? "text-green-600" : "text-gray-400"
                     )}>
                       {step.name}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5 hidden lg:block">{step.description}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 hidden lg:block truncate">{step.description}</p>
                   </div>
                 </div>
-                {index < steps.length - 1 && (
-                  <div className={cn(
-                    "flex-1 h-0.5 mx-2 -mt-6",
-                    currentStep > step.id ? "bg-green-500" : "bg-gray-300"
-                  )} />
-                )}
               </div>
             ))}
           </div>
@@ -871,12 +894,6 @@ export function AIGeneratePage() {
                       )}
                     </button>
                   </div>
-                  {index < steps.length - 1 && (
-                    <div className={cn(
-                      "flex-1 h-0.5 mx-1 -mt-4",
-                      currentStep > step.id ? "bg-green-500" : "bg-gray-300"
-                    )} />
-                  )}
                 </div>
               ))}
             </div>
@@ -928,7 +945,13 @@ export function AIGeneratePage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          // Only submit if we're on the last step
+          if (currentStep === totalSteps) {
+            handleSubmit(e);
+          }
+        }} className="space-y-8">
           {/* Step 1: Personal Information */}
           {currentStep === 1 && (
           <Card className="p-6 shadow-lg">
@@ -979,38 +1002,266 @@ export function AIGeneratePage() {
                   id="location"
                   value={personalInfo.location}
                   onChange={(e) => setPersonalInfo({...personalInfo, location: e.target.value})}
+                  placeholder="e.g., New York, NY or Remote"
                 />
               </div>
               <div>
-                <Label htmlFor="jobTitle">Job Title</Label>
+                <Label htmlFor="jobTitle">Job Position (Optional)</Label>
                 <Input
                   id="jobTitle"
                   value={personalInfo.jobTitle}
                   onChange={(e) => setPersonalInfo({...personalInfo, jobTitle: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label htmlFor="linkedin">LinkedIn</Label>
-                <Input
-                  id="linkedin"
-                  value={personalInfo.linkedin}
-                  onChange={(e) => setPersonalInfo({...personalInfo, linkedin: e.target.value})}
-                />
-              </div>
-              <div>
-                <Label htmlFor="website">Website</Label>
-                <Input
-                  id="website"
-                  value={personalInfo.website}
-                  onChange={(e) => setPersonalInfo({...personalInfo, website: e.target.value})}
+                  placeholder="e.g., Senior Software Engineer, Product Manager, Marketing Specialist"
                 />
               </div>
             </div>
           </Card>
           )}
 
-          {/* Step 2: Work Experience */}
+          {/* Step 2: Social & Professional Links */}
           {currentStep === 2 && (
+          <Card className="p-6 shadow-lg">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Social & Professional Links</h2>
+              <p className="text-gray-600 mt-1">Add links to your LinkedIn, GitHub, portfolio, and other profiles</p>
+            </div>
+            <div className="space-y-4">
+              {socialLinks.map((link, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                  <div className="md:col-span-4">
+                    <Label>Platform</Label>
+                    <Select
+                      value={link.platform}
+                      onValueChange={(value) => {
+                        const updated = [...socialLinks];
+                        updated[index] = { ...updated[index], platform: value };
+                        setSocialLinks(updated);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                        <SelectItem value="GitHub">GitHub</SelectItem>
+                        <SelectItem value="Portfolio">Portfolio</SelectItem>
+                        <SelectItem value="Twitter">Twitter</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-7">
+                    <Label>Profile URL</Label>
+                    <Input
+                      value={link.url}
+                      onChange={(e) => {
+                        const updated = [...socialLinks];
+                        updated[index] = { ...updated[index], url: e.target.value };
+                        setSocialLinks(updated);
+                      }}
+                      placeholder="https://linkedin.com/in/yourprofile"
+                    />
+                  </div>
+                  <div className="md:col-span-1">
+                    {socialLinks.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setSocialLinks(socialLinks.filter((_, i) => i !== index));
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setSocialLinks([...socialLinks, { platform: 'LinkedIn', url: '' }]);
+                }} 
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Social Profile
+              </Button>
+            </div>
+          </Card>
+          )}
+
+          {/* Step 3: Skills */}
+          {currentStep === 3 && (
+          <Card className="p-6 shadow-lg">
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">Skills</h2>
+                  <p className="text-gray-600 mt-1">Add your professional skills with categories and proficiency levels</p>
+                </div>
+                <Button type="button" onClick={addSkill} variant="outline" size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Skill
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {skills.map((skill) => (
+                <div key={skill.id} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                  <div className="md:col-span-4">
+                    <Label>Skill Name</Label>
+                    <Input
+                      value={skill.name}
+                      onChange={(e) => updateSkill(skill.id, 'name', e.target.value)}
+                      placeholder="e.g., React, Leadership"
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <Label>Category</Label>
+                    <Select
+                      value={skill.category}
+                      onValueChange={(value) => updateSkill(skill.id, 'category', value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Technical">Technical</SelectItem>
+                        <SelectItem value="Soft Skills">Soft Skills</SelectItem>
+                        <SelectItem value="Languages">Languages</SelectItem>
+                        <SelectItem value="Tools">Tools</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-3">
+                    <Label>Level</Label>
+                    <Select
+                      value={skill.level || 'Intermediate'}
+                      onValueChange={(value) => updateSkill(skill.id, 'level', value)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Beginner">Beginner</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                        <SelectItem value="Expert">Expert</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button
+                      type="button"
+                      onClick={() => removeSkill(skill.id)}
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              {skills.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No skills added yet.</p>
+                  <p className="text-sm">Click "Add Skill" to get started.</p>
+                </div>
+              )}
+            </div>
+          </Card>
+          )}
+
+          {/* Step 4: Education */}
+          {currentStep === 4 && (
+          <Card className="p-6 shadow-lg">
+            <div className="mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-gray-900">Education</h2>
+                  <p className="text-gray-600 mt-1">Add your education background (optional)</p>
+                </div>
+                <Button type="button" onClick={addEducation} variant="outline" size="sm">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Education
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-4">
+              {education.map((edu) => (
+                <div key={edu.id} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium">Education {education.indexOf(edu) + 1}</h3>
+                    <Button
+                      type="button"
+                      onClick={() => removeEducation(edu.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>School *</Label>
+                      <Input
+                        value={edu.school}
+                        onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Degree *</Label>
+                      <Input
+                        value={edu.degree}
+                        onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label>Field of Study</Label>
+                      <Input
+                        value={edu.field}
+                        onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
+                        placeholder="e.g., Computer Science"
+                      />
+                    </div>
+                    <div>
+                      <Label>Start Date</Label>
+                      <Input
+                        type="month"
+                        value={edu.startDate}
+                        onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label>End Date</Label>
+                      <Input
+                        type="month"
+                        value={edu.endDate}
+                        onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {education.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No education added yet.</p>
+                  <p className="text-sm">Click "Add Education" to get started.</p>
+                </div>
+              )}
+            </div>
+          </Card>
+          )}
+
+          {/* Step 5: Work Experience */}
+          {currentStep === 5 && (
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
               <div className="flex items-center justify-between">
@@ -1090,13 +1341,27 @@ export function AIGeneratePage() {
                       />
                       <Label htmlFor={`current-${exp.id}`}>Currently working here</Label>
                     </div>
+                    <div>
+                      <Label>Job Type</Label>
+                      <select
+                        value={exp.jobType || ''}
+                        onChange={(e) => updateWorkExperience(exp.id, 'jobType', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      >
+                        <option value="">Select job type</option>
+                        <option value="Full-time">Full-time</option>
+                        <option value="Part-time">Part-time</option>
+                        <option value="Remote">Remote</option>
+                        <option value="Contract">Contract</option>
+                        <option value="Internship">Internship</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <Label>Description</Label>
                       <Button
                         type="button"
-                        variant="outline"
                         size="sm"
                         onClick={() => {
                           if (!exp.title || !exp.company) {
@@ -1105,7 +1370,7 @@ export function AIGeneratePage() {
                           }
                           setShowQuestionnaireDialog(exp.id);
                         }}
-                        className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                        className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
                       >
                         <Sparkles className="w-4 h-4 mr-1" />
                         Generate with AI
@@ -1130,153 +1395,14 @@ export function AIGeneratePage() {
           </Card>
           )}
 
-          {/* Step 3: Education */}
-          {currentStep === 3 && (
+          {/* Step 6: Languages */}
+          {currentStep === 6 && (
           <Card className="p-6 shadow-lg">
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-900">Education</h2>
-                  <p className="text-gray-600 mt-1">Add your education background (optional)</p>
-                </div>
-                <Button type="button" onClick={addEducation} variant="outline" size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Education
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-4">
-              {education.map((edu) => (
-                <div key={edu.id} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex justify-between items-start">
-                    <h3 className="font-medium">Education {education.indexOf(edu) + 1}</h3>
-                    <Button
-                      type="button"
-                      onClick={() => removeEducation(edu.id)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>School/University *</Label>
-                      <Input
-                        value={edu.school}
-                        onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label>Degree *</Label>
-                      <Input
-                        value={edu.degree}
-                        onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label>Field of Study</Label>
-                      <Input
-                        value={edu.field}
-                        onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Start Date</Label>
-                      <Input
-                        type="month"
-                        value={edu.startDate}
-                        onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <Label>End Date</Label>
-                      <Input
-                        type="month"
-                        value={edu.endDate}
-                        onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {education.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No education added yet.</p>
-                  <p className="text-sm">Click "Add Education" to get started.</p>
-                </div>
-              )}
-            </div>
-          </Card>
-          )}
-
-          {/* Step 4: Skills & Languages */}
-          {currentStep === 4 && (
-          <>
-          <Card className="p-6 shadow-lg">
-            <div className="mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-semibold text-gray-900">Skills</h2>
-                  <p className="text-gray-600 mt-1">Add your technical and soft skills (optional)</p>
-                </div>
-                <Button type="button" onClick={addSkill} variant="outline" size="sm">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Skill
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-4">
-              {skills.map((skill) => (
-                <div key={skill.id} className="flex items-center gap-4">
-                  <div className="flex-1">
-                    <Input
-                      value={skill.name}
-                      onChange={(e) => updateSkill(skill.id, 'name', e.target.value)}
-                      placeholder="Skill name"
-                    />
-                  </div>
-                  <div className="w-32">
-                    <select
-                      value={skill.category}
-                      onChange={(e) => updateSkill(skill.id, 'category', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    >
-                      <option value="Technical">Technical</option>
-                      <option value="Soft Skills">Soft Skills</option>
-                      <option value="Languages">Languages</option>
-                      <option value="Tools">Tools</option>
-                    </select>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() => removeSkill(skill.id)}
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              {skills.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No skills added yet.</p>
-                  <p className="text-sm">Click "Add Skill" to get started.</p>
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card className="p-6 shadow-lg mt-6">
             <div className="mb-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-semibold text-gray-900">Languages</h2>
-                  <p className="text-gray-600 mt-1">Add languages you speak (optional)</p>
+                  <p className="text-gray-600 mt-1">Add the languages you speak with proficiency level</p>
                 </div>
                 <Button type="button" onClick={addLanguage} variant="outline" size="sm">
                   <Plus className="w-4 h-4 mr-2" />
@@ -1286,36 +1412,43 @@ export function AIGeneratePage() {
             </div>
             <div className="space-y-4">
               {languages.map((lang, index) => (
-                <div key={index} className="flex items-center gap-4">
-                  <div className="flex-1">
+                <div key={index} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                  <div className="md:col-span-5">
+                    <Label>Language</Label>
                     <Input
                       value={lang.name}
                       onChange={(e) => updateLanguage(index, 'name', e.target.value)}
-                      placeholder="Language name"
+                      placeholder="e.g., English, Spanish"
                     />
                   </div>
-                  <div className="w-32">
-                    <select
+                  <div className="md:col-span-5">
+                    <Label>Proficiency</Label>
+                    <Select
                       value={lang.proficiency}
-                      onChange={(e) => updateLanguage(index, 'proficiency', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      onValueChange={(value) => updateLanguage(index, 'proficiency', value)}
                     >
-                      <option value="Native">Native</option>
-                      <option value="Fluent">Fluent</option>
-                      <option value="Advanced">Advanced</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Basic">Basic</option>
-                    </select>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Beginner">Beginner</SelectItem>
+                        <SelectItem value="Intermediate">Intermediate</SelectItem>
+                        <SelectItem value="Advanced">Advanced</SelectItem>
+                        <SelectItem value="Native">Native</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button
-                    type="button"
-                    onClick={() => removeLanguage(index)}
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="md:col-span-2">
+                    <Button
+                      type="button"
+                      onClick={() => removeLanguage(index)}
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
               {languages.length === 0 && (
@@ -1326,154 +1459,10 @@ export function AIGeneratePage() {
               )}
             </div>
           </Card>
-          </>
           )}
 
-          {/* Step 5: Professional Summary */}
-          {currentStep === 5 && (
-          <Card className="p-6 shadow-lg">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
-              <p className="text-gray-600 mt-1">Tell us about yourself - This is required</p>
-            </div>
-            <div>
-              <Label htmlFor="summary">
-                Tell us about yourself <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="summary"
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                placeholder="Brief description of your professional background, key skills, and career objectives..."
-                rows={4}
-                className={errors.some(e => e.includes('Summary')) ? 'border-red-500' : ''}
-              />
-              {errors.some(e => e.includes('Summary')) && (
-                <p className="text-red-500 text-sm mt-1">Professional Summary is required</p>
-              )}
-              <div className="mt-3 flex items-center gap-3">
-                <Button
-                  type="button"
-                  disabled={!wizardSessionId}
-                  onClick={async () => {
-                    if (!wizardSessionId) return;
-                    try {
-                      const r = await wizardApi.generateSummary(wizardSessionId, targetRole || undefined);
-                      setSummary(r.summary);
-                    } catch (e) {
-                      console.error('Generate summary failed', e);
-                    }
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  Generate Summary with AI
-                </Button>
-                <span className="text-sm text-gray-500">Uses your skills/experience and Target Role as hints.</span>
-              </div>
-            </div>
-          </Card>
-          )}
-
-          {/* Work Experience Description Generator Dialog */}
-          <Dialog open={showQuestionnaireDialog !== null} onOpenChange={(open) => {
-            if (!open) {
-              setShowQuestionnaireDialog(null);
-              setQuestionnaireAnswers({
-                whatDidYouDo: '',
-                achievements: '',
-                impactResults: '',
-              });
-            }
-          }}>
-            <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto bg-white">
-              <DialogHeader>
-                <DialogTitle>Help AI Generate Your Job Description</DialogTitle>
-                <DialogDescription>
-                  Answer these 3 questions to help AI create a professional description.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="whatDidYouDo">
-                    What did you do in this role? <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    id="whatDidYouDo"
-                    value={questionnaireAnswers.whatDidYouDo}
-                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, whatDidYouDo: e.target.value})}
-                    placeholder="Describe your main responsibilities and daily tasks..."
-                    rows={3}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="achievements">
-                    What were your key achievements?
-                  </Label>
-                  <Textarea
-                    id="achievements"
-                    value={questionnaireAnswers.achievements}
-                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, achievements: e.target.value})}
-                    placeholder="Mention specific accomplishments, awards, or recognitions..."
-                    rows={2}
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="impactResults">
-                    What was the impact or results? (Include numbers if possible)
-                  </Label>
-                  <Textarea
-                    id="impactResults"
-                    value={questionnaireAnswers.impactResults}
-                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, impactResults: e.target.value})}
-                    placeholder="e.g., Increased sales by 30%, Reduced processing time by 50%, Managed team of 5..."
-                    rows={2}
-                    className="mt-1"
-                  />
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowQuestionnaireDialog(null);
-                    setQuestionnaireAnswers({
-                      whatDidYouDo: '',
-                      achievements: '',
-                      impactResults: '',
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => showQuestionnaireDialog && generateDescriptionFromQuestionnaire(showQuestionnaireDialog)}
-                  disabled={!questionnaireAnswers.whatDidYouDo.trim() || isGeneratingDescription}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isGeneratingDescription ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    'Generate Description'
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Step 6: Target Role */}
-          {currentStep === 6 && (
+          {/* Step 7: Target Role */}
+          {currentStep === 7 && (
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-900">Target Role & Review</h2>
@@ -1502,6 +1491,210 @@ export function AIGeneratePage() {
             </div>
           </Card>
           )}
+
+          {/* Step 8: Professional Summary */}
+          {currentStep === 8 && (
+          <Card className="p-6 shadow-lg">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
+              <p className="text-gray-600 mt-1">Tell us about yourself - This is required</p>
+            </div>
+            <div>
+              <Label htmlFor="summary">
+                Tell us about yourself <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                id="summary"
+                value={summary}
+                onChange={(e) => setSummary(e.target.value)}
+                onKeyDown={(e) => {
+                  // Prevent form submission on Enter key
+                  if (e.key === 'Enter' && e.ctrlKey) {
+                    // Allow Ctrl+Enter for new line
+                    return;
+                  }
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                  }
+                }}
+                placeholder="Brief description of your professional background, key skills, and career objectives..."
+                rows={4}
+                className={errors.some(e => e.includes('Summary')) ? 'border-red-500' : ''}
+              />
+              {errors.some(e => e.includes('Summary')) && (
+                <p className="text-red-500 text-sm mt-1">Professional Summary is required</p>
+              )}
+              <div className="mt-3 flex items-center gap-3">
+                <Button
+                  type="button"
+                  disabled={!wizardSessionId || isGeneratingSummary}
+                  onClick={async () => {
+                    if (!wizardSessionId) {
+                      alert('Session not ready. Please wait a moment and try again.');
+                      return;
+                    }
+                    setIsGeneratingSummary(true);
+                    try {
+                      // Save current form data to draft first so backend has latest skills/experience
+                      const draftPatch: any = {
+                        profile: {
+                          fullName: `${personalInfo.firstName} ${personalInfo.lastName}`.trim(),
+                          headline: personalInfo.jobTitle,
+                          summary: summary || personalInfo.professionalSummary,
+                          professionalSummary: personalInfo.professionalSummary,
+                          location: personalInfo.location,
+                          email: personalInfo.email,
+                          phone: personalInfo.phone,
+                          socialLinks: socialLinks.filter(link => link.url.trim() !== ''),
+                        },
+                        experience: workExperience.map(e => ({
+                          id: e.id,
+                          title: e.title,
+                          company: e.company,
+                          location: e.location,
+                          startDate: e.startDate,
+                          endDate: e.endDate,
+                          isCurrent: e.isCurrent,
+                          jobType: e.jobType,
+                          description: e.description,
+                        })),
+                        education: education.map(e => ({
+                          id: e.id,
+                          school: e.school,
+                          degree: e.degree,
+                          startDate: e.startDate,
+                          endDate: e.endDate,
+                        })),
+                        skills: skills.filter(s => s.name.trim().length > 0).map(s => s.name),
+                        languages: languages.filter(l => l.name.trim().length > 0),
+                        targetRole,
+                      };
+                      await wizardApi.patchSession(wizardSessionId, draftPatch, {}, currentStep);
+                      
+                      // Now generate summary with latest data
+                      const r = await wizardApi.generateSummary(wizardSessionId, targetRole || undefined);
+                      setSummary(r.summary);
+                    } catch (e: any) {
+                      console.error('Generate summary failed', e);
+                      let errorMessage = e?.message || e?.detail || 'Failed to generate summary. Please try again.';
+                      
+                      // Improve rate limit error message
+                      if (errorMessage.includes('Too many requests') || errorMessage.includes('429') || errorMessage.includes('rate limit')) {
+                        // Use the error message from backend which includes the actual limit
+                        if (!errorMessage.includes('per minute')) {
+                          errorMessage = 'Rate limit exceeded. You can make up to 30 AI requests per minute. Please wait a minute before trying again.';
+                        }
+                      }
+                      
+                      // Improve network error messages
+                      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Unable to connect')) {
+                        errorMessage = 'Unable to connect to the server. Please check your internet connection and ensure the backend is running.';
+                      }
+                      
+                      alert(`Error: ${errorMessage}`);
+                    } finally {
+                      setIsGeneratingSummary(false);
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isGeneratingSummary ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Summary with AI'
+                  )}
+                </Button>
+                <span className="text-sm text-gray-500">Uses your skills/experience and Target Role as hints.</span>
+              </div>
+            </div>
+          </Card>
+          )}
+
+          {/* Work Experience Description Generator Dialog */}
+          <Dialog open={showQuestionnaireDialog !== null} onOpenChange={(open) => {
+            if (!open) {
+              setShowQuestionnaireDialog(null);
+              setQuestionnaireAnswers({
+                whatDidYouDo: '',
+                impactResults: '',
+              });
+            }
+          }}>
+            <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto bg-white">
+              <DialogHeader>
+                <DialogTitle>Help AI Generate Your Job Description</DialogTitle>
+                <DialogDescription>
+                  Answer these 2 questions to help AI create a professional description.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="whatDidYouDo">
+                    What did you do in this role? <span className="text-red-500">*</span>
+                  </Label>
+                  <Textarea
+                    id="whatDidYouDo"
+                    value={questionnaireAnswers.whatDidYouDo}
+                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, whatDidYouDo: e.target.value})}
+                    placeholder="Describe your main responsibilities and daily tasks..."
+                    rows={3}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="impactResults">
+                    What was the impact or results? (Include numbers if possible)
+                  </Label>
+                  <Textarea
+                    id="impactResults"
+                    value={questionnaireAnswers.impactResults}
+                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, impactResults: e.target.value})}
+                    placeholder="e.g., Increased sales by 30%, Reduced processing time by 50%, Managed team of 5..."
+                    rows={2}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowQuestionnaireDialog(null);
+                    setQuestionnaireAnswers({
+                      whatDidYouDo: '',
+                      impactResults: '',
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => showQuestionnaireDialog && generateDescriptionFromQuestionnaire(showQuestionnaireDialog)}
+                  disabled={!questionnaireAnswers.whatDidYouDo.trim() || isGeneratingDescription}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isGeneratingDescription ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'Generate Description'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
 
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center pt-6 border-t">
@@ -1539,17 +1732,18 @@ export function AIGeneratePage() {
                 </Button>
               ) : (
                 <Button
-                  type="submit"
+                  type="button"
                   disabled={isGenerating || !wizardSessionId}
                   onClick={(e) => {
+                    e.preventDefault();
                     console.log('🔘 Generate button clicked');
                     if (!wizardSessionId) {
                       console.error('❌ Button clicked but no wizard session ID');
-                      e.preventDefault();
                       setErrors(['Session not ready. Please refresh the page.']);
                       return;
                     }
-                    // Let form submission handle it
+                    // Call handleSubmit directly
+                    handleSubmit(e as any);
                   }}
                   className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

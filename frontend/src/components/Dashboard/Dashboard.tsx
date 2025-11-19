@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Star, MoreHorizontal, Plus, Edit, Trash2, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Grid, Maximize2, FileText } from 'lucide-react';
 import { Job } from '@/lib/types';
-import { jobApi } from '@/lib/api';
+import { jobApi, profileApi } from '@/lib/api';
 import { JobModal } from '@/components/Jobs/AddJobModal';
 import { KanbanBoard } from './KanbanBoard';
 import { FullScreenKanban } from './FullScreenKanban';
@@ -92,12 +92,43 @@ export function Dashboard({ }: DashboardProps) {
     // Only load jobs once on mount - no dependencies to prevent re-runs
     loadJobs();
     
-    // Get current user
-    const getUser = async () => {
+    // Get current user and check profile completion
+    const getUserAndCheckProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      
+      // Check if profile is complete
+      if (user) {
+        try {
+          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+            (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.access_token) {
+            const response = await fetch(`${API_BASE_URL}/api/profile`, {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`
+              }
+            });
+            
+            if (response.ok) {
+              const profile = await response.json();
+              // Only consider profile complete if explicitly marked as completed
+              // Don't check for fields - user must complete the full wizard
+              const isProfileComplete = profile.profile_completed === true;
+              
+              if (!isProfileComplete) {
+                navigate('/register/complete');
+                return;
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error checking profile:', err);
+          // If profile check fails, still allow user to proceed (they can complete profile later)
+        }
+      }
     };
-    getUser();
+    getUserAndCheckProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - only run once on mount
 

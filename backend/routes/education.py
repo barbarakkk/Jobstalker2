@@ -31,7 +31,6 @@ def add_education(education_data: CreateEducation, user_id: str = Depends(get_cu
             "user_id": user_id,
             "school": education_data.school,
             "degree": education_data.degree,
-            "field": education_data.field,
             "start_date": education_data.start_date.isoformat() if education_data.start_date else None,
             "end_date": education_data.end_date.isoformat() if education_data.end_date else None
         }
@@ -54,8 +53,6 @@ def update_education(education_id: str, education_data: UpdateEducation, user_id
             update_dict["school"] = education_data.school
         if education_data.degree is not None:
             update_dict["degree"] = education_data.degree
-        if education_data.field is not None:
-            update_dict["field"] = education_data.field
         if education_data.start_date is not None:
             update_dict["start_date"] = education_data.start_date.isoformat()
         if education_data.end_date is not None:

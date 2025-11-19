@@ -29,7 +29,7 @@ class CreateJob(BaseModel):
     excitement_level: Optional[int] = Field(None, ge=1, le=5)
     date_applied: Optional[date] = None
     deadline: Optional[date] = None
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=15000)
 
 class UpdateJob(BaseModel):
     job_title: Optional[str] = None
@@ -41,31 +41,54 @@ class UpdateJob(BaseModel):
     excitement_level: Optional[int] = Field(None, ge=1, le=5)
     date_applied: Optional[date] = None
     deadline: Optional[date] = None
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=15000)
 
 # Profile-related models
 class Profile(BaseModel):
     id: Optional[UUID]
     user_id: UUID
     full_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
     current_role: Optional[str] = None
+    job_title: Optional[str] = None
     location: Optional[str] = None
     summary: Optional[str] = None
+    professional_summary: Optional[str] = None
+    social_links: Optional[List[Dict[str, str]]] = []
+    profile_completed: Optional[bool] = False
     profile_picture_url: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
 class CreateProfile(BaseModel):
     full_name: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
     current_role: Optional[str] = None
+    job_title: Optional[str] = None
     location: Optional[str] = None
     summary: Optional[str] = None
+    professional_summary: Optional[str] = None
+    social_links: Optional[List[Dict[str, str]]] = []
 
 class UpdateProfile(BaseModel):
     full_name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    # email removed - it's managed by auth.users, not user_profile
+    phone: Optional[str] = None
     current_role: Optional[str] = None
+    job_title: Optional[str] = None
     location: Optional[str] = None
     summary: Optional[str] = None
+    professional_summary: Optional[str] = None
+    social_links: Optional[List[Dict[str, str]]] = None
+    profile_completed: Optional[bool] = None
 
 class ProfileStats(BaseModel):
     jobs_applied: int
@@ -274,7 +297,6 @@ class Education(BaseModel):
     user_id: UUID
     school: str
     degree: Optional[str] = None
-    field: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
     created_at: Optional[datetime] = None
@@ -283,16 +305,31 @@ class Education(BaseModel):
 class CreateEducation(BaseModel):
     school: str
     degree: Optional[str] = None
-    field: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
 
 class UpdateEducation(BaseModel):
     school: Optional[str] = None
     degree: Optional[str] = None
-    field: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
+
+# Language models (normalized table)
+class Language(BaseModel):
+    id: Optional[UUID]
+    user_id: UUID
+    language: str
+    proficiency: str  # Beginner, Intermediate, Advanced, Native
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+class CreateLanguage(BaseModel):
+    language: str
+    proficiency: str  # Beginner, Intermediate, Advanced, Native
+
+class UpdateLanguage(BaseModel):
+    language: Optional[str] = None
+    proficiency: Optional[str] = None
 
 # Resume models removed - using AI-generated resumes instead
 
@@ -341,12 +378,20 @@ class ProfilePictureResponse(BaseModel):
 class ProfileResponse(BaseModel):
     id: str
     full_name: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
     job_title: Optional[str] = None
     location: Optional[str] = None
+    professional_summary: Optional[str] = None
+    social_links: Optional[List[Dict[str, str]]] = []
+    profile_completed: Optional[bool] = False
     profile_picture_url: Optional[str] = None
     skills: Optional[list] = []
     work_experience: Optional[list] = []
     education: Optional[list] = []
+    languages: Optional[list] = []
     user_id: str
     created_at: datetime
     updated_at: datetime 

@@ -260,19 +260,28 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Notes
+                <span className="text-xs font-normal text-gray-500 ml-2">(max 15,000 characters)</span>
               </label>
               <div className="rounded-lg border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-shadow">
                 <textarea
                   value={formData.description || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value.length <= 15000) {
+                      setFormData(prev => ({ ...prev, description: value }));
+                    }
+                  }}
                   rows={5}
-                  className="w-full px-3 py-2 rounded-lg outline-none resize-y min-h-[100px]"
+                  maxLength={15000}
+                  className="w-full px-3 py-2 rounded-lg outline-none resize-y min-h-[100px] max-h-[400px]"
                   placeholder="Jot down interview prep, contacts, follow-ups, or anything relevant..."
                 />
               </div>
               <div className="mt-1 flex items-center justify-between">
                 <span className="text-xs text-gray-500">These notes are private to you.</span>
-                <span className="text-xs text-gray-400">{(formData.description || '').length} chars</span>
+                <span className={`text-xs ${(formData.description || '').length > 14000 ? 'text-orange-600 font-semibold' : 'text-gray-400'}`}>
+                  {((formData.description || '').length).toLocaleString()} / 15,000 characters
+                </span>
               </div>
             </div>
 

@@ -11,10 +11,16 @@ CREATE TABLE IF NOT EXISTS public.user_profile (
     
     -- Basic profile information
     full_name VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    email VARCHAR(255),
+    phone VARCHAR(50),
     job_title VARCHAR(255),
     location VARCHAR(255),
-    -- professional_summary TEXT, -- Removed as per user request
+    professional_summary TEXT,
     profile_picture_url TEXT,
+    social_links JSONB DEFAULT '[]'::jsonb,
+    profile_completed BOOLEAN DEFAULT FALSE,
     
     -- Skills stored as JSON array
     skills JSONB DEFAULT '[]'::jsonb,
@@ -103,6 +109,17 @@ CREATE TABLE IF NOT EXISTS public.user_education (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- User Languages Table (normalized)
+CREATE TABLE IF NOT EXISTS public.user_languages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    language VARCHAR(100) NOT NULL,
+    proficiency VARCHAR(50) NOT NULL, -- Beginner, Intermediate, Advanced, Native
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id, language) -- Prevent duplicate languages for same user
+);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_user_profile_user_id ON public.user_profile(user_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_user_id ON public.jobs(user_id);
@@ -113,6 +130,7 @@ CREATE INDEX IF NOT EXISTS idx_user_skills_user_id ON public.user_skills(user_id
 CREATE INDEX IF NOT EXISTS idx_user_skills_category ON public.user_skills(category);
 CREATE INDEX IF NOT EXISTS idx_user_work_experience_user_id ON public.user_work_experience(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_education_user_id ON public.user_education(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_languages_user_id ON public.user_languages(user_id);
 
 -- Create GIN indexes for JSONB fields to enable efficient querying
 CREATE INDEX IF NOT EXISTS idx_user_profile_skills ON public.user_profile USING GIN (skills);
@@ -135,6 +153,7 @@ CREATE TRIGGER update_resume_builder_data_updated_at BEFORE UPDATE ON public.res
 CREATE TRIGGER update_user_skills_updated_at BEFORE UPDATE ON public.user_skills FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_work_experience_updated_at BEFORE UPDATE ON public.user_work_experience FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_education_updated_at BEFORE UPDATE ON public.user_education FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_user_languages_updated_at BEFORE UPDATE ON public.user_languages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.user_profile ENABLE ROW LEVEL SECURITY;
@@ -143,6 +162,7 @@ ALTER TABLE public.resume_builder_data ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_skills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_work_experience ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_education ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_languages ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for user_profile
 CREATE POLICY "Users can view own profile" ON public.user_profile
@@ -220,6 +240,19 @@ CREATE POLICY "Users can update own education" ON public.user_education
     FOR UPDATE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can delete own education" ON public.user_education
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for user_languages
+CREATE POLICY "Users can view own languages" ON public.user_languages
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own languages" ON public.user_languages
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own languages" ON public.user_languages
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own languages" ON public.user_languages
     FOR DELETE USING (auth.uid() = user_id);
 
 -- Create helper functions for JSON operations
