@@ -72,7 +72,7 @@ export function toJSONResume(data: ResumeData): JSONResume {
     })),
     education: data.education.map(e => ({
       institution: e.school,
-      area: e.field,
+      area: e.field || '',
       studyType: e.degree,
       startDate: e.startDate,
       endDate: e.endDate,

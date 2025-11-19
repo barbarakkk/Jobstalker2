@@ -31,6 +31,7 @@ interface Education {
   id: string;
   school: string;
   degree: string;
+  field?: string;
   startDate: string;
   endDate: string;
 }
@@ -1226,7 +1227,7 @@ export function AIGeneratePage() {
                     <div>
                       <Label>Field of Study</Label>
                       <Input
-                        value={edu.field}
+                        value={edu.field || ''}
                         onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
                         placeholder="e.g., Computer Science"
                       />

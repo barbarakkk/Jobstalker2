@@ -116,7 +116,7 @@ const apiCall = async <T>(
       
       // For non-critical endpoints with server disconnected errors, return empty array instead of throwing
       if (isNonCriticalEndpoint && isServerDisconnected) {
-        return [];
+        return [] as T;
       }
       
       throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);

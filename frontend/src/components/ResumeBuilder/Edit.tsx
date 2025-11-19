@@ -415,7 +415,6 @@ export function ResumeEditPage() {
         height: resumeHeight,
         windowWidth: resumeWidth,
         windowHeight: resumeHeight,
-        letterRendering: true, // Better text rendering
         allowTaint: false,
         removeContainer: false, // Keep container for proper layout
         onclone: (clonedDoc) => {

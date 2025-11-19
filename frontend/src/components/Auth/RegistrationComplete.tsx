@@ -297,8 +297,8 @@ export function RegistrationComplete() {
         if (edu.school) {
           await educationApi.addEducation({
             school: edu.school,
-            degree: edu.degree || undefined,
-            start_date: undefined,
+            degree: edu.degree || '',
+            start_date: edu.graduationYear ? `${edu.graduationYear}-01-01` : new Date().toISOString().split('T')[0],
             end_date: edu.graduationYear ? `${edu.graduationYear}-01-01` : undefined,
           });
         }
