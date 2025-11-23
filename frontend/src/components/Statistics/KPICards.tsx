@@ -115,22 +115,25 @@ export function KPICards({ jobs }: KPICardsProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
       {/* Total Applications */}
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-blue-800">
+      <Card className="bg-white border-0 shadow-lg rounded-xl hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 h-1"></div>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+          <CardTitle className="text-sm font-semibold text-gray-700">
             Total Applications
           </CardTitle>
-          <Briefcase className="h-4 w-4 text-blue-600" />
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Briefcase className="h-4 w-4 text-blue-600" />
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-blue-900">
+        <CardContent className="px-5 pb-5">
+          <div className="text-3xl font-black text-gray-900 mb-2">
             {kpiData.totalApplications}
           </div>
-          <div className="flex items-center space-x-1 text-xs text-blue-700">
+          <div className="flex items-center space-x-1.5 text-xs">
             {getTrendIcon(kpiData.trendData.applicationsThisWeek, kpiData.trendData.applicationsLastWeek)}
-            <span className={getTrendColor(kpiData.trendData.applicationsThisWeek, kpiData.trendData.applicationsLastWeek)}>
+            <span className={getTrendColor(kpiData.trendData.applicationsThisWeek, kpiData.trendData.applicationsLastWeek) + " font-medium"}>
               {getTrendText(kpiData.trendData.applicationsThisWeek, kpiData.trendData.applicationsLastWeek)} this week
             </span>
           </div>
@@ -138,54 +141,66 @@ export function KPICards({ jobs }: KPICardsProps) {
       </Card>
 
       {/* Interview Conversion Rate - Key KPI */}
-      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 ring-2 ring-purple-300">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-purple-800">
-            Interview Conversion Rate
+      <Card className="bg-white border-0 shadow-lg rounded-xl hover:shadow-xl transition-shadow duration-300 overflow-hidden relative">
+        <div className="absolute top-0 right-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+          KEY METRIC
+        </div>
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 h-1"></div>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+          <CardTitle className="text-sm font-semibold text-gray-700">
+            Interview Rate
           </CardTitle>
-          <Target className="h-4 w-4 text-purple-600" />
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Target className="h-4 w-4 text-purple-600" />
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-purple-900">
+        <CardContent className="px-5 pb-5">
+          <div className="text-3xl font-black text-gray-900 mb-2">
             {kpiData.interviewConversionRate}%
           </div>
-          <p className="text-xs text-purple-700">
+          <p className="text-xs text-gray-600 font-medium">
             Key performance indicator
           </p>
         </CardContent>
       </Card>
 
       {/* Offer Rate */}
-      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-green-800">
+      <Card className="bg-white border-0 shadow-lg rounded-xl hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 h-1"></div>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+          <CardTitle className="text-sm font-semibold text-gray-700">
             Offer Rate
           </CardTitle>
-          <TrendingUp className="h-4 w-4 text-green-600" />
+          <div className="p-2 bg-green-100 rounded-lg">
+            <TrendingUp className="h-4 w-4 text-green-600" />
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-900">
+        <CardContent className="px-5 pb-5">
+          <div className="text-3xl font-black text-gray-900 mb-2">
             {kpiData.offerRate}%
           </div>
-          <p className="text-xs text-green-700">
-            {kpiData.offerRate > 0 ? 'Congratulations!' : 'Keep applying!'}
+          <p className="text-xs text-gray-600 font-medium">
+            {kpiData.offerRate > 0 ? '🎉 Congratulations!' : 'Keep applying!'}
           </p>
         </CardContent>
       </Card>
 
       {/* Active Opportunities */}
-      <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium text-orange-800">
+      <Card className="bg-white border-0 shadow-lg rounded-xl hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 h-1"></div>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 pt-5 px-5">
+          <CardTitle className="text-sm font-semibold text-gray-700">
             Active Opportunities
           </CardTitle>
-          <Activity className="h-4 w-4 text-orange-600" />
+          <div className="p-2 bg-orange-100 rounded-lg">
+            <Activity className="h-4 w-4 text-orange-600" />
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-orange-900">
+        <CardContent className="px-5 pb-5">
+          <div className="text-3xl font-black text-gray-900 mb-2">
             {kpiData.activeOpportunities}
           </div>
-          <p className="text-xs text-orange-700">
+          <p className="text-xs text-gray-600 font-medium">
             In your pipeline
           </p>
         </CardContent>

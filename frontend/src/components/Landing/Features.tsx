@@ -1,6 +1,9 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Target, BarChart2, Search, Calendar, FileText, Sparkles, Zap, Shield, Clock, TrendingUp, Award, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import ATSFriendlyResume from '@/assets/ATSfriendlyresume.png';
+import StatisticsPage from '@/assets/Statisticspage.png';
+import Jobmatcher from '@/assets/Jobmatcher.png';
 
 const features = [
   {
@@ -62,118 +65,177 @@ const stats = [
   { icon: <Clock className="w-6 h-6" />, value: '24/7', label: 'AI Support' },
 ];
 
+const featureSections = [
+  {
+    badge: 'AI Resume Builder',
+    badgeIcon: FileText,
+    title: 'Create ATS-Friendly Resumes',
+    titleHighlight: 'in Minutes',
+    description: 'Our AI-powered resume builder helps you create professional, ATS-friendly resumes that get past applicant tracking systems and into the hands of recruiters. Choose from multiple templates, use AI to generate compelling summaries, and optimize your content for maximum impact.',
+    features: [
+      'ATS-optimized formatting that passes screening systems',
+      'AI-generated professional summaries and bullet points',
+      'Multiple professional templates to choose from',
+      'Export as PDF ready for job applications'
+    ],
+    image: ATSFriendlyResume,
+    imageAlt: 'ATS-Friendly Resume Example'
+  },
+  {
+    badge: 'AI Job Matching',
+    badgeIcon: Search,
+    title: 'See Job Matching',
+    titleHighlight: 'in Action',
+    description: 'Our advanced AI-powered job matcher analyzes your profile data and automatically finds the best matching opportunities tailored to your skills, experience, and career goals. Get personalized job recommendations with match scores, salary ranges, and detailed insights to help you find your perfect role faster. That\'s why it\'s important to fill out all information in your profile page—complete profiles ensure we can match jobs perfectly to your qualifications.',
+    features: [
+      'AI-powered profile data analysis and skill matching',
+      'Intelligent job matching with percentage scores based on your profile',
+      'Real-time job recommendations personalized to your experience and goals',
+      'Detailed match insights including salary, location, and requirements',
+      'Better matches when your profile is fully completed'
+    ],
+    image: Jobmatcher,
+    imageAlt: 'AI Job Matching Dashboard'
+  },
+  {
+    badge: 'Advanced Analytics',
+    badgeIcon: BarChart2,
+    title: 'Track Your Job Search',
+    titleHighlight: 'Performance',
+    description: 'Get comprehensive insights into your job search with detailed analytics and statistics. Monitor your application success rates, track conversion metrics, and identify areas for improvement with visual dashboards and real-time data.',
+    features: [
+      'Real-time application tracking and status updates',
+      'Success rate analytics and conversion metrics',
+      'Visual charts and graphs for easy understanding',
+      'Performance insights to optimize your job search strategy'
+    ],
+    image: StatisticsPage,
+    imageAlt: 'Statistics and Analytics Dashboard'
+  }
+];
+
 export function Features() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const itemsPerView = 3; // Show 3 features at a time on desktop
+  const [currentSection, setCurrentSection] = useState(0); // 0 for resume, 1 for statistics
 
-  const nextSlide = () => {
-    setCurrentIndex((prev) => 
-      prev + itemsPerView >= features.length ? 0 : prev + itemsPerView
-    );
+  const nextSection = () => {
+    setCurrentSection((prev) => (prev + 1) % featureSections.length);
   };
 
-  const prevSlide = () => {
-    setCurrentIndex((prev) => 
-      prev - itemsPerView < 0 
-        ? Math.max(0, features.length - itemsPerView) 
-        : prev - itemsPerView
-    );
+  const prevSection = () => {
+    setCurrentSection((prev) => (prev - 1 + featureSections.length) % featureSections.length);
   };
 
-  const visibleFeatures = features.slice(currentIndex, currentIndex + itemsPerView);
+  const currentFeatureSection = featureSections[currentSection];
+  const BadgeIcon = currentFeatureSection.badgeIcon;
 
   return (
-    <section id="features" className="w-full py-20 lg:py-32 bg-white relative overflow-hidden">
+    <section id="features" className="w-full py-24 lg:py-36 bg-gradient-to-b from-white via-blue-50/40 to-white relative overflow-hidden">
       {/* Background Elements */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-blue-50/30"></div>
+      <div className="absolute inset-0">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+      </div>
       
       <div className="relative container mx-auto px-4 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 text-blue-700 font-semibold text-sm animate-fadeInUp">
+        <div className="text-center mb-20 relative z-10">
+          <div className="inline-flex items-center gap-2 mb-6 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 border border-blue-200/60 text-blue-700 font-semibold text-sm shadow-sm animate-fadeInUp">
             <Sparkles className="w-4 h-4 animate-pulse-slow" />
             Powerful Features
           </div>
-          <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight animate-fadeInUp animation-delay-100">
+          <h2 className="text-4xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-[1.1] tracking-tight animate-fadeInUp animation-delay-100">
             Everything you need to{' '}
-            <span className="bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
               land your dream job
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed animate-fadeInUp animation-delay-200">
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium animate-fadeInUp animation-delay-200">
             Powerful features designed specifically for experienced professionals and tech workers. 
             Get the tools you need to accelerate your career.
           </p>
         </div>
 
-        {/* Features Carousel */}
-        <div className="relative">
+        {/* Feature Section Carousel */}
+        <div className="mb-20 lg:mb-24 relative">
+          {/* Tab Navigation */}
+          <div className="flex justify-center gap-3 mb-10 flex-wrap">
+            {featureSections.map((section, index) => {
+              const SectionIcon = section.badgeIcon;
+              return (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSection(index)}
+                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm transition-all duration-300 ${
+                    currentSection === index
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30 scale-105'
+                      : 'bg-white/80 backdrop-blur-sm text-gray-700 border border-gray-200/60 hover:border-blue-300 hover:bg-blue-50/80 hover:shadow-md'
+                  }`}
+                  aria-label={`Switch to ${section.badge}`}
+                >
+                  <SectionIcon className="w-4 h-4" />
+                  {section.badge}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Navigation Buttons */}
           <button
-            onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:-translate-x-1 border border-gray-200 animate-fadeInUp group"
-            aria-label="Previous features"
+            onClick={prevSection}
+            className="absolute -left-4 lg:-left-12 top-1/2 -translate-y-1/2 z-20 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:-translate-x-1 border border-gray-200 group"
+            aria-label="Previous section"
           >
             <ChevronLeft className="w-6 h-6 text-gray-700 group-hover:text-blue-600 transition-colors duration-300" />
           </button>
           
           <button
-            onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:translate-x-1 border border-gray-200 animate-fadeInUp animation-delay-100 group"
-            aria-label="Next features"
+            onClick={nextSection}
+            className="absolute -right-4 lg:-right-12 top-1/2 -translate-y-1/2 z-20 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:translate-x-1 border border-gray-200 group"
+            aria-label="Next section"
           >
             <ChevronRight className="w-6 h-6 text-gray-700 group-hover:text-blue-600 transition-colors duration-300" />
           </button>
 
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-12">
-            {visibleFeatures.map((feature, index) => (
-              <Card 
-                key={currentIndex + index} 
-                className="group hover:shadow-xl transition-all duration-500 transform hover:-translate-y-3 hover:scale-105 border-gray-200 bg-white relative animate-fadeInUp"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-16 h-16 bg-gradient-to-r ${feature.gradient} rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
-                      {feature.icon}
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
+            {/* Left: Description */}
+            <div className="space-y-7 animate-fadeInUp animation-delay-300">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 border border-blue-200/60 text-blue-700 font-semibold text-sm shadow-sm">
+                <BadgeIcon className="w-4 h-4" />
+                {currentFeatureSection.badge}
+              </div>
+              <h3 className="text-3xl lg:text-4xl font-extrabold text-gray-900 leading-[1.1] tracking-tight">
+                {currentFeatureSection.title}{' '}
+                <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
+                  {currentFeatureSection.titleHighlight}
+                </span>
+              </h3>
+              <p className="text-lg text-gray-600 leading-relaxed font-medium">
+                {currentFeatureSection.description}
+              </p>
+              <div className="space-y-4">
+                {currentFeatureSection.features.map((feature, index) => (
+                  <div key={index} className="flex items-start gap-4">
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                      <div className="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors duration-300">
-                        {feature.title}
-                      </h3>
-                      <p className={`leading-relaxed mb-4 ${feature.comingSoon ? 'text-gray-500' : 'text-gray-600'}`}>
-                        {feature.description}
-                      </p>
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-200 text-blue-700 text-sm font-semibold">
-                        {feature.highlight}
-                      </div>
-                      {feature.comingSoon && (
-                        <div className="mt-3 inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-yellow-100 border border-yellow-200 text-yellow-800 text-xs font-semibold">
-                          Coming soon
-                        </div>
-                      )}
-                    </div>
+                    <p className="text-gray-700 leading-relaxed">{feature}</p>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                ))}
+              </div>
+            </div>
 
-          {/* Carousel Indicators */}
-          <div className="flex justify-center gap-2 mt-8">
-            {Array.from({ length: Math.ceil(features.length / itemsPerView) }).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index * itemsPerView)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  Math.floor(currentIndex / itemsPerView) === index
-                    ? 'bg-blue-600 w-8'
-                    : 'bg-gray-300 hover:bg-gray-400'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
+            {/* Right: Image */}
+            <div className="relative animate-fadeInUp animation-delay-400">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-gray-200/60 bg-white/90 backdrop-blur-sm p-5 hover:shadow-3xl transition-all duration-500">
+                <img 
+                  src={currentFeatureSection.image} 
+                  alt={currentFeatureSection.imageAlt} 
+                  className="w-full h-auto rounded-xl transition-opacity duration-500"
+                />
+              </div>
+              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full opacity-15 blur-3xl"></div>
+              <div className="absolute -top-6 -left-6 w-40 h-40 bg-gradient-to-r from-sky-300 to-blue-400 rounded-full opacity-10 blur-3xl"></div>
+            </div>
           </div>
         </div>
       </div>

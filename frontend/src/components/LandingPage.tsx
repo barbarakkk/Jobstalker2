@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { Header } from './Layout/Header';
+import { Footer } from './Layout/Footer';
 import { Hero } from './Landing/Hero';
 import { Features } from './Landing/Features';
 import { StatsSection } from './Landing/StatsSection';
-import { CallToAction } from './Landing/CallToAction';
 import { FAQ } from './Landing/FAQ';
 import { ChromeExtension } from './Landing/ChromeExtension';
 
@@ -50,14 +50,14 @@ export function LandingPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 font-sans">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-blue-50/30 to-white font-sans">
       <Header />
       <Hero />
       <Features />
       <ChromeExtension />
       <StatsSection />
       <FAQ />
-      <CallToAction />
+      <Footer />
     </div>
   );
 } 

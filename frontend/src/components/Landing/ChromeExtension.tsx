@@ -37,23 +37,23 @@ export function ChromeExtension() {
   ];
 
   return (
-    <section className="relative w-full py-20 lg:py-32 overflow-hidden bg-gradient-to-br from-gray-50 via-blue-50 to-blue-100">
+    <section className="relative w-full py-24 lg:py-36 overflow-hidden bg-gradient-to-br from-white via-blue-50/50 to-sky-50/60">
       {/* Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 right-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute bottom-20 left-10 w-96 h-96 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-20 right-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-blob"></div>
+        <div className="absolute bottom-20 left-10 w-96 h-96 bg-sky-300 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-blob animation-delay-2000"></div>
       </div>
 
       <div className="relative container mx-auto px-4 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Content */}
-          <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 rounded-full bg-gradient-to-r from-blue-100 to-blue-200 border border-blue-300 text-blue-700 font-semibold text-sm shadow-sm">
+          <div className="text-center lg:text-left relative z-10">
+            <div className="inline-flex items-center gap-2 mb-6 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 border border-blue-200/60 text-blue-700 font-semibold text-sm shadow-sm">
               <Chrome className="w-4 h-4" />
               Chrome Extension Available
             </div>
             
-            <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            <h2 className="text-4xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-[1.1] tracking-tight">
               Save jobs{' '}
               <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
                 instantly
@@ -61,7 +61,7 @@ export function ChromeExtension() {
               {' '}from anywhere
             </h2>
             
-            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+            <p className="text-xl text-gray-600 mb-8 leading-relaxed font-medium">
               Download our free Chrome extension to save job postings directly from LinkedIn. Our AI automatically extracts all job details and syncs them to your dashboard, so you can track all your applications in one place without manually entering information.
             </p>
 
@@ -99,8 +99,8 @@ export function ChromeExtension() {
           </div>
 
           {/* Right: Visual */}
-          <div className="relative">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 p-4 transform hover:scale-105 transition-transform duration-500 overflow-hidden">
+          <div className="relative z-10">
+            <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-gray-200/60 p-5 transform hover:scale-[1.02] hover:shadow-3xl transition-all duration-500 overflow-hidden">
               {extensionScreenshot ? (
                 <img 
                   src={extensionScreenshot} 

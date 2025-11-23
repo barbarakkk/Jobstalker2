@@ -301,32 +301,27 @@ export function Statistics() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       <AppHeader active="statistics" />
       
-      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
+      <div className="w-full px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 md:py-10">
         <div className="max-w-7xl mx-auto">
-
           {/* 1. Key Performance Indicators (KPIs) - The Big Picture */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Key Performance Indicators</h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">High-level metrics that give you a quick health check of your job search</p>
+          <div className="mb-8 sm:mb-10">
             <KPICards jobs={jobs} />
           </div>
 
-
-
           {/* 2. Job Status Distribution */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">Job Status Distribution</h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Visual breakdown of your job applications by status</p>
+          <div className="mb-8 sm:mb-10">
             <JobStatusPieChart jobs={jobs} />
           </div>
 
           {/* 3. AI-Powered Insights & Recommendations */}
-          <div className="mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3 sm:mb-4">AI-Powered Insights & Recommendations</h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">Personalized advice to optimize your job search strategy</p>
+          <div className="mb-8 sm:mb-10">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">AI-Powered Insights & Recommendations</h2>
+              <p className="text-sm sm:text-base text-gray-600">Personalized advice to optimize your job search strategy</p>
+            </div>
             <AIInsights jobs={jobs} />
           </div>
         </div>

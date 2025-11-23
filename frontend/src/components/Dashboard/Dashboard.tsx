@@ -112,9 +112,9 @@ export function Dashboard({ }: DashboardProps) {
             
             if (response.ok) {
               const profile = await response.json();
-              // Only consider profile complete if explicitly marked as completed
-              // Don't check for fields - user must complete the full wizard
-              const isProfileComplete = profile.profile_completed === true;
+              // Check if profile has required fields filled and is marked as completed
+              const isProfileComplete = profile.profile_completed === true || 
+                (profile.first_name && profile.last_name && profile.email && profile.phone && profile.professional_summary);
               
               if (!isProfileComplete) {
                 navigate('/register/complete');
@@ -379,7 +379,7 @@ export function Dashboard({ }: DashboardProps) {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
+      <div className="min-h-screen bg-gray-50 font-sans">
         <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-lg sticky top-0 z-50">
           <div className="w-full py-6">
             <div className="flex justify-between items-center px-4">
@@ -408,7 +408,7 @@ export function Dashboard({ }: DashboardProps) {
   // Only show full error state if we have no jobs and it's a critical error
   if (error && jobs.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 font-sans">
+      <div className="min-h-screen bg-gray-50 font-sans">
         <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-lg sticky top-0 z-50">
           <div className="w-full py-6">
             <div className="flex justify-between items-center px-4">
@@ -443,7 +443,7 @@ export function Dashboard({ }: DashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-gray-50">
       {/* Full Screen Kanban */}
       {isFullScreenKanban && (
         <FullScreenKanban

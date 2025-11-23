@@ -14,7 +14,7 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-white shadow-sm sticky top-0 z-50 border-b border-gray-200">
+    <header className="w-full bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-200/60">
       <nav className="container mx-auto flex items-center justify-between py-4 px-2 lg:px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 -ml-1">

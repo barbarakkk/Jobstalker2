@@ -174,32 +174,32 @@ export function AIInsights({ jobs }: AIInsightsProps) {
   };
 
   return (
-    <Card className="bg-white shadow-sm border border-gray-200 rounded-lg">
-      <CardHeader className="p-6 border-b border-gray-200">
+    <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden">
+      <CardHeader className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-white">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-indigo-100 rounded-lg">
-            <Lightbulb className="w-5 h-5 text-indigo-600" />
+          <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl shadow-md">
+            <Lightbulb className="w-5 h-5 text-white" />
           </div>
           <div>
-            <CardTitle className="text-xl font-semibold text-gray-900">AI-Powered Insights & Recommendations</CardTitle>
-            <p className="text-sm text-gray-600">Personalized advice to optimize your job search strategy</p>
+            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">AI-Powered Insights & Recommendations</CardTitle>
+            <p className="text-sm text-gray-600 mt-1">Personalized advice to optimize your job search strategy</p>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-6 sm:p-8">
         <div className="space-y-4">
           {insights.length > 0 ? (
             insights.map((insight, index) => (
-              <div key={index} className={`border rounded-lg p-4 ${getInsightColor(insight.type)}`}>
-                <div className="flex items-start space-x-3">
-                  <div className={`p-1 rounded-full ${getIconColor(insight.type)}`}>
+              <div key={index} className={`border-2 rounded-xl p-5 ${getInsightColor(insight.type)} hover:shadow-md transition-shadow duration-300`}>
+                <div className="flex items-start space-x-4">
+                  <div className={`p-2 rounded-lg ${getIconColor(insight.type)} bg-white/50`}>
                     {insight.icon}
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">
+                    <h4 className="font-bold text-gray-900 mb-2 text-base">
                       {insight.title}
                     </h4>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-gray-700 leading-relaxed">
                       {insight.message}
                     </p>
                   </div>
@@ -207,26 +207,41 @@ export function AIInsights({ jobs }: AIInsightsProps) {
               </div>
             ))
           ) : (
-            <div className="text-center py-8">
-              <Lightbulb className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lightbulb className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No insights yet</h3>
               <p className="text-sm text-gray-600">Add more jobs to get personalized insights</p>
             </div>
           )}
         </div>
 
-        {/* Additional Tips Section */}
-        <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="flex items-start space-x-3">
-            <div className="p-1 bg-gray-100 rounded-full">
-              <ArrowRight className="w-4 h-4 text-gray-600" />
+        {/* Enhanced Additional Tips Section */}
+        <div className="mt-8 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl p-5">
+          <div className="flex items-start space-x-4">
+            <div className="p-2 bg-gray-200 rounded-lg">
+              <ArrowRight className="w-5 h-5 text-gray-700" />
             </div>
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-1">Pro Tips</h4>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>• Update your status regularly to track progress accurately</li>
-                <li>• Use the excitement level to prioritize your applications</li>
-                <li>• Set deadlines to maintain momentum in your job search</li>
-                <li>• Review and refine your approach based on these insights</li>
+            <div className="flex-1">
+              <h4 className="font-bold text-gray-900 mb-3 text-base">Pro Tips</h4>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li className="flex items-start">
+                  <span className="text-gray-400 mr-2">•</span>
+                  <span>Update your status regularly to track progress accurately</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-gray-400 mr-2">•</span>
+                  <span>Use the excitement level to prioritize your applications</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-gray-400 mr-2">•</span>
+                  <span>Set deadlines to maintain momentum in your job search</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="text-gray-400 mr-2">•</span>
+                  <span>Review and refine your approach based on these insights</span>
+                </li>
               </ul>
             </div>
           </div>
