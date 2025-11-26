@@ -18,7 +18,7 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
   const showTitle = config?.showTitle !== false;
   const title = config?.title || 'Professional Summary';
 
-  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#2563eb';
+  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#000000';
   const bodyFont = (style as any)?.fontFamily || config?.style?.fontFamily;
   const fontSize = (style as any)?.fontSize || config?.style?.fontSize;
   

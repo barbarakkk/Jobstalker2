@@ -592,15 +592,15 @@ async def save_resume(request: SaveResumeRequest, user_id: str = Depends(get_cur
         print(f"❌ RESUME BUILDER: Error saving resume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save resume: {str(e)}")
 
-@router.get("/api/resume-builder/list", response_model=List[ResumeBuilderItem])
+@router.get("/api/resume-builder/list")
 async def list_resumes(user_id: str = Depends(get_current_user)):
     """Get all saved resumes for current user"""
     try:
         print(f"📋 RESUME BUILDER: Listing resumes for user {user_id}")
         
-        # Query database
+        # Query database with resume_data included for preview
         response = supabase.table("resume_builder_data")\
-            .select("id, template_id, title, created_at, updated_at, is_current")\
+            .select("id, template_id, title, resume_data, created_at, updated_at, is_current")\
             .eq("user_id", user_id)\
             .order("updated_at", desc=False)\
             .execute()
@@ -612,17 +612,29 @@ async def list_resumes(user_id: str = Depends(get_current_user)):
         if not response.data:
             return []
         
-        # Convert to response models
+        # Get all templates to map UUID to slug
+        templates_res = supabase.table("templates").select("id, slug").execute()
+        template_map = {}
+        if templates_res.data:
+            for t in templates_res.data:
+                template_map[t['id']] = t['slug']
+        
+        # Convert to response with template slug
         resumes = []
         for item in response.data:
-            resumes.append(ResumeBuilderItem(
-                id=UUID(item['id']),
-                template_id=item['template_id'],
-                title=item['title'],
-                created_at=datetime.fromisoformat(item['created_at'].replace('Z', '+00:00')),
-                updated_at=datetime.fromisoformat(item['updated_at'].replace('Z', '+00:00')),
-                is_current=item.get('is_current', False)
-            ))
+            template_uuid = item['template_id']
+            # Convert UUID to slug if possible
+            template_slug = template_map.get(template_uuid, template_uuid)
+            
+            resumes.append({
+                "id": item['id'],
+                "template_id": template_slug,  # Return slug instead of UUID
+                "title": item['title'],
+                "resume_data": item.get('resume_data', {}),
+                "created_at": item['created_at'],
+                "updated_at": item['updated_at'],
+                "is_current": item.get('is_current', False)
+            })
         
         print(f"📋 RESUME BUILDER: Found {len(resumes)} resumes")
         return resumes

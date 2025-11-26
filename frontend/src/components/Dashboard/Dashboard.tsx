@@ -469,7 +469,7 @@ export function Dashboard({ }: DashboardProps) {
             </div>
             <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
               <a href="#" className="text-blue-600 font-semibold px-4 py-2 rounded-full bg-blue-50">Jobs</a>
-              <a href="/resume-builder" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/resume-builder/wizard'); }}>
+              <a href="/resume-builder" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/resume-builder'); }}>
                 Resume Builder
               </a>
               <a href="/statistics" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/statistics'); }}>
@@ -490,7 +490,7 @@ export function Dashboard({ }: DashboardProps) {
         <div className="md:hidden px-4 pb-4 -mt-4">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Jobs</button>
-            <button onClick={() => navigate('/resume-builder/wizard')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Resume Builder</button>
+            <button onClick={() => navigate('/resume-builder')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Resume Builder</button>
             <button onClick={() => navigate('/statistics')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Statistics</button>
             <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Profile</button>
           </div>

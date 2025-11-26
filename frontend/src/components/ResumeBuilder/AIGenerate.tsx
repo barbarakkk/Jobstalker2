@@ -790,13 +790,8 @@ export function AIGeneratePage() {
       </Dialog>
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">AI Resume Generator</h1>
-          <p className="text-gray-600 mt-2">
-            Fill in your information step by step and our AI will generate a professional resume for you.
-          </p>
           {/* Wizard flow: Personal Info → Experience → Education → Skills → Summary → Target Role */}
-          {/* Build: v0.0.6 - Production deployment trigger */}
-            <div className="mt-2 flex items-center gap-2">
+            <div className="flex items-center gap-2">
               {wizardSessionId ? (
                 <span className="text-sm text-green-600">Session ready • {saving ? 'Saving…' : 'Saved'}{savingError ? ` • ${savingError}` : ''}</span>
               ) : isCreatingSession ? (

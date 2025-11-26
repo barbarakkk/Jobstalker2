@@ -8,7 +8,7 @@ interface HeaderSectionProps {
 }
 
 export function HeaderSection({ data, config, style }: HeaderSectionProps) {
-  const personalInfo = data.personalInfo;
+  const personalInfo = data?.personalInfo || {};
   const name = `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Your Name';
   
   // Apply custom styles from config
@@ -73,58 +73,44 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
   const headerFont = (style as any)?.fontFamily || config?.style?.fontFamily;
   const fontSize = (style as any)?.fontSize || config?.style?.fontSize;
 
+  // Build contact items array
+  const contactItems = [
+    personalInfo.phone,
+    personalInfo.location,
+    personalInfo.email,
+    personalInfo.linkedin,
+    personalInfo.website,
+  ].filter(Boolean);
+
   return (
     <header style={containerStyle} className={config?.className}>
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex-1">
-          <h1 
-            className="text-3xl font-bold tracking-tight"
-            style={{ 
-              color: style?.color || config?.style?.color,
-              fontFamily: headerFont,
-              fontSize: fontSize
-            }}
-          >
-            {name}
-          </h1>
-          {personalInfo.jobTitle && (
-            <div className="text-lg text-gray-600 mt-1">
-              {personalInfo.jobTitle}
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col gap-1 text-sm text-gray-600">
-          {personalInfo.email && (
-            <div className="flex items-center gap-2">
-              <span>✉</span>
-              <span>{personalInfo.email}</span>
-            </div>
-          )}
-          {personalInfo.phone && (
-            <div className="flex items-center gap-2">
-              <span>📞</span>
-              <span>{personalInfo.phone}</span>
-            </div>
-          )}
-          {personalInfo.location && (
-            <div className="flex items-center gap-2">
-              <span>📍</span>
-              <span>{personalInfo.location}</span>
-            </div>
-          )}
-          {personalInfo.linkedin && (
-            <div className="flex items-center gap-2">
-              <span>💼</span>
-              <span>{personalInfo.linkedin}</span>
-            </div>
-          )}
-          {personalInfo.website && (
-            <div className="flex items-center gap-2">
-              <span>🌐</span>
-              <span>{personalInfo.website}</span>
-            </div>
-          )}
-        </div>
+      <div className="text-center border-b-2 border-black pb-4 mb-4">
+        <h1 
+          className="text-3xl font-bold tracking-tight uppercase"
+          style={{ 
+            color: style?.color || config?.style?.color || '#000000',
+            fontFamily: headerFont,
+            fontSize: fontSize,
+            letterSpacing: '0.05em'
+          }}
+        >
+          {name}
+        </h1>
+        {personalInfo.jobTitle && (
+          <div className="text-sm text-black mt-1 uppercase tracking-widest">
+            {personalInfo.jobTitle}
+          </div>
+        )}
+        {contactItems.length > 0 && (
+          <div className="flex items-center justify-center flex-wrap gap-x-2 mt-3 text-xs text-black">
+            {contactItems.map((item, index) => (
+              <span key={index} className="flex items-center">
+                {index > 0 && <span className="mx-2 text-black">|</span>}
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </header>
   );

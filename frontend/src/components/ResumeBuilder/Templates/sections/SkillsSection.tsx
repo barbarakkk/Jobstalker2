@@ -20,7 +20,7 @@ export function SkillsSection({ data, config, style }: SkillsSectionProps) {
   const showTitle = config?.showTitle !== false;
   const title = config?.title || 'Skills';
 
-  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#2563eb';
+  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#000000';
   const bodyFont = (style as any)?.fontFamily || config?.style?.fontFamily;
   const fontSize = (style as any)?.fontSize || config?.style?.fontSize;
   

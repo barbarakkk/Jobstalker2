@@ -21,7 +21,7 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
   const title = config?.title || 'Work Experience';
 
   // Get primary color and font overrides from theme if available in style
-  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#2563eb';
+  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#000000';
   const bodyFont = (style as any)?.fontFamily || config?.style?.fontFamily;
   const fontSize = (style as any)?.fontSize || config?.style?.fontSize;
   
@@ -64,9 +64,8 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
               </div>
             </div>
             {work.location && (
-              <div className="text-xs text-gray-600 mb-2 flex items-center gap-1">
-                <span>📍</span>
-                <span>{work.location}</span>
+              <div className="text-xs text-gray-600 mb-2">
+                {work.location}
               </div>
             )}
             {work.description && (

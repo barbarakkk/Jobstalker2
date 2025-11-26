@@ -20,7 +20,7 @@ export function LanguagesSection({ data, config, style }: LanguagesSectionProps)
   const showTitle = config?.showTitle !== false;
   const title = config?.title || 'Languages';
 
-  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#2563eb';
+  const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#000000';
   
   return (
     <section style={containerStyle} className={config?.className}>

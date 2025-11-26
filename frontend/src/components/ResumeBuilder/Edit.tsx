@@ -1,14 +1,33 @@
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
 import { AppHeader } from '@/components/Layout/AppHeader';
-import { EditorToolbar } from '@/components/ResumeBuilder/EditorToolbar';
 import { TemplateRenderer } from '@/components/ResumeBuilder/Templates/TemplateRenderer';
-import { Loader2, Download } from 'lucide-react';
-import html2pdf from 'html2pdf.js';
+import { 
+  Loader2, 
+  Download, 
+  ChevronDown, 
+  ChevronRight, 
+  Plus, 
+  Trash2,
+  User,
+  Briefcase,
+  GraduationCap,
+  Wrench,
+  FileText,
+  Save,
+  Check,
+  ArrowLeft,
+  ZoomIn,
+  ZoomOut
+} from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import type { WorkExperience, Education, Skill } from '@/types/resume';
 
 export function ResumeEditPage() {
   const navigate = useNavigate();
@@ -20,431 +39,256 @@ export function ResumeEditPage() {
     selectedTemplate,
     setSelectedTemplate,
     currentResumeId,
-    setCurrentResumeId,
     loadResume,
-    saveResume,
     updateResume,
-    isDirty
   } = useResumeBuilder() as any;
   
   const [isDownloading, setIsDownloading] = useState(false);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [previewScale, setPreviewScale] = useState(0.7);
   
-  // Load font settings from localStorage or use defaults
-  const loadFontSettings = () => {
-    try {
-      const saved = localStorage.getItem(`resume-font-settings-${currentResumeId || 'default'}`);
-      if (saved) {
-        return JSON.parse(saved);
-      }
-    } catch (e) {
-      console.error('Failed to load font settings:', e);
-    }
-    return {};
-  };
-  
-  const [fontSettings, setFontSettings] = useState<{
-    headerFont?: string;
-    bodyFont?: string;
-    fontSize?: number;
-  }>(loadFontSettings());
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    contacts: true,
+    summary: false,
+    experience: false,
+    education: false,
+    skills: false,
+  });
 
-  // Save font settings to localStorage when they change
+  // Local form state for editing
+  const [localData, setLocalData] = useState(resumeData);
+
+  // Sync local data when resumeData changes (e.g., on load)
   useEffect(() => {
-    if (currentResumeId || Object.keys(fontSettings).length > 0) {
-      try {
-        localStorage.setItem(
-          `resume-font-settings-${currentResumeId || 'default'}`,
-          JSON.stringify(fontSettings)
-        );
-      } catch (e) {
-        console.error('Failed to save font settings:', e);
-      }
+    if (resumeData) {
+      setLocalData(resumeData);
     }
-  }, [fontSettings, currentResumeId]);
+  }, [resumeData]);
   
-  // Get template ID from URL params or context, default to modern-professional
+  // Get template ID from URL params or context
   const templateIdFromUrl = searchParams.get('template');
   const templateId = templateIdFromUrl || selectedTemplate || 'modern-professional';
-  
-  // Get resume ID from URL params
   const resumeIdFromUrl = searchParams.get('resume');
 
-  // Set template from URL if provided
   useEffect(() => {
     if (templateIdFromUrl && templateIdFromUrl !== selectedTemplate) {
-      console.log('Edit Page - Setting template from URL:', templateIdFromUrl);
       setSelectedTemplate(templateIdFromUrl);
     }
   }, [templateIdFromUrl, selectedTemplate, setSelectedTemplate]);
 
-  // Load resume if ID is in URL and not already loaded
   useEffect(() => {
     if (resumeIdFromUrl && resumeIdFromUrl !== currentResumeId) {
-      console.log('Edit Page - Loading resume from URL:', resumeIdFromUrl);
       loadResume(resumeIdFromUrl).catch((error: unknown) => {
         console.error('Error loading resume:', error);
       });
     }
   }, [resumeIdFromUrl, currentResumeId, loadResume]);
 
-  // If navigation provided fresh data, hydrate context once
   useEffect(() => {
     if (state?.injectedResumeData) {
-      console.log('Edit Page - Injecting fresh resume data from navigation:', state.injectedResumeData);
       replaceResumeData(state.injectedResumeData);
-      // clear state reference so we do not loop
+      setLocalData(state.injectedResumeData);
       state.injectedResumeData = undefined;
     }
   }, [state?.injectedResumeData, replaceResumeData]);
 
-  const handleAutoSave = async () => {
-    if (!currentResumeId || !resumeData) return;
-
-    try {
-      await updateResume(currentResumeId, undefined, resumeData);
-      console.log('Edit Page - Auto-saved resume');
-    } catch (error) {
-      console.error('Error auto-saving resume:', error);
-    }
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Auto-save on changes (debounced)
-  useEffect(() => {
-    if (isDirty && currentResumeId && resumeData) {
-      const timer = setTimeout(() => {
-        handleAutoSave();
-      }, 30000); // Auto-save after 30 seconds of inactivity
+  // Update handlers that sync to context
+  const updatePersonalInfo = (field: string, value: string) => {
+    const updated = {
+      ...localData,
+      personalInfo: { ...localData.personalInfo, [field]: value }
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
 
-      return () => clearTimeout(timer);
+  const updateSummary = (value: string) => {
+    const updated = { ...localData, summary: value };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const addWorkExperience = () => {
+    const newExp: WorkExperience = {
+      id: `exp-${Date.now()}`,
+      title: '',
+      company: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      isCurrent: false,
+      description: ''
+    };
+    const updated = {
+      ...localData,
+      workExperience: [...(localData.workExperience || []), newExp]
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const updateWorkExperience = (id: string, field: string, value: any) => {
+    const updated = {
+      ...localData,
+      workExperience: localData.workExperience.map((exp: WorkExperience) =>
+        exp.id === id ? { ...exp, [field]: value } : exp
+      )
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const removeWorkExperience = (id: string) => {
+    const updated = {
+      ...localData,
+      workExperience: localData.workExperience.filter((exp: WorkExperience) => exp.id !== id)
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const addEducation = () => {
+    const newEdu: Education = {
+      id: `edu-${Date.now()}`,
+      school: '',
+      degree: '',
+      field: '',
+      startDate: '',
+      endDate: ''
+    };
+    const updated = {
+      ...localData,
+      education: [...(localData.education || []), newEdu]
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const updateEducation = (id: string, field: string, value: any) => {
+    const updated = {
+      ...localData,
+      education: localData.education.map((edu: Education) =>
+        edu.id === id ? { ...edu, [field]: value } : edu
+      )
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const removeEducation = (id: string) => {
+    const updated = {
+      ...localData,
+      education: localData.education.filter((edu: Education) => edu.id !== id)
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const addSkill = () => {
+    const newSkill: Skill = {
+      id: `skill-${Date.now()}`,
+      name: '',
+      category: 'Technical'
+    };
+    const updated = {
+      ...localData,
+      skills: [...(localData.skills || []), newSkill]
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const updateSkill = (id: string, field: string, value: any) => {
+    const updated = {
+      ...localData,
+      skills: localData.skills.map((skill: Skill) =>
+        skill.id === id ? { ...skill, [field]: value } : skill
+      )
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const removeSkill = (id: string) => {
+    const updated = {
+      ...localData,
+      skills: localData.skills.filter((skill: Skill) => skill.id !== id)
+    };
+    setLocalData(updated);
+    replaceResumeData(updated);
+  };
+
+  const handleSave = async () => {
+    if (!currentResumeId || !localData) return;
+    setIsSaving(true);
+    setSaveSuccess(false);
+    try {
+      await updateResume(currentResumeId, undefined, localData);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (error) {
+      console.error('Error saving resume:', error);
+      alert('Failed to save. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDirty, currentResumeId]);
+  };
 
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     try {
-      // Get the resume container element - find the actual resume template content
-      const container = document.querySelector('.resume-edit-container') as HTMLElement;
+      const container = document.querySelector('.resume-preview-container') as HTMLElement;
       if (!container) {
         alert('Resume content not found');
         return;
       }
       
-      // Find the actual resume template element (the one with resume-template class or the inner content)
-      const element = container.querySelector('.resume-template') as HTMLElement || 
-                      container.querySelector('.bg-white > div') as HTMLElement ||
-                      container.querySelector('.bg-white') as HTMLElement;
-      
+      const element = container.querySelector('.resume-paper') as HTMLElement;
       if (!element) {
         alert('Resume content not found');
         return;
       }
 
-      // Get the actual width of the resume (use the container's max-width or element width)
-      const resumeWidth = element.offsetWidth || 800; // Default to 800px if not found
-      const resumeHeight = element.scrollHeight || element.offsetHeight || 1000;
-      
-      // Create an isolated iframe to avoid oklch CSS parsing issues
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'absolute';
-      iframe.style.left = '-9999px';
-      iframe.style.top = '0';
-      iframe.style.width = resumeWidth + 'px';
-      iframe.style.height = resumeHeight + 'px';
-      iframe.style.border = 'none';
-      iframe.style.overflow = 'hidden';
-      document.body.appendChild(iframe);
+      // Create a clone to avoid modifying the original
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.transform = 'none';
+      clone.style.backgroundColor = '#ffffff';
+      document.body.appendChild(clone);
 
-      // Wait for iframe to load
-      await new Promise<void>((resolve) => {
-        iframe.onload = () => resolve();
-        iframe.src = 'about:blank';
-      });
-
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (!iframeDoc) {
-        throw new Error('Could not access iframe document');
-      }
-
-      // Clone the element with all its children
-      const clonedElement = element.cloneNode(true) as HTMLElement;
-      
-      // Remove any interactive elements that shouldn't be in PDF
-      clonedElement.querySelectorAll('button, input, select, textarea, a[href="#"]').forEach(el => {
-        el.remove();
-      });
-
-      // Helper function to convert any color format to RGB/hex using browser's color conversion
-      const convertColorToRgb = (value: string, property: string): string => {
-        if (!value || typeof value !== 'string' || value === 'none' || value === 'transparent') {
-          return value;
-        }
-        
-        // If it contains oklch or other unsupported formats, use browser conversion
-        if (value.includes('oklch') || value.includes('lch') || value.includes('lab')) {
-          // Create a temporary element to get the computed RGB value
-          const tempEl = document.createElement('div');
-          tempEl.style.position = 'absolute';
-          tempEl.style.visibility = 'hidden';
-          tempEl.style[property as any] = value;
-          document.body.appendChild(tempEl);
-          
-          const computed = window.getComputedStyle(tempEl);
-          const rgbValue = computed.getPropertyValue(property);
-          document.body.removeChild(tempEl);
-          
-          // If browser converted it successfully, use that
-          if (rgbValue && !rgbValue.includes('oklch') && !rgbValue.includes('lch') && !rgbValue.includes('lab')) {
-            return rgbValue;
-          }
-          
-          // Fallback: use safe defaults based on property type
-          if (property.includes('background') || property.includes('bg')) {
-            return '#ffffff';
-          }
-          if (property.includes('border')) {
-            return '#e5e7eb';
-          }
-          return '#000000';
-        }
-        
-        return value;
-      };
-
-      // Apply ALL computed styles as inline styles (this converts oklch to RGB)
-      const applyAllComputedStyles = (el: HTMLElement, sourceEl: HTMLElement) => {
-        const computed = window.getComputedStyle(sourceEl);
-        const colorProps = [
-          'color', 'backgroundColor', 'borderColor', 'borderTopColor', 'borderRightColor',
-          'borderBottomColor', 'borderLeftColor'
-        ];
-        const otherProps = [
-          'borderWidth', 'borderStyle',
-          'fontSize', 'fontFamily', 'fontWeight', 'fontStyle', 'lineHeight',
-          'textAlign', 'textDecoration', 'padding', 'paddingTop', 'paddingRight',
-          'paddingBottom', 'paddingLeft', 'margin', 'marginTop', 'marginRight',
-          'marginBottom', 'marginLeft', 'width', 'height', 'display', 'position',
-          'top', 'left', 'right', 'bottom', 'flexDirection', 'justifyContent',
-          'alignItems', 'gap', 'boxSizing'
-        ];
-
-        // Handle color properties with oklch conversion
-        colorProps.forEach(prop => {
-          const value = computed.getPropertyValue(prop);
-          if (value) {
-            const convertedValue = convertColorToRgb(value, prop);
-            el.style.setProperty(prop, convertedValue);
-          }
-        });
-
-        // Handle other properties normally
-        otherProps.forEach(prop => {
-          const value = computed.getPropertyValue(prop);
-          if (value && !value.includes('oklch')) {
-            el.style.setProperty(prop, value);
-          }
-        });
-
-        // Apply all CSS custom properties that might be used (skip oklch ones)
-        for (let i = 0; i < computed.length; i++) {
-          const prop = computed[i];
-          if (prop.startsWith('--')) {
-            const value = computed.getPropertyValue(prop);
-            if (value && !value.includes('oklch')) {
-              el.style.setProperty(prop, value);
-            }
-          }
-        }
-      };
-
-      // Get font families from the original element to preserve them
-      const originalFontFamily = window.getComputedStyle(element).fontFamily;
-
-      // Apply all important styles directly to cloned element recursively
-      const applyAllStyles = (source: HTMLElement, target: HTMLElement) => {
-        const computed = window.getComputedStyle(source);
-        
-        // Copy all non-oklch styles, but preserve white-space for text elements
-        Array.from(computed).forEach(prop => {
-          const value = computed.getPropertyValue(prop);
-          if (value && !value.includes('oklch') && !value.includes('lch') && !value.includes('lab')) {
-            // Don't override white-space for text containers - we'll set it explicitly later
-            if (prop === 'white-space' && ['P', 'SPAN', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'LABEL'].includes(target.tagName)) {
-              return; // Skip, we'll set it to pre-wrap
-            }
-            target.style.setProperty(prop, value);
-          }
-        });
-        
-        // Recursively apply to children
-        const sourceChildren = source.children;
-        const targetChildren = target.children;
-        for (let i = 0; i < sourceChildren.length && i < targetChildren.length; i++) {
-          applyAllStyles(sourceChildren[i] as HTMLElement, targetChildren[i] as HTMLElement);
-        }
-      };
-
-      // Apply all styles to cloned element
-      applyAllStyles(element, clonedElement);
-
-      // Fix text nodes to preserve spacing - ensure all text nodes have proper spacing
-      const fixTextNodes = (node: Node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.textContent || '';
-          // Ensure text nodes have spaces preserved
-          if (text && text.trim()) {
-            node.textContent = text;
-          }
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          const el = node as HTMLElement;
-          // Ensure white-space is preserved for text containers
-          if (['P', 'SPAN', 'DIV', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'TD', 'TH', 'LABEL'].includes(el.tagName)) {
-            if (!el.style.whiteSpace || el.style.whiteSpace === 'normal') {
-              el.style.whiteSpace = 'pre-wrap';
-            }
-            if (!el.style.lineHeight || el.style.lineHeight === 'normal') {
-              el.style.lineHeight = '1.5';
-            }
-          }
-          // Recursively fix child nodes
-          Array.from(node.childNodes).forEach(fixTextNodes);
-        }
-      };
-      
-      // Fix all text nodes in cloned element
-      fixTextNodes(clonedElement);
-
-      // Clean HTML string to remove any remaining oklch references
-      let cleanHtml = clonedElement.outerHTML;
-      // Remove oklch from style attributes using regex
-      cleanHtml = cleanHtml.replace(/oklch\([^)]+\)/gi, (match) => {
-        // Replace with a safe fallback - try to determine if it's a light or dark color
-        if (match.includes('1 0 0') || match.includes('0.98') || match.includes('0.97')) {
-          return '#ffffff'; // Very light colors -> white
-        }
-        if (match.includes('0.145') || match.includes('0.1') || match.includes('0.2')) {
-          return '#1f2937'; // Dark colors -> dark gray
-        }
-        return '#000000'; // Default fallback
-      });
-
-      // Create clean HTML document in iframe
-      iframeDoc.open();
-      iframeDoc.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <style>
-              * {
-                box-sizing: border-box;
-              }
-              body {
-                margin: 0;
-                padding: 0;
-                background: white;
-                font-family: ${originalFontFamily || 'Arial, sans-serif'};
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-                text-rendering: optimizeLegibility;
-              }
-              /* Preserve all layout styles */
-              .resume-template {
-                width: 100%;
-                max-width: 100%;
-              }
-              /* CRITICAL: Preserve text spacing and prevent overlapping */
-              p, span, div, h1, h2, h3, h4, h5, h6, li, td, th, label {
-                white-space: pre-wrap !important;
-                word-wrap: break-word !important;
-                word-spacing: normal !important;
-                letter-spacing: normal !important;
-                line-height: 1.5 !important;
-                overflow-wrap: break-word !important;
-              }
-              /* Ensure text doesn't collapse */
-              * {
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-                text-rendering: optimizeLegibility;
-              }
-              /* Preserve flexbox and grid layouts */
-              [style*="display: flex"], [style*="display: grid"] {
-                display: inherit !important;
-              }
-            </style>
-          </head>
-          <body style="margin: 0; padding: 0; width: ${resumeWidth}px;">
-            <div style="width: ${resumeWidth}px; margin: 0 auto;">
-              ${clonedElement.outerHTML}
-            </div>
-          </body>
-        </html>
-      `);
-      iframeDoc.close();
-
-      // Wait for iframe content to render and fonts to load
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Force font loading by accessing computed styles
-      if (iframeDoc.fonts && iframeDoc.fonts.ready) {
-        await iframeDoc.fonts.ready;
-      }
-
-      // Get the body element from iframe (which has no oklch CSS)
-      const iframeBody = iframeDoc.body.firstElementChild as HTMLElement;
-      if (!iframeBody) {
-        throw new Error('Could not find content in iframe');
-      }
-
-      // Wait a bit longer for fonts and images to fully load
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Get the actual content element from iframe
-      const iframeContent = iframeDoc.body.firstElementChild?.firstElementChild as HTMLElement || iframeBody;
-      
-      // Now use html2canvas on the iframe content (which has no oklch CSS)
-      // Use higher scale and better options for text quality
-      const canvas = await html2canvas(iframeContent, {
-        scale: 2, // Use 2 for balance between quality and file size
+      const canvas = await html2canvas(clone, {
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        width: resumeWidth,
-        height: resumeHeight,
-        windowWidth: resumeWidth,
-        windowHeight: resumeHeight,
-        allowTaint: false,
-        removeContainer: false, // Keep container for proper layout
         onclone: (clonedDoc) => {
-          // Ensure all fonts are loaded in the cloned document
-          const clonedBody = clonedDoc.body;
-          if (clonedBody) {
-            // Force font loading by accessing computed styles
-            const allElements = clonedBody.querySelectorAll('*');
-            allElements.forEach((el) => {
-              const htmlEl = el as HTMLElement;
-              try {
-                const computed = window.getComputedStyle(htmlEl);
-                // Force text spacing preservation
-                if (computed.whiteSpace === 'normal') {
-                  htmlEl.style.whiteSpace = 'pre-wrap';
-                }
-                // Ensure proper line height
-                if (!computed.lineHeight || computed.lineHeight === 'normal') {
-                  htmlEl.style.lineHeight = '1.5';
-                }
-                window.getComputedStyle(htmlEl).fontFamily;
-              } catch (e) {
-                // Ignore errors
-              }
-            });
-          }
+          // Force all text to use standard colors to avoid oklch issues
+          const allElements = clonedDoc.querySelectorAll('*');
+          allElements.forEach((el: Element) => {
+            const htmlEl = el as HTMLElement;
+            const computed = window.getComputedStyle(htmlEl);
+            // Only override if color contains oklch
+            if (computed.color.includes('oklch') || computed.color.includes('color(')) {
+              htmlEl.style.color = '#000000';
+            }
+            if (computed.backgroundColor.includes('oklch') || computed.backgroundColor.includes('color(')) {
+              htmlEl.style.backgroundColor = '#ffffff';
+            }
+          });
         }
       });
 
-      // Convert canvas to PDF using PNG for better quality (no compression artifacts)
+      // Remove clone
+      document.body.removeChild(clone);
+
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF({
         unit: 'in',
@@ -452,32 +296,15 @@ export function ResumeEditPage() {
         orientation: 'portrait'
       });
 
-      const imgWidth = 8.5; // Letter width in inches
-      const pageHeight = 11; // Letter height in inches
+      const imgWidth = 8.5;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0.5; // Top margin
 
-      pdf.addImage(imgData, 'PNG', 0.5, position, imgWidth - 1, imgHeight);
-      heightLeft -= pageHeight - 1;
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
-      // Add additional pages if needed
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + 0.5;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0.5, position, imgWidth - 1, imgHeight);
-        heightLeft -= pageHeight - 1;
-      }
-
-      // Generate a better filename based on the person's name
-      const personName = resumeData?.personalInfo 
-        ? `${resumeData.personalInfo.firstName || ''}${resumeData.personalInfo.lastName ? '_' + resumeData.personalInfo.lastName : ''}`.trim().replace(/\s+/g, '_') || 'Resume'
+      const personName = localData?.personalInfo 
+        ? `${localData.personalInfo.firstName || ''}${localData.personalInfo.lastName ? '_' + localData.personalInfo.lastName : ''}`.trim().replace(/\s+/g, '_') || 'Resume'
         : 'Resume';
-      const filename = `${personName}_${templateId || 'resume'}.pdf`.replace(/[^a-zA-Z0-9._-]/g, '_');
-      pdf.save(filename);
-
-      // Clean up
-      document.body.removeChild(iframe);
+      pdf.save(`${personName}_Resume.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert('Failed to generate PDF. Please try again.');
@@ -486,64 +313,491 @@ export function ResumeEditPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <AppHeader active="resume" />
-      <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div></div>
-        <Button 
-          onClick={handleDownloadPDF}
-          disabled={isDownloading || !resumeData}
-          className="flex items-center gap-2"
-        >
-          {isDownloading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Generating PDF...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4" />
-              Download Resume
-            </>
-          )}
-        </Button>
+  if (!localData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-500">Loading your resume...</p>
+        </div>
       </div>
-      <div className="space-y-4">
-        <EditorToolbar 
-          onReset={() => {
-            setSelectedColor(null);
-            setFontSettings({});
-            window.location.reload();
-          }}
-          selectedColor={selectedColor}
-          onColorChange={setSelectedColor}
-          fontSettings={fontSettings}
-          onFontSettingsChange={setFontSettings}
-        />
-        {/* Live Preview - Responsive */}
-        <div className="bg-gray-50 p-4 rounded-lg border overflow-auto">
-          <div className="mx-auto max-w-4xl resume-edit-container">
-            <div className="bg-white rounded-md border border-gray-200 shadow-sm">
+    );
+  }
+
+  const sectionConfig = [
+    { id: 'contacts', label: 'Contact Info', icon: User, color: 'blue' },
+    { id: 'summary', label: 'Professional Summary', icon: FileText, color: 'purple' },
+    { id: 'experience', label: 'Work Experience', icon: Briefcase, color: 'green', count: localData.workExperience?.length || 0 },
+    { id: 'education', label: 'Education', icon: GraduationCap, color: 'orange', count: localData.education?.length || 0 },
+    { id: 'skills', label: 'Skills', icon: Wrench, color: 'red', count: localData.skills?.length || 0 },
+  ];
+
+  const colorClasses: Record<string, { bg: string; text: string }> = {
+    blue: { bg: 'bg-blue-50', text: 'text-blue-600' },
+    purple: { bg: 'bg-purple-50', text: 'text-purple-600' },
+    green: { bg: 'bg-emerald-50', text: 'text-emerald-600' },
+    orange: { bg: 'bg-amber-50', text: 'text-amber-600' },
+    red: { bg: 'bg-rose-50', text: 'text-rose-600' },
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <AppHeader active="resume" />
+      
+      {/* Success Toast */}
+      {saveSuccess && (
+        <div className="fixed bottom-6 left-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="flex items-center gap-3 px-4 py-3 bg-white rounded-xl shadow-lg border border-gray-100">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+              <Check className="w-4 h-4 text-emerald-600" />
+            </div>
+            <span className="text-sm font-medium text-gray-700">Resume saved successfully!</span>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex h-[calc(100vh-64px)]">
+        {/* Left Sidebar - Editor */}
+        <div className="w-[400px] bg-gradient-to-b from-slate-50 to-white border-r border-gray-200 flex flex-col flex-shrink-0 shadow-sm">
+          {/* Sidebar Header */}
+          <div className="px-5 py-4 bg-white border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <button 
+                onClick={() => navigate('/resume-builder')}
+                className="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors group"
+              >
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+                <span className="text-sm">Back</span>
+              </button>
+              <Button 
+                size="sm" 
+                onClick={handleSave}
+                disabled={isSaving}
+                className="h-10 px-5 rounded-xl font-semibold bg-[#2563eb] hover:bg-[#1d4ed8] text-white transition-all duration-200"
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-1.5 text-white" />
+                    <span className="text-white">Save</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Scrollable Sections */}
+          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
+            {sectionConfig.map((section) => {
+              const Icon = section.icon;
+              const colors = colorClasses[section.color];
+              const isExpanded = expandedSections[section.id];
+              
+              return (
+                <div 
+                  key={section.id} 
+                  className={`rounded-2xl overflow-hidden transition-all duration-200 ${
+                    isExpanded 
+                      ? 'bg-white shadow-sm ring-1 ring-gray-200' 
+                      : 'bg-white/60 hover:bg-white hover:shadow-sm'
+                  }`}
+                >
+                  <button
+                    onClick={() => toggleSection(section.id)}
+                    className="w-full px-4 py-3.5 flex items-center justify-between transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${colors.bg} flex items-center justify-center shadow-sm`}>
+                        <Icon className={`w-5 h-5 ${colors.text}`} />
+                      </div>
+                      <div className="text-left">
+                        <span className="font-semibold text-gray-800 text-[15px]">{section.label}</span>
+                        {section.count !== undefined && section.count > 0 && (
+                          <span className="ml-2 text-xs font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">
+                            {section.count}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                      isExpanded ? 'bg-blue-100 rotate-0' : 'bg-gray-100'
+                    }`}>
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4 text-blue-600" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                  </button>
+                  
+                  {/* Section Content */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 pt-1 border-t border-gray-100">
+                      {section.id === 'contacts' && (
+                        <div className="space-y-4 pt-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">First name</Label>
+                              <Input
+                                value={localData.personalInfo?.firstName || ''}
+                                onChange={(e) => updatePersonalInfo('firstName', e.target.value)}
+                                className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Last name</Label>
+                              <Input
+                                value={localData.personalInfo?.lastName || ''}
+                                onChange={(e) => updatePersonalInfo('lastName', e.target.value)}
+                                className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Job Title</Label>
+                            <Input
+                              value={localData.personalInfo?.jobTitle || ''}
+                              onChange={(e) => updatePersonalInfo('jobTitle', e.target.value)}
+                              placeholder="e.g. Software Engineer"
+                              className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors placeholder:text-gray-300"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Phone</Label>
+                              <Input
+                                value={localData.personalInfo?.phone || ''}
+                                onChange={(e) => updatePersonalInfo('phone', e.target.value)}
+                                placeholder="+1 234 567 8900"
+                                className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors placeholder:text-gray-300"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Email</Label>
+                              <Input
+                                value={localData.personalInfo?.email || ''}
+                                onChange={(e) => updatePersonalInfo('email', e.target.value)}
+                                placeholder="you@email.com"
+                                className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors placeholder:text-gray-300"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Location</Label>
+                            <Input
+                              value={localData.personalInfo?.location || ''}
+                              onChange={(e) => updatePersonalInfo('location', e.target.value)}
+                              placeholder="City, Country"
+                              className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors placeholder:text-gray-300"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">LinkedIn</Label>
+                            <Input
+                              value={localData.personalInfo?.linkedin || ''}
+                              onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
+                              placeholder="linkedin.com/in/yourprofile"
+                              className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors placeholder:text-gray-300"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Website</Label>
+                            <Input
+                              value={localData.personalInfo?.website || ''}
+                              onChange={(e) => updatePersonalInfo('website', e.target.value)}
+                              placeholder="yourwebsite.com"
+                              className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 focus:bg-white transition-colors placeholder:text-gray-300"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {section.id === 'summary' && (
+                        <div className="pt-3">
+                          <Textarea
+                            value={localData.summary || ''}
+                            onChange={(e) => updateSummary(e.target.value)}
+                            rows={5}
+                            placeholder="Write a compelling professional summary that highlights your key achievements and career goals..."
+                            className="resize-none bg-gray-50/80 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-purple-500 focus:bg-white transition-colors placeholder:text-gray-300"
+                          />
+                          <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
+                            <span className="inline-block w-1 h-1 bg-purple-400 rounded-full"></span>
+                            Keep it concise, 2-4 sentences work best
+                          </p>
+                        </div>
+                      )}
+
+                      {section.id === 'experience' && (
+                        <div className="space-y-3 pt-3">
+                          {(localData.workExperience || []).map((exp: WorkExperience, index: number) => (
+                            <div key={exp.id} className="p-4 bg-gradient-to-br from-emerald-50/50 to-white rounded-xl border border-emerald-100 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-600">
+                                    {index + 1}
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-700">
+                                    {exp.title || exp.company || 'New Experience'}
+                                  </span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => removeWorkExperience(exp.id)}
+                                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                              <Input
+                                value={exp.title}
+                                onChange={(e) => updateWorkExperience(exp.id, 'title', e.target.value)}
+                                placeholder="Job Title"
+                                className="h-10 text-sm bg-white border-gray-200 rounded-lg"
+                              />
+                              <Input
+                                value={exp.company}
+                                onChange={(e) => updateWorkExperience(exp.id, 'company', e.target.value)}
+                                placeholder="Company Name"
+                                className="h-10 text-sm bg-white border-gray-200 rounded-lg"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-[10px] text-gray-400 mb-1 block uppercase tracking-wider">Start</Label>
+                                  <Input
+                                    type="month"
+                                    value={exp.startDate}
+                                    onChange={(e) => updateWorkExperience(exp.id, 'startDate', e.target.value)}
+                                    className="h-9 text-sm bg-white border-gray-200 rounded-lg"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-gray-400 mb-1 block uppercase tracking-wider">End</Label>
+                                  <Input
+                                    type="month"
+                                    value={exp.endDate}
+                                    onChange={(e) => updateWorkExperience(exp.id, 'endDate', e.target.value)}
+                                    disabled={exp.isCurrent}
+                                    placeholder={exp.isCurrent ? 'Present' : ''}
+                                    className="h-9 text-sm bg-white border-gray-200 rounded-lg disabled:bg-gray-50"
+                                  />
+                                </div>
+                              </div>
+                              <label className="flex items-center gap-2 cursor-pointer py-1">
+                                <input
+                                  type="checkbox"
+                                  checked={exp.isCurrent}
+                                  onChange={(e) => updateWorkExperience(exp.id, 'isCurrent', e.target.checked)}
+                                  className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span className="text-xs text-gray-600">I currently work here</span>
+                              </label>
+                              <Textarea
+                                value={exp.description}
+                                onChange={(e) => updateWorkExperience(exp.id, 'description', e.target.value)}
+                                placeholder="Describe your key responsibilities and achievements..."
+                                rows={3}
+                                className="resize-none text-sm bg-white border-gray-200 rounded-lg"
+                              />
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addWorkExperience}
+                            className="w-full h-11 border-2 border-dashed border-emerald-200 text-emerald-600 hover:text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 rounded-xl font-medium"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Experience
+                          </Button>
+                        </div>
+                      )}
+
+                      {section.id === 'education' && (
+                        <div className="space-y-3 pt-3">
+                          {(localData.education || []).map((edu: Education, index: number) => (
+                            <div key={edu.id} className="p-4 bg-gradient-to-br from-amber-50/50 to-white rounded-xl border border-amber-100 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center text-xs font-bold text-amber-600">
+                                    {index + 1}
+                                  </div>
+                                  <span className="text-sm font-semibold text-gray-700">
+                                    {edu.school || edu.degree || 'New Education'}
+                                  </span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => removeEducation(edu.id)}
+                                  className="h-7 w-7 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                              <Input
+                                value={edu.school}
+                                onChange={(e) => updateEducation(edu.id, 'school', e.target.value)}
+                                placeholder="School / University"
+                                className="h-10 text-sm bg-white border-gray-200 rounded-lg"
+                              />
+                              <Input
+                                value={edu.degree}
+                                onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
+                                placeholder="Degree (e.g. Bachelor's)"
+                                className="h-10 text-sm bg-white border-gray-200 rounded-lg"
+                              />
+                              <Input
+                                value={edu.field || ''}
+                                onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
+                                placeholder="Field of Study"
+                                className="h-10 text-sm bg-white border-gray-200 rounded-lg"
+                              />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-[10px] text-gray-400 mb-1 block uppercase tracking-wider">Start</Label>
+                                  <Input
+                                    type="month"
+                                    value={edu.startDate}
+                                    onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)}
+                                    className="h-9 text-sm bg-white border-gray-200 rounded-lg"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-gray-400 mb-1 block uppercase tracking-wider">End</Label>
+                                  <Input
+                                    type="month"
+                                    value={edu.endDate}
+                                    onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)}
+                                    className="h-9 text-sm bg-white border-gray-200 rounded-lg"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addEducation}
+                            className="w-full h-11 border-2 border-dashed border-amber-200 text-amber-600 hover:text-amber-700 hover:border-amber-300 hover:bg-amber-50 rounded-xl font-medium"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Education
+                          </Button>
+                        </div>
+                      )}
+
+                      {section.id === 'skills' && (
+                        <div className="space-y-3 pt-3">
+                          <div className="flex flex-wrap gap-2">
+                            {(localData.skills || []).map((skill: Skill) => (
+                              <div 
+                                key={skill.id} 
+                                className="group flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-rose-50 to-white border border-rose-100 rounded-xl hover:border-rose-200 transition-all hover:shadow-sm"
+                              >
+                                <input
+                                  value={skill.name}
+                                  onChange={(e) => updateSkill(skill.id, 'name', e.target.value)}
+                                  placeholder="Skill"
+                                  className="bg-transparent border-none p-0 text-sm text-gray-700 focus:outline-none focus:ring-0 w-auto min-w-[60px] max-w-[140px] font-medium"
+                                  style={{ width: `${Math.max(60, (skill.name?.length || 5) * 8)}px` }}
+                                />
+                                <button
+                                  onClick={() => removeSkill(skill.id)}
+                                  className="text-rose-300 hover:text-red-500 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={addSkill}
+                            className="w-full h-11 border-2 border-dashed border-rose-200 text-rose-600 hover:text-rose-700 hover:border-rose-300 hover:bg-rose-50 rounded-xl font-medium"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Add Skill
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            
+            {/* Bottom spacer */}
+            <div className="h-8"></div>
+          </div>
+        </div>
+
+        {/* Right Side - Resume Preview */}
+        <div className="flex-1 flex flex-col bg-gray-200/50 overflow-hidden">
+          {/* Preview Header */}
+          <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setPreviewScale(Math.max(0.4, previewScale - 0.1))}
+                className="p-1.5 rounded hover:bg-white transition-colors"
+              >
+                <ZoomOut className="w-4 h-4 text-gray-600" />
+              </button>
+              <span className="text-xs text-gray-500 w-12 text-center">{Math.round(previewScale * 100)}%</span>
+              <button
+                onClick={() => setPreviewScale(Math.min(1.2, previewScale + 0.1))}
+                className="p-1.5 rounded hover:bg-white transition-colors"
+              >
+                <ZoomIn className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => navigate('/resume-builder')}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              >
+                Preview
+              </Button>
+              <Button 
+                onClick={handleDownloadPDF}
+                disabled={isDownloading}
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              >
+                {isDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Preview Area */}
+          <div className="flex-1 overflow-auto p-8">
+            <div className="resume-preview-container flex justify-center">
               <div 
-                className="p-6" 
-                key={`resume-${resumeData?.personalInfo?.email || 'default'}-${resumeData?.summary?.length || 0}-${templateId}-${selectedColor}-${fontSettings.bodyFont}-${fontSettings.headerFont}-${fontSettings.fontSize}`}
+                className="resume-paper bg-white shadow-2xl rounded-sm"
                 style={{
-                  fontFamily: fontSettings.bodyFont || undefined,
-                  fontSize: fontSettings.fontSize ? `${fontSettings.fontSize}px` : undefined,
+                  width: '816px', // 8.5 inches at 96 DPI
+                  minHeight: '1056px', // 11 inches at 96 DPI
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: 'top center',
                 }}
               >
-                {resumeData && (
+                <div className="p-12">
                   <TemplateRenderer 
                     templateId={templateId}
-                    data={resumeData}
-                    overridePrimaryColor={selectedColor || undefined}
-                    overrideFontFamily={fontSettings.bodyFont}
-                    overrideHeaderFont={fontSettings.headerFont}
-                    overrideFontSize={fontSettings.fontSize}
+                    data={localData}
                   />
-                )}
               </div>
             </div>
           </div>
@@ -553,5 +807,3 @@ export function ResumeEditPage() {
     </div>
   );
 }
-
-

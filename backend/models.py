@@ -357,6 +357,7 @@ class ResumeBuilderItem(BaseModel):
     id: UUID
     template_id: str
     title: str
+    resume_data: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
     is_current: bool

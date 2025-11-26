@@ -155,9 +155,9 @@ async def get_template(template_id: str, _: str = Depends(get_current_user)):
     try:
         # Try by slug first, then by id (UUID)
         res = supabase.table("templates").select("id,name,slug,schema,preview_url,is_active").eq("slug", template_id).maybe_single().execute()
-        if not res.data:
+        if not res or not res.data:
             res = supabase.table("templates").select("id,name,slug,schema,preview_url,is_active").eq("id", template_id).maybe_single().execute()
-        if not res.data:
+        if not res or not res.data:
             raise HTTPException(status_code=404, detail="Template not found")
         return res.data
     except HTTPException:

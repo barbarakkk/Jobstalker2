@@ -10,7 +10,7 @@ const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ 
 const JobDetail = lazy(() => import('./components/Dashboard/JobDetail'));
 const Statistics = lazy(() => import('./components/Statistics').then(module => ({ default: module.Statistics })));
 const ProfilePage = lazy(() => import('./components/Profile/ProfilePage'));
-const ResumeTemplateSelectionPage = lazy(() => import('./components/ResumeBuilder/TemplateSelection').then(module => ({ default: module.ResumeTemplateSelectionPage })));
+const ResumeBuilderHome = lazy(() => import('./components/ResumeBuilder/ResumeBuilderHome').then(module => ({ default: module.ResumeBuilderHome })));
 const ResumeEditPage = lazy(() => import('./components/ResumeBuilder/Edit').then(module => ({ default: module.ResumeEditPage })));
 const ResumeFinalizePage = lazy(() => import('./components/ResumeBuilder/Finalize').then(module => ({ default: module.ResumeFinalizePage })));
 const AIGeneratePage = lazy(() => import('./components/ResumeBuilder/AIGenerate').then(module => ({ default: module.AIGeneratePage })));
@@ -83,23 +83,13 @@ function App() {
             } 
           />
           {/* Resume Builder routes */}
-          {/* All wizard routes use AIGeneratePage with 6-step flow: Personal Info → Experience → Education → Skills → Summary → Target Role */}
+          {/* Main resume builder home with "Craft New" and "My Resumes" options */}
           <Route 
             path="/resume-builder" 
             element={
               <ProtectedRoute>
                 <Suspense fallback={<LoadingFallback />}>
-                  <AIGeneratePage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/resume-builder/templates" 
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <ResumeTemplateSelectionPage />
+                  <ResumeBuilderHome />
                 </Suspense>
               </ProtectedRoute>
             } 
