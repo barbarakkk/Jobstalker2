@@ -56,6 +56,22 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
                   <span style={{ color: '#1c1e21' }}>{personalInfo.email}</span>
                 </div>
               )}
+              {personalInfo.linkedin && (
+                <div>
+                  <span>LinkedIn:</span>{' '}
+                  <a
+                    href={personalInfo.linkedin.startsWith('http://') || personalInfo.linkedin.startsWith('https://') 
+                      ? personalInfo.linkedin 
+                      : `https://${personalInfo.linkedin}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline cursor-pointer"
+                    style={{ color: '#1c1e21' }}
+                  >
+                    LinkedIn
+                  </a>
+                </div>
+              )}
               {personalInfo.website && (
                 <div>
                   <span>Website:</span>{' '}
@@ -73,18 +89,33 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
   const headerFont = (style as any)?.fontFamily || config?.style?.fontFamily;
   const fontSize = (style as any)?.fontSize || config?.style?.fontSize;
 
-  // Build contact items array
-  const contactItems = [
-    personalInfo.phone,
-    personalInfo.location,
-    personalInfo.email,
-    personalInfo.linkedin,
-    personalInfo.website,
-  ].filter(Boolean);
+  // Helper function to format LinkedIn URL
+  const formatLinkedInUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `https://${url}`;
+  };
+
+  // Build contact items array with special handling for LinkedIn
+  const contactItems: Array<{ type: 'text' | 'linkedin'; value: string }> = [];
+  if (personalInfo.phone) contactItems.push({ type: 'text', value: personalInfo.phone });
+  if (personalInfo.location) contactItems.push({ type: 'text', value: personalInfo.location });
+  if (personalInfo.email) contactItems.push({ type: 'text', value: personalInfo.email });
+  if (personalInfo.linkedin) contactItems.push({ type: 'linkedin', value: personalInfo.linkedin });
+  if (personalInfo.website) contactItems.push({ type: 'text', value: personalInfo.website });
 
   return (
-    <header style={containerStyle} className={config?.className}>
-      <div className="text-center border-b-2 border-black pb-4 mb-4">
+    <header style={{...containerStyle, marginBottom: '0.15rem', paddingBottom: '0'}} className={config?.className}>
+      <div 
+        className="text-center border-b-2 border-black" 
+        style={{ 
+          paddingBottom: '0.5rem', 
+          marginBottom: '0.15rem',
+          textAlign: 'center'
+        }}
+      >
         <h1 
           className="text-3xl font-bold tracking-tight uppercase"
           style={{ 
@@ -106,7 +137,18 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
             {contactItems.map((item, index) => (
               <span key={index} className="flex items-center">
                 {index > 0 && <span className="mx-2 text-black">|</span>}
-                {item}
+                {item.type === 'linkedin' ? (
+                  <a
+                    href={formatLinkedInUrl(item.value)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-black hover:underline cursor-pointer"
+                  >
+                    LinkedIn
+                  </a>
+                ) : (
+                  <span>{item.value}</span>
+                )}
               </span>
             ))}
           </div>

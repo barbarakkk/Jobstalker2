@@ -6,11 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, X, Trash2, User, Link2, Briefcase, GraduationCap, Code, Globe, Loader2, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
+import { Plus, X, Trash2, User, Link2, Briefcase, GraduationCap, Code, Globe, Loader2, ChevronLeft, ChevronRight, Check, FileText, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { profileApi, skillsApi, experienceApi, educationApi, languagesApi } from '@/lib/api';
 import { SocialLink, CreateSkillData, CreateExperienceData, CreateEducationData, CreateLanguageData } from '@/lib/types';
 import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
+import { ExtensionDownloadDialog } from './ExtensionDownloadDialog';
 
 interface WorkExperienceForm {
   id: string;
@@ -49,6 +51,246 @@ const STEPS = [
   { id: 4, name: 'Education', icon: GraduationCap, color: 'teal' },
   { id: 5, name: 'Skills', icon: Code, color: 'blue' },
   { id: 6, name: 'Languages', icon: Globe, color: 'teal' },
+  { id: 7, name: 'Work & Demographics', icon: FileText, color: 'blue' },
+];
+
+const REFERRAL_SOURCES = [
+  'Reddit',
+  'Google',
+  'LinkedIn',
+  'TikTok',
+  'GitHub',
+  'Friend',
+  'Instagram',
+  'Discord',
+  'RoastMyResu.me',
+  'University',
+  'Job List',
+  'Other'
+];
+
+const ETHNICITY_OPTIONS = [
+  'Black/African American',
+  'East Asian',
+  'Hispanic/Latinx',
+  'Middle Eastern',
+  'Southeast Asian',
+  'South Asian',
+  'Native Hawaiian/Pacific Islander',
+  'Native American/Alaskan',
+  'White',
+  'Prefer not to say'
+];
+
+const YES_NO_DECLINE = ['Yes', 'No', 'Decline to state'];
+const GENDER_OPTIONS = ['Male', 'Female', 'Non-Binary', 'Decline to state'];
+
+// Comprehensive list of country calling codes
+const COUNTRY_CODES = [
+  { code: '+1', country: 'US/Canada' },
+  { code: '+7', country: 'Russia/Kazakhstan' },
+  { code: '+20', country: 'Egypt' },
+  { code: '+27', country: 'South Africa' },
+  { code: '+30', country: 'Greece' },
+  { code: '+31', country: 'Netherlands' },
+  { code: '+32', country: 'Belgium' },
+  { code: '+33', country: 'France' },
+  { code: '+34', country: 'Spain' },
+  { code: '+36', country: 'Hungary' },
+  { code: '+39', country: 'Italy' },
+  { code: '+40', country: 'Romania' },
+  { code: '+41', country: 'Switzerland' },
+  { code: '+43', country: 'Austria' },
+  { code: '+44', country: 'UK' },
+  { code: '+45', country: 'Denmark' },
+  { code: '+46', country: 'Sweden' },
+  { code: '+47', country: 'Norway' },
+  { code: '+48', country: 'Poland' },
+  { code: '+49', country: 'Germany' },
+  { code: '+51', country: 'Peru' },
+  { code: '+52', country: 'Mexico' },
+  { code: '+53', country: 'Cuba' },
+  { code: '+54', country: 'Argentina' },
+  { code: '+55', country: 'Brazil' },
+  { code: '+56', country: 'Chile' },
+  { code: '+57', country: 'Colombia' },
+  { code: '+58', country: 'Venezuela' },
+  { code: '+60', country: 'Malaysia' },
+  { code: '+61', country: 'Australia' },
+  { code: '+62', country: 'Indonesia' },
+  { code: '+63', country: 'Philippines' },
+  { code: '+64', country: 'New Zealand' },
+  { code: '+65', country: 'Singapore' },
+  { code: '+66', country: 'Thailand' },
+  { code: '+81', country: 'Japan' },
+  { code: '+82', country: 'South Korea' },
+  { code: '+84', country: 'Vietnam' },
+  { code: '+86', country: 'China' },
+  { code: '+90', country: 'Turkey' },
+  { code: '+91', country: 'India' },
+  { code: '+92', country: 'Pakistan' },
+  { code: '+93', country: 'Afghanistan' },
+  { code: '+94', country: 'Sri Lanka' },
+  { code: '+95', country: 'Myanmar' },
+  { code: '+98', country: 'Iran' },
+  { code: '+212', country: 'Morocco' },
+  { code: '+213', country: 'Algeria' },
+  { code: '+216', country: 'Tunisia' },
+  { code: '+218', country: 'Libya' },
+  { code: '+220', country: 'Gambia' },
+  { code: '+221', country: 'Senegal' },
+  { code: '+222', country: 'Mauritania' },
+  { code: '+223', country: 'Mali' },
+  { code: '+224', country: 'Guinea' },
+  { code: '+225', country: 'Ivory Coast' },
+  { code: '+226', country: 'Burkina Faso' },
+  { code: '+227', country: 'Niger' },
+  { code: '+228', country: 'Togo' },
+  { code: '+229', country: 'Benin' },
+  { code: '+230', country: 'Mauritius' },
+  { code: '+231', country: 'Liberia' },
+  { code: '+232', country: 'Sierra Leone' },
+  { code: '+233', country: 'Ghana' },
+  { code: '+234', country: 'Nigeria' },
+  { code: '+235', country: 'Chad' },
+  { code: '+236', country: 'Central African Republic' },
+  { code: '+237', country: 'Cameroon' },
+  { code: '+238', country: 'Cape Verde' },
+  { code: '+239', country: 'São Tomé and Príncipe' },
+  { code: '+240', country: 'Equatorial Guinea' },
+  { code: '+241', country: 'Gabon' },
+  { code: '+242', country: 'Republic of the Congo' },
+  { code: '+243', country: 'DR Congo' },
+  { code: '+244', country: 'Angola' },
+  { code: '+245', country: 'Guinea-Bissau' },
+  { code: '+246', country: 'British Indian Ocean Territory' },
+  { code: '+248', country: 'Seychelles' },
+  { code: '+249', country: 'Sudan' },
+  { code: '+250', country: 'Rwanda' },
+  { code: '+251', country: 'Ethiopia' },
+  { code: '+252', country: 'Somalia' },
+  { code: '+253', country: 'Djibouti' },
+  { code: '+254', country: 'Kenya' },
+  { code: '+255', country: 'Tanzania' },
+  { code: '+256', country: 'Uganda' },
+  { code: '+257', country: 'Burundi' },
+  { code: '+258', country: 'Mozambique' },
+  { code: '+260', country: 'Zambia' },
+  { code: '+261', country: 'Madagascar' },
+  { code: '+262', country: 'Réunion' },
+  { code: '+263', country: 'Zimbabwe' },
+  { code: '+264', country: 'Namibia' },
+  { code: '+265', country: 'Malawi' },
+  { code: '+266', country: 'Lesotho' },
+  { code: '+267', country: 'Botswana' },
+  { code: '+268', country: 'Eswatini' },
+  { code: '+269', country: 'Comoros' },
+  { code: '+290', country: 'Saint Helena' },
+  { code: '+291', country: 'Eritrea' },
+  { code: '+297', country: 'Aruba' },
+  { code: '+298', country: 'Faroe Islands' },
+  { code: '+299', country: 'Greenland' },
+  { code: '+350', country: 'Gibraltar' },
+  { code: '+351', country: 'Portugal' },
+  { code: '+352', country: 'Luxembourg' },
+  { code: '+353', country: 'Ireland' },
+  { code: '+354', country: 'Iceland' },
+  { code: '+355', country: 'Albania' },
+  { code: '+356', country: 'Malta' },
+  { code: '+357', country: 'Cyprus' },
+  { code: '+358', country: 'Finland' },
+  { code: '+359', country: 'Bulgaria' },
+  { code: '+370', country: 'Lithuania' },
+  { code: '+371', country: 'Latvia' },
+  { code: '+372', country: 'Estonia' },
+  { code: '+373', country: 'Moldova' },
+  { code: '+374', country: 'Armenia' },
+  { code: '+375', country: 'Belarus' },
+  { code: '+376', country: 'Andorra' },
+  { code: '+377', country: 'Monaco' },
+  { code: '+378', country: 'San Marino' },
+  { code: '+380', country: 'Ukraine' },
+  { code: '+381', country: 'Serbia' },
+  { code: '+382', country: 'Montenegro' },
+  { code: '+383', country: 'Kosovo' },
+  { code: '+385', country: 'Croatia' },
+  { code: '+386', country: 'Slovenia' },
+  { code: '+387', country: 'Bosnia and Herzegovina' },
+  { code: '+389', country: 'North Macedonia' },
+  { code: '+420', country: 'Czech Republic' },
+  { code: '+421', country: 'Slovakia' },
+  { code: '+423', country: 'Liechtenstein' },
+  { code: '+500', country: 'Falkland Islands' },
+  { code: '+501', country: 'Belize' },
+  { code: '+502', country: 'Guatemala' },
+  { code: '+503', country: 'El Salvador' },
+  { code: '+504', country: 'Honduras' },
+  { code: '+505', country: 'Nicaragua' },
+  { code: '+506', country: 'Costa Rica' },
+  { code: '+507', country: 'Panama' },
+  { code: '+508', country: 'Saint Pierre and Miquelon' },
+  { code: '+509', country: 'Haiti' },
+  { code: '+590', country: 'Guadeloupe' },
+  { code: '+591', country: 'Bolivia' },
+  { code: '+592', country: 'Guyana' },
+  { code: '+593', country: 'Ecuador' },
+  { code: '+594', country: 'French Guiana' },
+  { code: '+595', country: 'Paraguay' },
+  { code: '+596', country: 'Martinique' },
+  { code: '+597', country: 'Suriname' },
+  { code: '+598', country: 'Uruguay' },
+  { code: '+599', country: 'Curaçao' },
+  { code: '+670', country: 'East Timor' },
+  { code: '+672', country: 'Antarctica' },
+  { code: '+673', country: 'Brunei' },
+  { code: '+674', country: 'Nauru' },
+  { code: '+675', country: 'Papua New Guinea' },
+  { code: '+676', country: 'Tonga' },
+  { code: '+677', country: 'Solomon Islands' },
+  { code: '+678', country: 'Vanuatu' },
+  { code: '+679', country: 'Fiji' },
+  { code: '+680', country: 'Palau' },
+  { code: '+681', country: 'Wallis and Futuna' },
+  { code: '+682', country: 'Cook Islands' },
+  { code: '+683', country: 'Niue' },
+  { code: '+685', country: 'Samoa' },
+  { code: '+686', country: 'Kiribati' },
+  { code: '+687', country: 'New Caledonia' },
+  { code: '+688', country: 'Tuvalu' },
+  { code: '+689', country: 'French Polynesia' },
+  { code: '+690', country: 'Tokelau' },
+  { code: '+691', country: 'Micronesia' },
+  { code: '+692', country: 'Marshall Islands' },
+  { code: '+850', country: 'North Korea' },
+  { code: '+852', country: 'Hong Kong' },
+  { code: '+853', country: 'Macau' },
+  { code: '+855', country: 'Cambodia' },
+  { code: '+856', country: 'Laos' },
+  { code: '+880', country: 'Bangladesh' },
+  { code: '+886', country: 'Taiwan' },
+  { code: '+960', country: 'Maldives' },
+  { code: '+961', country: 'Lebanon' },
+  { code: '+962', country: 'Jordan' },
+  { code: '+963', country: 'Syria' },
+  { code: '+964', country: 'Iraq' },
+  { code: '+965', country: 'Kuwait' },
+  { code: '+966', country: 'Saudi Arabia' },
+  { code: '+967', country: 'Yemen' },
+  { code: '+968', country: 'Oman' },
+  { code: '+970', country: 'Palestine' },
+  { code: '+971', country: 'UAE' },
+  { code: '+972', country: 'Israel' },
+  { code: '+973', country: 'Bahrain' },
+  { code: '+974', country: 'Qatar' },
+  { code: '+975', country: 'Bhutan' },
+  { code: '+976', country: 'Mongolia' },
+  { code: '+977', country: 'Nepal' },
+  { code: '+992', country: 'Tajikistan' },
+  { code: '+993', country: 'Turkmenistan' },
+  { code: '+994', country: 'Azerbaijan' },
+  { code: '+995', country: 'Georgia' },
+  { code: '+996', country: 'Kyrgyzstan' },
+  { code: '+998', country: 'Uzbekistan' },
 ];
 
 export function RegistrationComplete() {
@@ -66,6 +308,7 @@ export function RegistrationComplete() {
   const [location, setLocation] = useState('');
   const [jobPosition, setJobPosition] = useState('');
   const [professionalSummary, setProfessionalSummary] = useState('');
+  const [referralSource, setReferralSource] = useState('');
 
   // Social Links
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([
@@ -83,6 +326,28 @@ export function RegistrationComplete() {
 
   // Languages
   const [languages, setLanguages] = useState<LanguageForm[]>([]);
+
+  // Work Authorization
+  const [workAuthUS, setWorkAuthUS] = useState<boolean | null>(null);
+  const [workAuthCanada, setWorkAuthCanada] = useState<boolean | null>(null);
+  const [workAuthUK, setWorkAuthUK] = useState<boolean | null>(null);
+  const [requiresSponsorship, setRequiresSponsorship] = useState<boolean | null>(null);
+  
+  // Demographics
+  const [ethnicity, setEthnicity] = useState('');
+  const [hasDisability, setHasDisability] = useState<'Yes' | 'No' | 'Decline to state' | ''>('');
+  const [isVeteran, setIsVeteran] = useState<'Yes' | 'No' | 'Decline to state' | ''>('');
+  const [isLgbtq, setIsLgbtq] = useState<'Yes' | 'No' | 'Decline to state' | ''>('');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Non-Binary' | 'Decline to state' | ''>('');
+  
+  // Location & Personal
+  const [currentLocation, setCurrentLocation] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
+  const [countryCodeSearch, setCountryCodeSearch] = useState('');
+
+  // Extension Dialog
+  const [showExtensionDialog, setShowExtensionDialog] = useState(false);
 
   useEffect(() => {
     // Pre-fill email from auth user
@@ -108,7 +373,7 @@ export function RegistrationComplete() {
     setError(null);
     
     if (step === 1) {
-      if (!firstName.trim() || !lastName.trim() || !email.trim() || !phone.trim()) {
+      if (!firstName.trim() || !lastName.trim() || !email.trim() || !referralSource) {
         setError('Please fill in all required fields');
         return false;
       }
@@ -276,6 +541,19 @@ export function RegistrationComplete() {
         location: location || undefined,
         professional_summary: professionalSummary || undefined,
         social_links: socialLinks.filter(link => link.url.trim() !== ''),
+        referral_source: referralSource || undefined,
+        work_auth_us: workAuthUS ?? undefined,
+        work_auth_canada: workAuthCanada ?? undefined,
+        work_auth_uk: workAuthUK ?? undefined,
+        requires_sponsorship: requiresSponsorship ?? undefined,
+        ethnicity: ethnicity || undefined,
+        has_disability: hasDisability || undefined,
+        is_veteran: isVeteran || undefined,
+        is_lgbtq: isLgbtq || undefined,
+        gender: gender || undefined,
+        current_location: currentLocation || undefined,
+        date_of_birth: dateOfBirth || undefined,
+        phone_country_code: phoneCountryCode || undefined,
       });
 
       // Save work experience
@@ -327,12 +605,12 @@ export function RegistrationComplete() {
       // Mark profile as completed ONLY after all steps are done
       await profileApi.completeProfile();
 
-      // Mark as submitted before redirecting
+      // Mark as submitted before showing dialog
       setIsSubmitting(true);
       
-      // Redirect to dashboard
-      console.log('Profile completed successfully, redirecting to dashboard');
-      navigate('/dashboard');
+      // Show extension download dialog
+      console.log('Profile completed successfully, showing extension dialog');
+      setShowExtensionDialog(true);
     } catch (err) {
       setIsSubmitting(false);
       setError(err instanceof Error ? err.message : 'Failed to save profile');
@@ -387,17 +665,33 @@ export function RegistrationComplete() {
                 return 'bg-white border-slate-300 text-slate-400';
               };
               
+              const handleStepClick = () => {
+                const targetStep = index + 1;
+                if (targetStep !== currentStep) {
+                  setCurrentStep(targetStep);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              };
+              
               return (
                 <div key={step.id} className="flex items-center flex-1">
                   <div className="flex flex-col items-center flex-1">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${getStepColorClasses()}`}>
+                    <div 
+                      onClick={handleStepClick}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 cursor-pointer hover:scale-110 ${getStepColorClasses()}`}
+                      title={`Go to ${step.name}`}
+                    >
                       {isCompleted ? (
                         <Check className="h-6 w-6" />
                       ) : (
                         <StepIcon className="h-6 w-6" />
                       )}
                     </div>
-                    <span className={`text-xs mt-2 font-medium ${isCurrent ? 'text-slate-900' : 'text-slate-500'}`}>
+                    <span 
+                      onClick={handleStepClick}
+                      className={`text-xs mt-2 font-medium cursor-pointer hover:text-sky-600 transition-colors ${isCurrent ? 'text-slate-900' : 'text-slate-500'}`}
+                      title={`Go to ${step.name}`}
+                    >
                       {step.name}
                     </span>
                   </div>
@@ -447,20 +741,7 @@ export function RegistrationComplete() {
           {/* Step 1: Personal Information */}
           {currentStep === 1 && (
             <Card className="border border-slate-200 shadow-xl bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
-              <CardHeader className="pb-5 border-b border-slate-100 bg-gradient-to-r from-sky-50 to-cyan-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-sky-500 rounded-xl shadow-sm">
-                    <User className="h-5 w-5 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl font-bold text-slate-900">Personal Information</CardTitle>
-                    <CardDescription className="text-slate-600 mt-1.5">
-                      Tell us about yourself. This information helps us create professional resumes and personalized application materials.
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-7 space-y-6">
+              <CardContent className="pt-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2.5">
                     <Label htmlFor="firstName" className="text-sm font-semibold text-slate-700">
@@ -504,16 +785,72 @@ export function RegistrationComplete() {
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="phone" className="text-sm font-semibold text-slate-700">
-                      Phone <span className="text-red-500">*</span>
+                      Phone <span className="text-slate-400 text-xs font-normal">(Optional)</span>
                     </Label>
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                      placeholder="+1 (555) 123-4567"
-                      className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all"
-                    />
+                    <div className="flex gap-3">
+                      <div className="w-48 flex flex-col gap-2">
+                        <Select value={phoneCountryCode} onValueChange={(value) => {
+                          setPhoneCountryCode(value);
+                          setCountryCodeSearch(''); // Clear search when selection is made
+                        }}>
+                          <SelectTrigger className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[400px]">
+                            {/* Search Input */}
+                            <div className="sticky top-0 z-10 bg-white border-b border-slate-200 p-2">
+                              <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Input
+                                  placeholder="Search country..."
+                                  value={countryCodeSearch}
+                                  onChange={(e) => setCountryCodeSearch(e.target.value)}
+                                  className="pl-9 h-9 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20"
+                                  onClick={(e) => e.stopPropagation()}
+                                  onKeyDown={(e) => e.stopPropagation()}
+                                />
+                              </div>
+                            </div>
+                            {/* Filtered Country List */}
+                            <div className="max-h-[300px] overflow-y-auto">
+                              {COUNTRY_CODES
+                                .filter((country) => {
+                                  if (!countryCodeSearch) return true;
+                                  const searchLower = countryCodeSearch.toLowerCase();
+                                  return (
+                                    country.country.toLowerCase().includes(searchLower) ||
+                                    country.code.includes(searchLower)
+                                  );
+                                })
+                                .map((country) => (
+                                  <SelectItem key={country.code} value={country.code}>
+                                    {country.code} ({country.country})
+                                  </SelectItem>
+                                ))}
+                              {COUNTRY_CODES.filter((country) => {
+                                if (!countryCodeSearch) return false;
+                                const searchLower = countryCodeSearch.toLowerCase();
+                                return (
+                                  country.country.toLowerCase().includes(searchLower) ||
+                                  country.code.includes(searchLower)
+                                );
+                              }).length === 0 && (
+                                <div className="px-2 py-4 text-sm text-slate-500 text-center">
+                                  No countries found
+                                </div>
+                              )}
+                            </div>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Input
+                        id="phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="Please enter valid phone number"
+                        className="flex-1 h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="location" className="text-sm font-semibold text-slate-700">
@@ -552,6 +889,23 @@ export function RegistrationComplete() {
                     rows={5}
                     className="resize-y border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all"
                   />
+                </div>
+                <div className="space-y-2.5">
+                  <Label htmlFor="referralSource" className="text-sm font-semibold text-slate-700">
+                    How did you hear about Jobstalker? <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={referralSource} onValueChange={setReferralSource}>
+                    <SelectTrigger id="referralSource" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
+                      <SelectValue placeholder="Select an option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {REFERRAL_SOURCES.map((source) => (
+                        <SelectItem key={source} value={source}>
+                          {source}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
@@ -634,19 +988,8 @@ export function RegistrationComplete() {
           {/* Step 3: Work Experience */}
           {currentStep === 3 && (
             <Card className="border border-slate-200 shadow-xl bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
-              <CardHeader className="pb-5 border-b border-slate-100 bg-gradient-to-r from-sky-50 to-cyan-50/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-sky-500 rounded-xl shadow-sm">
-                      <Briefcase className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl font-bold text-slate-900">Work Experience</CardTitle>
-                      <CardDescription className="text-slate-600 mt-1.5">
-                        Add your professional work history. This information is essential for building a comprehensive resume and showcasing your expertise.
-                      </CardDescription>
-                    </div>
-                  </div>
+              <CardContent className="pt-6 space-y-6">
+                <div className="flex justify-end mb-4">
                   <Button 
                     type="button" 
                     onClick={addWorkExperience} 
@@ -657,8 +1000,6 @@ export function RegistrationComplete() {
                     Add Experience
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-7 space-y-6">
                 {workExperience.length === 0 ? (
                   <div className="text-center py-16 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50/50">
                     <Briefcase className="h-14 w-14 text-slate-400 mx-auto mb-4" />
@@ -689,21 +1030,21 @@ export function RegistrationComplete() {
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-sm font-semibold text-slate-700">Start Date</Label>
-                          <Input
-                            type="date"
+                          <DatePicker
                             value={exp.startDate}
-                            onChange={(e) => updateWorkExperience(exp.id, 'startDate', e.target.value)}
-                            className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all bg-white"
+                            onChange={(value) => updateWorkExperience(exp.id, 'startDate', value)}
+                            placeholder="Select start date"
+                            className="h-12"
                           />
                         </div>
                         <div className="space-y-2.5">
                           <Label className="text-sm font-semibold text-slate-700">End Date</Label>
-                          <Input
-                            type="date"
+                          <DatePicker
                             value={exp.endDate}
-                            onChange={(e) => updateWorkExperience(exp.id, 'endDate', e.target.value)}
+                            onChange={(value) => updateWorkExperience(exp.id, 'endDate', value)}
+                            placeholder="Select end date"
                             disabled={exp.isCurrent}
-                            className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all bg-white disabled:bg-slate-100"
+                            className="h-12"
                           />
                         </div>
                       </div>
@@ -764,19 +1105,8 @@ export function RegistrationComplete() {
           {/* Step 4: Education */}
           {currentStep === 4 && (
             <Card className="border border-slate-200 shadow-xl bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
-              <CardHeader className="pb-5 border-b border-slate-100 bg-gradient-to-r from-cyan-50 to-sky-50/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-cyan-500 rounded-xl shadow-sm">
-                      <GraduationCap className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl font-bold text-slate-900">Education</CardTitle>
-                      <CardDescription className="text-slate-600 mt-1.5">
-                        Add your educational background. Your qualifications will be prominently featured in your resume and application materials.
-                      </CardDescription>
-                    </div>
-                  </div>
+              <CardContent className="pt-6 space-y-6">
+                <div className="flex justify-end mb-4">
                   <Button 
                     type="button" 
                     onClick={addEducation} 
@@ -787,8 +1117,6 @@ export function RegistrationComplete() {
                     Add Education
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-7 space-y-6">
                 {education.length === 0 ? (
                   <div className="text-center py-16 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50/50">
                     <GraduationCap className="h-14 w-14 text-slate-400 mx-auto mb-4" />
@@ -860,19 +1188,8 @@ export function RegistrationComplete() {
           {/* Step 5: Skills */}
           {currentStep === 5 && (
             <Card className="border border-slate-200 shadow-xl bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
-              <CardHeader className="pb-5 border-b border-slate-100 bg-gradient-to-r from-sky-50 to-cyan-50/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-sky-500 rounded-xl shadow-sm">
-                      <Code className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl font-bold text-slate-900">Skills</CardTitle>
-                      <CardDescription className="text-slate-600 mt-1.5">
-                        Add your professional skills. These skills will be highlighted in your resume and help showcase your capabilities to employers.
-                      </CardDescription>
-                    </div>
-                  </div>
+              <CardContent className="pt-6 space-y-5">
+                <div className="flex justify-end mb-4">
                   <Button 
                     type="button" 
                     onClick={addSkill} 
@@ -883,8 +1200,6 @@ export function RegistrationComplete() {
                     Add Skill
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-7 space-y-5">
                 {skills.length === 0 ? (
                   <div className="text-center py-16 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50/50">
                     <Code className="h-14 w-14 text-slate-400 mx-auto mb-4" />
@@ -969,19 +1284,8 @@ export function RegistrationComplete() {
           {/* Step 6: Languages */}
           {currentStep === 6 && (
             <Card className="border border-slate-200 shadow-xl bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
-              <CardHeader className="pb-5 border-b border-slate-100 bg-gradient-to-r from-cyan-50 to-sky-50/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-cyan-500 rounded-xl shadow-sm">
-                      <Globe className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <CardTitle className="text-2xl font-bold text-slate-900">Languages</CardTitle>
-                      <CardDescription className="text-slate-600 mt-1.5">
-                        Add languages you speak. Language skills are valuable assets that will be included in your resume and profile.
-                      </CardDescription>
-                    </div>
-                  </div>
+              <CardContent className="pt-6 space-y-5">
+                <div className="flex justify-end mb-4">
                   <Button 
                     type="button" 
                     onClick={addLanguage} 
@@ -992,8 +1296,6 @@ export function RegistrationComplete() {
                     Add Language
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-7 space-y-5">
                 {languages.length === 0 ? (
                   <div className="text-center py-16 border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50/50">
                     <Globe className="h-14 w-14 text-slate-400 mx-auto mb-4" />
@@ -1064,6 +1366,272 @@ export function RegistrationComplete() {
             </Card>
           )}
 
+          {/* Step 7: Work & Demographics */}
+          {currentStep === 7 && (
+            <Card className="border border-slate-200 shadow-xl bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
+              <CardContent className="pt-6 space-y-6">
+                {/* Information Box */}
+                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-blue-500 rounded-lg mt-0.5">
+                      <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-base font-semibold text-slate-900 mb-2">
+                        Why we collect this information
+                      </h4>
+                      <p className="text-sm text-slate-700 leading-relaxed mb-2">
+                        This information helps our Chrome extension automatically fill out job application forms on your behalf, saving you time and ensuring accuracy. The extension uses your work authorization status, location, and other details to pre-populate application fields when you're applying to jobs.
+                      </p>
+                      <p className="text-sm text-slate-600 font-medium">
+                        <span className="text-blue-600 font-semibold">💡 Important:</span> All fields in this section are completely optional. If you prefer not to share this information, you can skip any or all of these questions. Your privacy is important to us.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Work Authorization Section */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-slate-900 pb-2">Work Authorization</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2.5">
+                      <Label className="text-sm font-semibold text-slate-700">
+                        Are you authorized to work in the US?
+                      </Label>
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant={workAuthUS === true ? "default" : "outline"}
+                          onClick={() => setWorkAuthUS(true)}
+                          className={`flex-1 h-12 ${workAuthUS === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={workAuthUS === false ? "default" : "outline"}
+                          onClick={() => setWorkAuthUS(false)}
+                          className={`flex-1 h-12 ${workAuthUS === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label className="text-sm font-semibold text-slate-700">
+                        Are you authorized to work in Canada?
+                      </Label>
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant={workAuthCanada === true ? "default" : "outline"}
+                          onClick={() => setWorkAuthCanada(true)}
+                          className={`flex-1 h-12 ${workAuthCanada === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={workAuthCanada === false ? "default" : "outline"}
+                          onClick={() => setWorkAuthCanada(false)}
+                          className={`flex-1 h-12 ${workAuthCanada === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label className="text-sm font-semibold text-slate-700">
+                        Are you authorized to work in the United Kingdom?
+                      </Label>
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant={workAuthUK === true ? "default" : "outline"}
+                          onClick={() => setWorkAuthUK(true)}
+                          className={`flex-1 h-12 ${workAuthUK === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={workAuthUK === false ? "default" : "outline"}
+                          onClick={() => setWorkAuthUK(false)}
+                          className={`flex-1 h-12 ${workAuthUK === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label className="text-sm font-semibold text-slate-700">
+                        Will you now or in the future require sponsorship for employment visa status?
+                      </Label>
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant={requiresSponsorship === true ? "default" : "outline"}
+                          onClick={() => setRequiresSponsorship(true)}
+                          className={`flex-1 h-12 ${requiresSponsorship === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={requiresSponsorship === false ? "default" : "outline"}
+                          onClick={() => setRequiresSponsorship(false)}
+                          className={`flex-1 h-12 ${requiresSponsorship === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
+                        >
+                          No
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visual Separator */}
+                <div className="border-t border-slate-200 pt-6"></div>
+
+                {/* Demographics Section */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-lg font-semibold text-slate-900 pb-2">Demographics</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2.5">
+                      <Label htmlFor="ethnicity" className="text-sm font-semibold text-slate-700">
+                        What is your ethnicity?
+                      </Label>
+                      <Select value={ethnicity} onValueChange={setEthnicity}>
+                        <SelectTrigger id="ethnicity" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ETHNICITY_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label htmlFor="hasDisability" className="text-sm font-semibold text-slate-700">
+                        Do you have a disability?
+                      </Label>
+                      <Select value={hasDisability} onValueChange={(value) => setHasDisability(value as 'Yes' | 'No' | 'Decline to state' | '')}>
+                        <SelectTrigger id="hasDisability" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {YES_NO_DECLINE.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label htmlFor="isVeteran" className="text-sm font-semibold text-slate-700">
+                        Are you a veteran?
+                      </Label>
+                      <Select value={isVeteran} onValueChange={(value) => setIsVeteran(value as 'Yes' | 'No' | 'Decline to state' | '')}>
+                        <SelectTrigger id="isVeteran" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {YES_NO_DECLINE.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label htmlFor="isLgbtq" className="text-sm font-semibold text-slate-700">
+                        Do you identify as LGBTQ+?
+                      </Label>
+                      <Select value={isLgbtq} onValueChange={(value) => setIsLgbtq(value as 'Yes' | 'No' | 'Decline to state' | '')}>
+                        <SelectTrigger id="isLgbtq" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {YES_NO_DECLINE.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label htmlFor="gender" className="text-sm font-semibold text-slate-700">
+                        What is your gender?
+                      </Label>
+                      <Select value={gender} onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Non-Binary' | 'Decline to state' | '')}>
+                        <SelectTrigger id="gender" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GENDER_OPTIONS.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visual Separator */}
+                <div className="border-t border-slate-200 pt-6"></div>
+
+                {/* Additional Information Section */}
+                <div className="space-y-4 pt-4">
+                  <h3 className="text-lg font-semibold text-slate-900 pb-2">Additional Information</h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2.5">
+                      <Label htmlFor="currentLocation" className="text-sm font-semibold text-slate-700">
+                        Where are you currently located?
+                      </Label>
+                      <Input
+                        id="currentLocation"
+                        value={currentLocation}
+                        onChange={(e) => setCurrentLocation(e.target.value)}
+                        placeholder="Type city to search"
+                        className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all"
+                      />
+                    </div>
+
+                    <div className="space-y-2.5">
+                      <Label htmlFor="dateOfBirth" className="text-sm font-semibold text-slate-700">
+                        What's your date of birth?
+                      </Label>
+                      <DatePicker
+                        value={dateOfBirth}
+                        onChange={setDateOfBirth}
+                        placeholder="Select date of birth"
+                        className="h-12"
+                      />
+                    </div>
+
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Error Message */}
           {error && (
             <div className="bg-red-50/90 border border-red-200 rounded-2xl p-5 shadow-md backdrop-blur-sm">
@@ -1123,6 +1691,16 @@ export function RegistrationComplete() {
           </div>
         </form>
       </div>
+      
+      {/* Extension Download Dialog */}
+      <ExtensionDownloadDialog 
+        open={showExtensionDialog} 
+        onClose={() => {
+          setShowExtensionDialog(false);
+          // Navigate to resume builder after dialog is closed
+          navigate('/resume-builder');
+        }} 
+      />
     </div>
   );
 }

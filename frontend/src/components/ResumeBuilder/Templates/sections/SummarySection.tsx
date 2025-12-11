@@ -13,6 +13,10 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
   const containerStyle: React.CSSProperties = {
     ...style,
     ...config?.style,
+    marginBottom: '0.15rem', // Minimized spacing to bring sections closer
+    marginTop: '0', // Remove top margin completely
+    paddingBottom: '0', // Remove any padding
+    paddingTop: '0', // Remove any padding
   };
 
   const showTitle = config?.showTitle !== false;
@@ -33,19 +37,24 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-3"
+          className="text-xl font-bold mb-1"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
-            paddingBottom: '0.5rem'
+            paddingBottom: '0.25rem',
+            marginBottom: '0.25rem'
           }}
         >
           {title}
         </h2>
       )}
       <p 
-        className="text-sm leading-relaxed whitespace-pre-line"
-        style={{ color: style?.color || config?.style?.color }}
+        className="text-sm leading-normal whitespace-pre-line"
+        style={{ 
+          color: style?.color || config?.style?.color,
+          marginTop: '0',
+          marginBottom: '0'
+        }}
       >
         {data.summary}
       </p>

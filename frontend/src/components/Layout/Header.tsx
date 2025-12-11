@@ -32,7 +32,7 @@ export function Header() {
               <Link
                 key={link.href}
                 to={link.href}
-                className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200"
+                className="text-gray-600 hover:text-[#4169E1] font-medium transition-colors duration-200"
               >
                 {link.label}
               </Link>
@@ -40,7 +40,7 @@ export function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="text-gray-600 hover:text-blue-600 font-medium transition-colors duration-200"
+                className="text-gray-600 hover:text-[#4169E1] font-medium transition-colors duration-200"
               >
                 {link.label}
               </a>
@@ -51,7 +51,7 @@ export function Header() {
         {/* Desktop Auth Buttons */}
         <div className="hidden md:flex gap-3 items-center">
           <Link to="/login">
-            <Button variant="ghost" className="text-gray-600 hover:text-blue-600 hover:bg-gray-100">
+            <Button variant="ghost" className="text-gray-600 hover:text-[#4169E1] hover:bg-gray-100">
               Log In
             </Button>
           </Link>
@@ -81,7 +81,7 @@ export function Header() {
               <Link
                 key={link.href}
                 to={link.href}
-                className="block text-gray-600 hover:text-blue-600 font-medium py-2 transition-colors"
+                className="block text-gray-600 hover:text-[#4169E1] font-medium py-2 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.label}
@@ -90,7 +90,7 @@ export function Header() {
               <a
                 key={link.href}
                 href={link.href}
-                className="block text-gray-600 hover:text-blue-600 font-medium py-2 transition-colors"
+                className="block text-gray-600 hover:text-[#4169E1] font-medium py-2 transition-colors"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {link.label}
@@ -99,7 +99,7 @@ export function Header() {
           ))}
           <div className="pt-4 space-y-3">
             <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-              <Button variant="ghost" className="w-full text-gray-600 hover:text-blue-600 hover:bg-gray-100">
+              <Button variant="ghost" className="w-full text-gray-600 hover:text-[#4169E1] hover:bg-gray-100">
                 Log In
               </Button>
             </Link>

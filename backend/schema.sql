@@ -21,6 +21,25 @@ CREATE TABLE IF NOT EXISTS public.user_profile (
     profile_picture_url TEXT,
     social_links JSONB DEFAULT '[]'::jsonb,
     profile_completed BOOLEAN DEFAULT FALSE,
+    referral_source VARCHAR(100),
+    
+    -- Work authorization fields (optional - for job matching)
+    work_auth_us BOOLEAN, -- Whether user is authorized to work in the United States
+    work_auth_canada BOOLEAN, -- Whether user is authorized to work in Canada
+    work_auth_uk BOOLEAN, -- Whether user is authorized to work in the United Kingdom
+    requires_sponsorship BOOLEAN, -- Whether user requires visa sponsorship for employment
+    
+    -- Demographic information (optional - for diversity tracking)
+    ethnicity VARCHAR(100), -- User's self-identified ethnicity
+    has_disability VARCHAR(20) CHECK (has_disability IN ('Yes', 'No', 'Decline to state')), -- Disability status
+    is_veteran VARCHAR(20) CHECK (is_veteran IN ('Yes', 'No', 'Decline to state')), -- Veteran status
+    is_lgbtq VARCHAR(20) CHECK (is_lgbtq IN ('Yes', 'No', 'Decline to state')), -- LGBTQ+ identification
+    gender VARCHAR(20) CHECK (gender IN ('Male', 'Female', 'Non-Binary', 'Decline to state')), -- Gender identity
+    
+    -- Location and personal information (optional)
+    current_location VARCHAR(255), -- User's current city/location
+    date_of_birth DATE, -- User's date of birth
+    phone_country_code VARCHAR(10), -- Country code for phone number (e.g., +1, +44)
     
     -- Skills stored as JSON array
     skills JSONB DEFAULT '[]'::jsonb,

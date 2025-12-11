@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
 import { CreateJobData, Job } from '@/lib/types';
 import { jobApi } from '@/lib/api';
 
@@ -263,22 +264,18 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date_applied" className="text-sm font-semibold text-gray-900">Date Applied</Label>
-              <Input
-                id="date_applied"
-                type="date"
+              <DatePicker
                 value={formData.date_applied || ''}
-                onChange={(e) => handleInputChange('date_applied', e.target.value)}
-                className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(value) => handleInputChange('date_applied', value)}
+                placeholder="Select date applied"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="deadline" className="text-sm font-semibold text-gray-900">Deadline</Label>
-              <Input
-                id="deadline"
-                type="date"
+              <DatePicker
                 value={formData.deadline || ''}
-                onChange={(e) => handleInputChange('deadline', e.target.value)}
-                className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+                onChange={(value) => handleInputChange('deadline', value)}
+                placeholder="Select deadline"
               />
             </div>
           </div>

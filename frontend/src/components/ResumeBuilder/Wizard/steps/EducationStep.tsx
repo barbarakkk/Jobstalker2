@@ -44,7 +44,7 @@ export function EducationStep({ value, onChange }: StepProps) {
           </div>
         </div>
       ))}
-      <button className="text-blue-600 text-sm" onClick={add}>+ Add education</button>
+      <button className="text-[#295acf] text-sm" onClick={add}>+ Add education</button>
     </div>
   );
 }

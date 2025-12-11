@@ -37,10 +37,10 @@ export function ChromeExtension() {
   ];
 
   return (
-    <section className="relative w-full py-24 lg:py-36 overflow-hidden bg-gradient-to-br from-white via-blue-50/50 to-sky-50/60">
+    <section className="relative w-full py-24 lg:py-36 overflow-hidden bg-gradient-to-br from-white via-[#4169E1]/10 to-sky-50/60">
       {/* Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 right-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-blob"></div>
+        <div className="absolute top-20 right-10 w-96 h-96 bg-[#4169E1]/30 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-blob"></div>
         <div className="absolute bottom-20 left-10 w-96 h-96 bg-sky-300 rounded-full mix-blend-multiply filter blur-3xl opacity-15 animate-blob animation-delay-2000"></div>
       </div>
 
@@ -48,14 +48,14 @@ export function ChromeExtension() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left: Content */}
           <div className="text-center lg:text-left relative z-10">
-            <div className="inline-flex items-center gap-2 mb-6 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 border border-blue-200/60 text-blue-700 font-semibold text-sm shadow-sm">
+            <div className="inline-flex items-center gap-2 mb-6 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#4169E1]/20 via-[#4169E1]/10 to-[#4169E1]/20 border border-[#4169E1]/30 text-[#4169E1] font-semibold text-sm shadow-sm">
               <Chrome className="w-4 h-4" />
               Chrome Extension Available
             </div>
             
             <h2 className="text-4xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-[1.1] tracking-tight">
               Save jobs{' '}
-              <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#4169E1] via-[#3A5BCE] to-[#2E4AB8] bg-clip-text text-transparent">
                 instantly
               </span>
               {' '}from anywhere
@@ -69,7 +69,7 @@ export function ChromeExtension() {
             <div className="space-y-4 mb-8">
               {features.map((feature, index) => (
                 <div key={index} className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-r from-[#4169E1] to-[#3A5BCE] rounded-xl flex items-center justify-center text-white shadow-lg flex-shrink-0">
                     {feature.icon}
                   </div>
                   <div>
@@ -84,7 +84,7 @@ export function ChromeExtension() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={handleChromeStore}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 rounded-xl"
+                className="bg-[#4169E1] hover:bg-[#3A5BCE] text-white px-8 py-6 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 rounded-xl"
               >
                 <Download className="w-5 h-5 mr-2" />
                 Download from Chrome Store
@@ -120,9 +120,9 @@ export function ChromeExtension() {
                   </div>
                 </div>
                 
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-b-lg p-6 border-t-2 border-blue-200">
+                <div className="bg-gradient-to-br from-[#4169E1]/10 to-[#4169E1]/20 rounded-b-lg p-6 border-t-2 border-[#4169E1]/30">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                    <div className="w-10 h-10 bg-[#4169E1] rounded-lg flex items-center justify-center">
                       <Bookmark className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -146,7 +146,7 @@ export function ChromeExtension() {
                     </div>
                   </div>
 
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                  <Button className="w-full bg-[#4169E1] hover:bg-[#3A5BCE] text-white">
                     <Zap className="w-4 h-4 mr-2" />
                     Save Job
                   </Button>

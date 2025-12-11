@@ -217,8 +217,8 @@ request_counts_ip = {}
 request_counts_user = {}
 lock = threading.Lock()
 
-RATE_LIMIT_GLOBAL_PER_MIN = 100  # per IP fallback
-RATE_LIMIT_USER_PER_MIN = 30     # per user default
+RATE_LIMIT_GLOBAL_PER_MIN = 200  # per IP fallback
+RATE_LIMIT_USER_PER_MIN = 60     # per user default
 RATE_LIMIT_USER_AI_PER_MIN = 30  # per user AI endpoints (increased for better UX during resume building)
 
 @app.middleware("http")

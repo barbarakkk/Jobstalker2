@@ -25,8 +25,8 @@ export function LandingPage() {
 
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          console.log('User already authenticated, redirecting to dashboard');
-          navigate('/dashboard');
+          console.log('User already authenticated, redirecting to resume builder');
+          navigate('/resume-builder');
         }
       } catch (error) {
         console.error('Error checking auth state:', error);
@@ -40,8 +40,8 @@ export function LandingPage() {
       async (event, session) => {
         console.log('Auth state change:', event, session ? 'session exists' : 'no session');
         if (event === 'SIGNED_IN' && session) {
-          console.log('User signed in, redirecting to dashboard');
-          navigate('/dashboard');
+          console.log('User signed in, redirecting to resume builder');
+          navigate('/resume-builder');
         }
       }
     );
@@ -50,7 +50,7 @@ export function LandingPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-blue-50/30 to-white font-sans">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-[#4169E1]/10 to-white font-sans">
       <Header />
       <Hero />
       <Features />

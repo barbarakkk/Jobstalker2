@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Star, MoreHorizontal, Plus, Edit, Trash2, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Grid, Maximize2, FileText } from 'lucide-react';
-import { Job } from '@/lib/types';
+import { Job, CreateJobData } from '@/lib/types';
 import { jobApi, profileApi } from '@/lib/api';
 import { JobModal } from '@/components/Jobs/AddJobModal';
 import { KanbanBoard } from './KanbanBoard';
@@ -46,6 +46,8 @@ export function Dashboard({ }: DashboardProps) {
 
   // Use ref to track if we're currently loading to prevent duplicate calls
   const isLoadingRef = useRef(false);
+  // Use ref to track if we're creating sample jobs to prevent duplicates
+  const isCreatingSamplesRef = useRef(false);
   
   // Load jobs from API - memoized to prevent unnecessary re-renders
   const loadJobs = useCallback(async () => {
@@ -56,7 +58,10 @@ export function Dashboard({ }: DashboardProps) {
     }
     
     isLoadingRef.current = true;
-    setLoading(true);
+    // Only set loading on initial load, not blocking navigation
+    if (jobs.length === 0) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const jobsData = await jobApi.getJobs();
@@ -81,15 +86,119 @@ export function Dashboard({ }: DashboardProps) {
         return jobsData;
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load jobs');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load jobs';
+      
+      // Handle authentication errors by redirecting to login
+      if (errorMessage.includes('Authentication') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+        // Try to refresh the session first
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.refresh_token) {
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession({
+              refresh_token: session.refresh_token
+            });
+            
+            if (!refreshError && refreshedSession?.access_token) {
+              // Token refreshed, retry loading jobs
+              return loadJobs();
+            }
+          }
+        } catch (refreshErr) {
+          console.error('Failed to refresh session:', refreshErr);
+        }
+        
+        // If refresh failed or no refresh token, redirect to login
+        console.log('Authentication failed, redirecting to login');
+        await supabase.auth.signOut();
+        navigate('/login');
+        return;
+      }
+      
+      // For other errors, show error message
+      setError(errorMessage);
     } finally {
       setLoading(false);
       isLoadingRef.current = false;
     }
-  }, []); // Empty deps - function never changes
+  }, [navigate]); // Include navigate in deps
+
+  // Create sample jobs for new users
+  const createSampleJobs = useCallback(async () => {
+    // Prevent duplicate calls
+    if (isCreatingSamplesRef.current) {
+      return;
+    }
+
+    // Check if we've already created sample jobs for this user
+    const hasCreatedSamples = localStorage.getItem('sampleJobsCreated');
+    if (hasCreatedSamples) {
+      return; // Already created samples, don't create again
+    }
+
+    // Check current jobs state - use the jobs from state instead of API call
+    if (jobs.length > 0) {
+      // User already has jobs, mark as done so we don't check again
+      localStorage.setItem('sampleJobsCreated', 'true');
+      return;
+    }
+
+    // Set flag immediately to prevent duplicate calls
+    isCreatingSamplesRef.current = true;
+    localStorage.setItem('sampleJobsCreated', 'true');
+
+    try {
+      const today = new Date();
+      const nextWeek = new Date(today);
+      nextWeek.setDate(today.getDate() + 7);
+
+      // Sample Job 1: Software Engineer at Tech Company (Applying status)
+      const sampleJob1: CreateJobData = {
+        job_title: 'Senior Software Engineer',
+        company: 'TechCorp Solutions',
+        location: 'San Francisco, CA',
+        salary: '$120,000 - $150,000',
+        job_url: 'https://example.com/job1',
+        status: 'Applying',
+        excitement_level: 4,
+        date_applied: null,
+        deadline: nextWeek.toISOString().split('T')[0],
+        description: 'We are looking for an experienced Senior Software Engineer to join our growing team. You will work on cutting-edge projects using modern technologies like React, Node.js, and AWS. This is a great opportunity to make an impact in a fast-paced startup environment.'
+      };
+
+      // Sample Job 2: Product Manager at Startup (Bookmarked status)
+      const sampleJob2: CreateJobData = {
+        job_title: 'Product Manager',
+        company: 'InnovateStart',
+        location: 'Remote',
+        salary: '$100,000 - $130,000',
+        job_url: 'https://example.com/job2',
+        status: 'Bookmarked',
+        excitement_level: 5,
+        date_applied: null,
+        deadline: null,
+        description: 'Join our dynamic product team as a Product Manager. You will be responsible for driving product strategy, working closely with engineering and design teams, and helping shape the future of our platform. Remote work available.'
+      };
+
+      // Create both sample jobs
+      await Promise.all([
+        jobApi.createJob(sampleJob1),
+        jobApi.createJob(sampleJob2)
+      ]);
+
+      // Reload jobs to show the new samples
+      await loadJobs();
+    } catch (err) {
+      console.error('Failed to create sample jobs:', err);
+      // Reset flag on error so it can be retried
+      localStorage.removeItem('sampleJobsCreated');
+      // Don't show error to user, just silently fail
+    } finally {
+      isCreatingSamplesRef.current = false;
+    }
+  }, [jobs.length, loadJobs]);
 
   useEffect(() => {
-    // Only load jobs once on mount - no dependencies to prevent re-runs
+    // Load jobs first
     loadJobs();
     
     // Get current user and check profile completion
@@ -132,6 +241,17 @@ export function Dashboard({ }: DashboardProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - only run once on mount
 
+  // Create sample jobs after jobs are loaded (only if no jobs exist)
+  useEffect(() => {
+    // Only create samples if:
+    // 1. Not currently loading
+    // 2. Jobs array is empty
+    // 3. Not already creating samples
+    if (!loading && jobs.length === 0 && !isCreatingSamplesRef.current) {
+      createSampleJobs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, jobs.length]); // Only run when loading state or jobs count changes
 
   // Realtime: COMPLETELY DISABLED to prevent auto-refreshes
   // Users can manually refresh using the refresh button
@@ -207,7 +327,17 @@ export function Dashboard({ }: DashboardProps) {
       setJobs(prevJobs => prevJobs.filter(job => job.id !== jobToDelete.id));
       setSelectedJobs(prev => prev.filter(id => id !== jobToDelete.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete job');
+      // Handle 404 errors silently - job already deleted, just remove from UI
+      const errorMessage = err instanceof Error ? err.message : '';
+      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        // Job doesn't exist, just remove it from the UI silently
+        setJobs(prevJobs => prevJobs.filter(job => job.id !== jobToDelete.id));
+        setSelectedJobs(prev => prev.filter(id => id !== jobToDelete.id));
+      } else {
+        // Only show non-404 errors
+        console.error('Error deleting job:', err);
+        // Don't show error to user for deletion failures
+      }
     } finally {
       setIsDeleteDialogOpen(false);
       setJobToDelete(null);
@@ -223,13 +353,25 @@ export function Dashboard({ }: DashboardProps) {
   // Confirm bulk delete
   const confirmBulkDelete = async () => {
     try {
-      for (const jobId of selectedJobs) {
-        await jobApi.deleteJob(jobId);
-      }
+      const deletePromises = selectedJobs.map(jobId => 
+        jobApi.deleteJob(jobId).catch(err => {
+          // Silently handle 404 errors - job already deleted
+          const errorMessage = err instanceof Error ? err.message : '';
+          if (!errorMessage.includes('404') && !errorMessage.includes('not found')) {
+            console.error(`Error deleting job ${jobId}:`, err);
+          }
+          return null; // Return null for failed deletes
+        })
+      );
+      await Promise.all(deletePromises);
+      // Remove all selected jobs from UI regardless of API response
       setJobs(prevJobs => prevJobs.filter(job => !selectedJobs.includes(job.id)));
       setSelectedJobs([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete jobs');
+      // Silently handle errors - just remove jobs from UI
+      console.error('Error during bulk delete:', err);
+      setJobs(prevJobs => prevJobs.filter(job => !selectedJobs.includes(job.id)));
+      setSelectedJobs([]);
     } finally {
       setIsBulkDeleteDialogOpen(false);
     }
@@ -246,7 +388,12 @@ export function Dashboard({ }: DashboardProps) {
       setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? updatedJob : job));
     } catch (err) {
       console.error('Error updating job status:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update job status');
+      // Handle 404 errors silently - job doesn't exist, remove from UI
+      const errorMessage = err instanceof Error ? err.message : '';
+      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+      }
+      // Don't show error to user - silently handle failures
     } finally {
       setUpdatingJobId(null);
     }
@@ -293,7 +440,13 @@ export function Dashboard({ }: DashboardProps) {
       const updatedJob = await jobApi.updateJob(jobId, { excitement_level: newRating });
       setJobs(prevJobs => prevJobs.map(job => job.id === jobId ? updatedJob : job));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update job rating');
+      console.error('Error updating job rating:', err);
+      // Handle 404 errors silently - job doesn't exist, remove from UI
+      const errorMessage = err instanceof Error ? err.message : '';
+      if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+        setJobs(prevJobs => prevJobs.filter(job => job.id !== jobId));
+      }
+      // Don't show error to user - silently handle failures
     } finally {
       setUpdatingJobId(null);
     }
@@ -405,8 +558,16 @@ export function Dashboard({ }: DashboardProps) {
     );
   }
 
-  // Only show full error state if we have no jobs and it's a critical error
-  if (error && jobs.length === 0) {
+  // Only show full error state if we have no jobs and it's a critical error (not authentication)
+  // Don't show error screen for authentication errors - they should redirect to login
+  const isAuthError = error && (
+    error.includes('Authentication') || 
+    error.includes('401') || 
+    error.includes('Unauthorized') ||
+    error.includes('Please log in')
+  );
+
+  if (error && jobs.length === 0 && !isAuthError) {
     return (
       <div className="min-h-screen bg-gray-50 font-sans">
         <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-lg sticky top-0 z-50">
@@ -442,6 +603,18 @@ export function Dashboard({ }: DashboardProps) {
     );
   }
 
+  // If it's an auth error, show loading while redirecting (redirect happens in loadJobs)
+  if (isAuthError && jobs.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
       <div className="min-h-screen bg-gray-50">
       {/* Full Screen Kanban */}
@@ -472,9 +645,6 @@ export function Dashboard({ }: DashboardProps) {
               <a href="/resume-builder" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/resume-builder'); }}>
                 Resume Builder
               </a>
-              <a href="/statistics" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/statistics'); }}>
-                Statistics
-              </a>
               <a href="/profile" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>
                 Profile
               </a>
@@ -491,7 +661,6 @@ export function Dashboard({ }: DashboardProps) {
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Jobs</button>
             <button onClick={() => navigate('/resume-builder')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Resume Builder</button>
-            <button onClick={() => navigate('/statistics')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Statistics</button>
             <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Profile</button>
           </div>
         </div>
@@ -513,12 +682,12 @@ export function Dashboard({ }: DashboardProps) {
         </div>
       )}
 
-      {/* Error Notification */}
-      {error && jobs.length > 0 && (
+      {/* Error Notification - Only show critical errors, not technical ones or auth errors */}
+      {error && jobs.length > 0 && !error.includes('404') && !error.includes('not found') && !isAuthError && (
         <div className="fixed top-20 left-8 right-8 z-50 bg-red-500 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center space-x-3 animate-slide-in backdrop-blur-sm">
           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
           <span className="font-semibold">
-            Error: {error}
+            {error.includes('Failed to') ? error.replace('Error: ', '') : 'Something went wrong. Please try again.'}
           </span>
           <button 
             onClick={() => setError(null)}

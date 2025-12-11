@@ -5,7 +5,6 @@ Allow: /
 Disallow: /auth/
 Disallow: /dashboard/
 Disallow: /profile/
-Disallow: /statistics/
 Disallow: /resume-builder/
 
 # Allow important pages

@@ -15,7 +15,7 @@ export function EditableExperience({ experience, onUpdate, onRemove }: EditableE
   };
 
   return (
-    <div className="border-2 border-blue-200 bg-blue-50/20 rounded-lg p-4 mb-4 relative group">
+    <div className="border-2 border-[#295acf]/30 bg-[#295acf]/10 rounded-lg p-4 mb-4 relative group">
       <div className="flex justify-between items-start mb-2">
         <div className="flex-1">
           <div className="font-semibold text-sm mb-1">

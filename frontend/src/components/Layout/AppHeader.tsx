@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
 import { supabase } from '@/lib/supabaseClient';
 
-type ActiveTab = 'jobs' | 'resume' | 'statistics' | 'profile';
+type ActiveTab = 'jobs' | 'resume' | 'profile';
 
 interface AppHeaderProps {
   active?: ActiveTab;
@@ -37,7 +37,6 @@ export function AppHeader({ active = 'jobs' }: AppHeaderProps) {
           <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
             <a href="#" className={linkClass('jobs')} onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>Jobs</a>
             <a href="#" className={linkClass('resume')} onClick={(e) => { e.preventDefault(); navigate('/resume-builder'); }}>Resume Builder</a>
-            <a href="#" className={linkClass('statistics')} onClick={(e) => { e.preventDefault(); navigate('/statistics'); }}>Statistics</a>
             <a href="#" className={linkClass('profile')} onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>Profile</a>
           </nav>
           <div className="ml-auto pr-2">
@@ -52,7 +51,6 @@ export function AppHeader({ active = 'jobs' }: AppHeaderProps) {
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
           <button className={active==='jobs' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/dashboard')}>Jobs</button>
           <button className={active==='resume' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/resume-builder')}>Resume Builder</button>
-          <button className={active==='statistics' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/statistics')}>Statistics</button>
           <button className={active==='profile' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/profile')}>Profile</button>
         </div>
       </div>

@@ -124,8 +124,20 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   }, [markDirty]);
 
   const getAuthToken = useCallback(async (): Promise<string | null> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.access_token || null;
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Error getting session:', error);
+        return null;
+      }
+      if (session?.access_token) {
+        return session.access_token;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error in getAuthToken:', error);
+      return null;
+    }
   }, []);
 
   const saveResume = useCallback(async (title: string, templateId: string, data: ResumeData): Promise<string> => {
@@ -190,9 +202,39 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to update resume:', errorText);
-        throw new Error('Failed to update resume');
+        if (response.status === 401) {
+          // Token expired or invalid - try to refresh and retry once
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          if (currentSession?.refresh_token) {
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession({
+              refresh_token: currentSession.refresh_token
+            });
+            
+            if (refreshError || !refreshedSession?.access_token) {
+              throw new Error('Authentication failed. Please log in again.');
+            }
+            
+            // Retry with refreshed token
+            headers['Authorization'] = `Bearer ${refreshedSession.access_token}`;
+            const retryResponse = await fetch(`${API_BASE_URL}/api/resume-builder/${resumeId}`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify(updatePayload),
+            });
+            
+            if (!retryResponse.ok) {
+              const errorText = await retryResponse.text();
+              console.error('Failed to update resume after token refresh:', errorText);
+              throw new Error('Authentication failed. Please try again.');
+            }
+          } else {
+            throw new Error('Authentication failed. Please log in again.');
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to update resume:', errorText);
+          throw new Error('Failed to update resume');
+        }
       }
 
       console.log('Context - Resume updated:', resumeId);
@@ -298,11 +340,15 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
       }
 
       const result = await response.json();
-      setResumeData(result.resume_data as ResumeData);
+      // Parse resume_data if it's a string (JSON), otherwise use as-is
+      const resumeData = typeof result.resume_data === 'string' 
+        ? JSON.parse(result.resume_data) 
+        : result.resume_data;
+      setResumeData(resumeData as ResumeData);
       setSelectedTemplate(result.template_id);
       setCurrentResumeId(resumeId);
       setIsAIGenerated(true);
-      console.log('Context - Resume loaded:', resumeId);
+      console.log('Context - Resume loaded:', resumeId, 'Data:', resumeData);
     } catch (error) {
       console.error('Error loading resume:', error);
       throw error;

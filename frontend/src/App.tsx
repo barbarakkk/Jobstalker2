@@ -8,7 +8,6 @@ import { RegistrationComplete } from './components/Auth/RegistrationComplete';
 // Lazy load components for better performance - only load when needed
 const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
 const JobDetail = lazy(() => import('./components/Dashboard/JobDetail'));
-const Statistics = lazy(() => import('./components/Statistics').then(module => ({ default: module.Statistics })));
 const ProfilePage = lazy(() => import('./components/Profile/ProfilePage'));
 const ResumeBuilderHome = lazy(() => import('./components/ResumeBuilder/ResumeBuilderHome').then(module => ({ default: module.ResumeBuilderHome })));
 const ResumeEditPage = lazy(() => import('./components/ResumeBuilder/Edit').then(module => ({ default: module.ResumeEditPage })));
@@ -48,16 +47,6 @@ function App() {
               <ProtectedRoute>
                 <Suspense fallback={<LoadingFallback />}>
                   <Dashboard />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/statistics" 
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Statistics />
                 </Suspense>
               </ProtectedRoute>
             } 

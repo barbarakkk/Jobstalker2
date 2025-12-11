@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
-import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Sparkles, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Sparkles, X, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { wizardApi } from '@/lib/api';
@@ -781,7 +782,7 @@ export function AIGeneratePage() {
                 setShowValidationDialog(false);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-[#295acf] hover:bg-[#1f4ab8]"
             >
               Got it, I'll fix these
             </Button>
@@ -802,7 +803,7 @@ export function AIGeneratePage() {
                   <button
                     type="button"
                     onClick={createWizardSession}
-                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="px-3 py-1 text-xs bg-[#295acf] text-white rounded hover:bg-[#1f4ab8]"
                   >
                     Retry
                   </button>
@@ -813,7 +814,7 @@ export function AIGeneratePage() {
                   <button
                     type="button"
                     onClick={createWizardSession}
-                    className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+                    className="px-3 py-1 text-xs bg-[#295acf] text-white rounded hover:bg-[#1f4ab8]"
                   >
                     Create Session
                   </button>
@@ -836,7 +837,7 @@ export function AIGeneratePage() {
                     className={cn(
                       "flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-200 flex-shrink-0",
                       currentStep === step.id
-                        ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-110"
+                        ? "bg-[#295acf] border-[#295acf] text-white shadow-lg scale-110"
                         : currentStep > step.id
                         ? "bg-green-500 border-green-500 text-white cursor-pointer hover:scale-105"
                         : "bg-white border-gray-300 text-gray-400 cursor-pointer hover:border-gray-400",
@@ -852,7 +853,7 @@ export function AIGeneratePage() {
                   <div className="mt-2 text-center w-full">
                     <p className={cn(
                       "text-xs font-medium truncate",
-                      currentStep === step.id ? "text-blue-600" : currentStep > step.id ? "text-green-600" : "text-gray-400"
+                      currentStep === step.id ? "text-[#295acf]" : currentStep > step.id ? "text-green-600" : "text-gray-400"
                     )}>
                       {step.name}
                     </p>
@@ -876,7 +877,7 @@ export function AIGeneratePage() {
                       className={cn(
                         "flex items-center justify-center w-8 h-8 rounded-full border-2 transition-all duration-200 text-xs",
                         currentStep === step.id
-                          ? "bg-blue-600 border-blue-600 text-white shadow-lg scale-110"
+                          ? "bg-[#295acf] border-[#295acf] text-white shadow-lg scale-110"
                           : currentStep > step.id
                           ? "bg-green-500 border-green-500 text-white cursor-pointer"
                           : "bg-white border-gray-300 text-gray-400 cursor-pointer",
@@ -896,7 +897,7 @@ export function AIGeneratePage() {
             <div className="mt-3 text-center">
               <p className={cn(
                 "text-sm font-medium",
-                currentStep === steps[currentStep - 1]?.id ? "text-blue-600" : "text-gray-600"
+                currentStep === steps[currentStep - 1]?.id ? "text-[#295acf]" : "text-gray-600"
               )}>
                 {steps[currentStep - 1]?.name}: {steps[currentStep - 1]?.description}
               </p>
@@ -909,7 +910,7 @@ export function AIGeneratePage() {
             </p>
             <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-[#295acf] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(currentStep / totalSteps) * 100}%` }}
               />
             </div>
@@ -1098,7 +1099,7 @@ export function AIGeneratePage() {
                   <h2 className="text-2xl font-semibold text-gray-900">Skills</h2>
                   <p className="text-gray-600 mt-1">Add your professional skills with categories and proficiency levels</p>
                 </div>
-                <Button type="button" onClick={addSkill} variant="outline" size="sm">
+                <Button type="button" onClick={addSkill} size="sm" className="bg-[#295acf] hover:bg-[#1f4ab8] text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Skill
                 </Button>
@@ -1181,7 +1182,7 @@ export function AIGeneratePage() {
                   <h2 className="text-2xl font-semibold text-gray-900">Education</h2>
                   <p className="text-gray-600 mt-1">Add your education background (optional)</p>
                 </div>
-                <Button type="button" onClick={addEducation} variant="outline" size="sm">
+                <Button type="button" onClick={addEducation} size="sm" className="bg-[#295acf] hover:bg-[#1f4ab8] text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Education
                 </Button>
@@ -1219,28 +1220,24 @@ export function AIGeneratePage() {
                         required
                       />
                     </div>
-                    <div>
-                      <Label>Field of Study</Label>
-                      <Input
-                        value={edu.field || ''}
-                        onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
-                        placeholder="e.g., Computer Science"
-                      />
-                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label>Start Date</Label>
-                      <Input
+                      <DatePicker
                         type="month"
                         value={edu.startDate}
-                        onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)}
+                        onChange={(value) => updateEducation(edu.id, 'startDate', value)}
+                        placeholder="Select month"
                       />
                     </div>
                     <div>
                       <Label>End Date</Label>
-                      <Input
+                      <DatePicker
                         type="month"
                         value={edu.endDate}
-                        onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)}
+                        onChange={(value) => updateEducation(edu.id, 'endDate', value)}
+                        placeholder="Select month"
                       />
                     </div>
                   </div>
@@ -1265,7 +1262,7 @@ export function AIGeneratePage() {
                   <h2 className="text-2xl font-semibold text-gray-900">Work Experience</h2>
                   <p className="text-gray-600 mt-1">Add your work history (optional)</p>
                 </div>
-                <Button type="button" onClick={addWorkExperience} variant="outline" size="sm">
+                <Button type="button" onClick={addWorkExperience} size="sm" className="bg-[#295acf] hover:bg-[#1f4ab8] text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Experience
                 </Button>
@@ -1312,18 +1309,20 @@ export function AIGeneratePage() {
                     </div>
                     <div>
                       <Label>Start Date</Label>
-                      <Input
+                      <DatePicker
                         type="month"
                         value={exp.startDate}
-                        onChange={(e) => updateWorkExperience(exp.id, 'startDate', e.target.value)}
+                        onChange={(value) => updateWorkExperience(exp.id, 'startDate', value)}
+                        placeholder="Select month"
                       />
                     </div>
                     <div>
                       <Label>End Date</Label>
-                      <Input
+                      <DatePicker
                         type="month"
                         value={exp.endDate}
-                        onChange={(e) => updateWorkExperience(exp.id, 'endDate', e.target.value)}
+                        onChange={(value) => updateWorkExperience(exp.id, 'endDate', value)}
+                        placeholder="Select month"
                         disabled={exp.isCurrent}
                       />
                     </div>
@@ -1366,7 +1365,7 @@ export function AIGeneratePage() {
                           }
                           setShowQuestionnaireDialog(exp.id);
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                        className="bg-[#295acf] hover:bg-[#1f4ab8] text-white disabled:opacity-50"
                       >
                         <Sparkles className="w-4 h-4 mr-1" />
                         Generate with AI
@@ -1400,7 +1399,7 @@ export function AIGeneratePage() {
                   <h2 className="text-2xl font-semibold text-gray-900">Languages</h2>
                   <p className="text-gray-600 mt-1">Add the languages you speak with proficiency level</p>
                 </div>
-                <Button type="button" onClick={addLanguage} variant="outline" size="sm">
+                <Button type="button" onClick={addLanguage} size="sm" className="bg-[#295acf] hover:bg-[#1f4ab8] text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Language
                 </Button>
@@ -1494,6 +1493,17 @@ export function AIGeneratePage() {
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
               <p className="text-gray-600 mt-1">Tell us about yourself - This is required</p>
+              <div className="mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                <div className="flex items-start gap-2">
+                  <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 mb-1">Why Professional Summary is Important</p>
+                    <p className="text-sm text-blue-800">
+                      A professional summary is one of the most important sections of your resume. It's the first thing recruiters read and helps them quickly understand your value proposition. A well-written summary can significantly increase your chances of getting an interview. Take your time to craft a compelling summary that highlights your key achievements, skills, and career goals.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div>
               <Label htmlFor="summary">
@@ -1592,7 +1602,7 @@ export function AIGeneratePage() {
                       setIsGeneratingSummary(false);
                     }
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                  className="bg-[#295acf] hover:bg-[#1f4ab8] disabled:opacity-50 text-white"
                 >
                   {isGeneratingSummary ? (
                     <>
@@ -1676,7 +1686,7 @@ export function AIGeneratePage() {
                   type="button"
                   onClick={() => showQuestionnaireDialog && generateDescriptionFromQuestionnaire(showQuestionnaireDialog)}
                   disabled={!questionnaireAnswers.whatDidYouDo.trim() || isGeneratingDescription}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-[#295acf] hover:bg-[#1f4ab8]"
                 >
                   {isGeneratingDescription ? (
                     <>
@@ -1721,7 +1731,7 @@ export function AIGeneratePage() {
                   type="button"
                   onClick={handleNext}
                   disabled={!validateCurrentStep()}
-                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                  className="bg-[#295acf] hover:bg-[#1f4ab8] text-white flex items-center gap-2"
                 >
                   Next
                   <ChevronRight className="w-4 h-4" />
@@ -1741,7 +1751,7 @@ export function AIGeneratePage() {
                     // Call handleSubmit directly
                     handleSubmit(e as any);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#295acf] hover:bg-[#1f4ab8] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-white"
                 >
                   {isGenerating ? (
                     <>

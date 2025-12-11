@@ -325,7 +325,7 @@ async function handleSaveJob() {
     if (pageData && pageData.is_job_page === false) {
       console.warn('⚠️ STEP 3.6: Not on a LinkedIn job details page. Aborting save.');
       if (saveJobBtn) {
-        saveJobBtn.textContent = '📁+ Save Link to JobStalker AI';
+        saveJobBtn.textContent = 'Save Link to JobStalker AI';
         saveJobBtn.disabled = false;
       }
       alert('Please open a LinkedIn job details view (click a job so the details panel loads) before saving.');
@@ -386,7 +386,7 @@ async function handleSaveJob() {
       } else {
         if (saveJobBtn) saveJobBtn.textContent = '✅ Saved!';
       }
-      if (saveJobBtn) saveJobBtn.style.background = '#28a745';
+      if (saveJobBtn) saveJobBtn.style.background = '#10b981';
       console.log('✅ STEP 3.12: UI updated to success state');
       
       // Show dashboard reload message with countdown
@@ -394,7 +394,7 @@ async function handleSaveJob() {
       const countdownInterval = setInterval(() => {
         if (saveJobBtn) {
           saveJobBtn.textContent = `🔄 Reloading in ${countdown}s...`;
-          saveJobBtn.style.background = '#17a2b8';
+          saveJobBtn.style.background = '#0041C2';
         }
         countdown--;
         
@@ -410,8 +410,8 @@ async function handleSaveJob() {
         clearInterval(countdownInterval);
         console.log('✅ STEP 3.13: Resetting form after success...');
         if (saveJobBtn) {
-          saveJobBtn.textContent = '📁+ Save Link to JobStalker AI';
-          saveJobBtn.style.background = '#0a66c2';
+          saveJobBtn.textContent = 'Save Link to JobStalker AI';
+          saveJobBtn.style.background = '#0041C2';
           saveJobBtn.disabled = false;
         }
         if (stageSelect) stageSelect.value = 'Bookmarked';
@@ -423,7 +423,7 @@ async function handleSaveJob() {
       console.log('❌ STEP 3.15: Job save failed, handling error...');
       // Reset button state
       if (saveJobBtn) {
-        saveJobBtn.textContent = '📁+ Save Link to JobStalker AI';
+        saveJobBtn.textContent = 'Save Link to JobStalker AI';
         saveJobBtn.disabled = false;
       }
       
@@ -448,7 +448,7 @@ async function handleSaveJob() {
     
     // Reset button state
     if (saveJobBtn) {
-      saveJobBtn.textContent = '📁+ Save Link to JobStalker';
+        saveJobBtn.textContent = 'Save Link to JobStalker AI';
       saveJobBtn.disabled = false;
     }
     console.log('❌ STEP 3.20: UI reset after critical error');

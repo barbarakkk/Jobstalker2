@@ -63,6 +63,22 @@ export function CleanImpactHeaderSection({ data, config, style }: CleanImpactHea
                 <span style={{ color: '#1c1e21' }}>{personalInfo.email}</span>
               </div>
             )}
+            {personalInfo.linkedin && (
+              <div>
+                <span className="font-normal" style={{ color: '#5a6b7a' }}>LinkedIn:</span>{' '}
+                <a
+                  href={personalInfo.linkedin.startsWith('http://') || personalInfo.linkedin.startsWith('https://') 
+                    ? personalInfo.linkedin 
+                    : `https://${personalInfo.linkedin}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline cursor-pointer"
+                  style={{ color: '#1c1e21' }}
+                >
+                  LinkedIn
+                </a>
+              </div>
+            )}
             {personalInfo.website && (
               <div>
                 <span className="font-normal" style={{ color: '#5a6b7a' }}>Website:</span>{' '}

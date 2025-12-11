@@ -13,7 +13,6 @@ import {
   Loader2, 
   AlertCircle,
   Lock,
-  Sparkles,
   Clock,
   AlertTriangle
 } from 'lucide-react';
@@ -25,7 +24,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { ResumeData } from '@/types/resume';
+import type { ResumeData, Skill, WorkExperience, Education } from '@/types/resume';
+import { profileApi, skillsApi, experienceApi, educationApi } from '@/lib/api';
+import type { Profile, Skill as ProfileSkill, WorkExperience as ProfileWorkExperience, Education as ProfileEducation } from '@/lib/types';
 
 const MAX_FREE_RESUMES = 3;
 
@@ -40,20 +41,24 @@ interface SavedResume {
 
 export function ResumeBuilderHome() {
   const navigate = useNavigate();
-  const { listResumes, deleteResume } = useResumeBuilder();
+  const { listResumes, deleteResume, saveResume } = useResumeBuilder();
   const [resumes, setResumes] = useState<SavedResume[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [resumeToDelete, setResumeToDelete] = useState<SavedResume | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     loadResumes();
   }, []);
 
   const loadResumes = async () => {
-    setLoading(true);
+    // Only show loading on initial load, not blocking navigation
+    if (resumes.length === 0) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const data = await listResumes();
@@ -71,11 +76,132 @@ export function ResumeBuilderHome() {
     }
   };
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
     if (resumes.length >= MAX_FREE_RESUMES) {
       return;
     }
-    navigate('/resume-builder/wizard');
+    setIsCreating(true);
+    try {
+      // Fetch profile data in parallel
+      const [profileResult, skillsResult, experienceResult, educationResult] = await Promise.allSettled([
+        profileApi.getProfile(),
+        skillsApi.getSkills(),
+        experienceApi.getExperience(),
+        educationApi.getEducation()
+      ]);
+
+      // Helper function to extract LinkedIn and website from social_links
+      const extractSocialLinks = (socialLinks?: Array<{ platform: string; url: string }>) => {
+        let linkedin = '';
+        let website = '';
+        if (socialLinks) {
+          socialLinks.forEach(link => {
+            const url = link.url.toLowerCase();
+            if (url.includes('linkedin.com')) {
+              linkedin = link.url;
+            } else if (url.includes('http') && !url.includes('linkedin')) {
+              website = link.url;
+            }
+          });
+        }
+        return { linkedin, website };
+      };
+
+      // Helper function to convert date to YYYY-MM format for DatePicker
+      const formatDateForPicker = (dateStr: string | undefined | null): string | undefined => {
+        if (!dateStr || dateStr.trim() === '') return undefined;
+        
+        try {
+          // Handle ISO date strings (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+          const date = new Date(dateStr);
+          if (isNaN(date.getTime())) return undefined;
+          
+          // Return YYYY-MM format
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          return `${year}-${month}`;
+        } catch (e) {
+          console.warn('Invalid date format:', dateStr);
+          return undefined;
+        }
+      };
+
+      // Map Profile WorkExperience to Resume WorkExperience
+      const mapWorkExperience = (exp: ProfileWorkExperience | any): WorkExperience => ({
+        id: exp.id || `exp-${Date.now()}-${Math.random()}`,
+        title: exp.title || '',
+        company: exp.company || '',
+        location: exp.location || '', // Check if location exists in the data
+        startDate: formatDateForPicker(exp.start_date) || '',
+        endDate: exp.is_current ? '' : (formatDateForPicker(exp.end_date) || ''),
+        isCurrent: exp.is_current || false,
+        description: exp.description || ''
+      });
+
+      // Map Profile Education to Resume Education
+      const mapEducation = (edu: ProfileEducation): Education => ({
+        id: edu.id || `edu-${Date.now()}-${Math.random()}`,
+        school: edu.school || '',
+        degree: edu.degree || '',
+        field: '', // Profile Education doesn't have field
+        startDate: formatDateForPicker(edu.start_date) || '',
+        endDate: formatDateForPicker(edu.end_date) || ''
+      });
+
+      // Map Profile Skill to Resume Skill
+      const mapSkill = (skill: ProfileSkill): Skill => ({
+        id: skill.id || `skill-${Date.now()}-${Math.random()}`,
+        name: skill.name || '',
+        category: 'Technical' // Default category since Profile Skill doesn't have category
+      });
+
+      // Build resume data from profile
+      const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
+      const skills = skillsResult.status === 'fulfilled' ? skillsResult.value : [];
+      const experience = experienceResult.status === 'fulfilled' ? experienceResult.value : [];
+      const education = educationResult.status === 'fulfilled' ? educationResult.value : [];
+
+      const { linkedin, website } = extractSocialLinks(profile?.social_links);
+
+      // Split full_name into first and last name if individual fields are not available
+      let firstName = profile?.first_name || '';
+      let lastName = profile?.last_name || '';
+      if (!firstName && !lastName && profile?.full_name) {
+        const nameParts = profile.full_name.trim().split(' ');
+        firstName = nameParts[0] || '';
+        lastName = nameParts.slice(1).join(' ') || '';
+      }
+
+      const defaultResumeData: ResumeData = {
+        personalInfo: {
+          firstName: firstName,
+          lastName: lastName,
+          email: profile?.email || '',
+          phone: profile?.phone || '',
+          location: profile?.location || '',
+          jobTitle: profile?.job_title || '',
+          linkedin: linkedin,
+          website: website,
+        },
+        summary: profile?.professional_summary || '',
+        workExperience: experience.map(mapWorkExperience),
+        education: education.map(mapEducation),
+        skills: skills.map(mapSkill),
+        languages: [], // Profile languages structure might be different, handle separately if needed
+      };
+      
+      const newResumeId = await saveResume('Untitled Resume', 'modern-professional', defaultResumeData);
+      if (newResumeId) {
+        navigate(`/resume-builder/edit?resume=${newResumeId}&template=modern-professional`);
+      } else {
+        throw new Error('Failed to create resume');
+      }
+    } catch (err) {
+      console.error('Failed to create resume:', err);
+      setError('Failed to create resume. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const handleEditResume = (resume: SavedResume) => {
@@ -123,16 +249,16 @@ export function ResumeBuilderHome() {
         {/* Create New Resume Card */}
         <div 
           className={`mb-10 relative overflow-hidden rounded-2xl transition-all duration-300 ${
-            canCreateNew 
+            canCreateNew && !isCreating
               ? 'cursor-pointer group' 
               : 'cursor-not-allowed opacity-70'
           }`}
-          onClick={canCreateNew ? handleCreateNew : undefined}
+          onClick={canCreateNew && !isCreating ? handleCreateNew : undefined}
         >
-          <div className={`absolute inset-0 bg-gradient-to-r ${
+          <div className={`absolute inset-0 ${
             canCreateNew 
-              ? 'from-blue-500 to-blue-600 group-hover:from-blue-400 group-hover:to-blue-500' 
-              : 'from-slate-700 to-slate-600'
+              ? 'bg-[#295acf] group-hover:bg-[#295acf]/90' 
+              : 'bg-slate-700'
           } transition-all duration-300`} />
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
           
@@ -140,7 +266,9 @@ export function ResumeBuilderHome() {
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
               canCreateNew ? 'bg-white/20' : 'bg-white/10'
             }`}>
-              {canCreateNew ? (
+              {isCreating ? (
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              ) : canCreateNew ? (
                 <Plus className="w-8 h-8 text-white" />
               ) : (
                 <Lock className="w-7 h-7 text-white/70" />
@@ -151,19 +279,32 @@ export function ResumeBuilderHome() {
                 Craft New Resume
               </h2>
               <p className="text-white/80">
-                {canCreateNew 
-                  ? 'Start fresh with our AI-powered wizard to create a professional resume'
-                  : `You've reached the limit of ${MAX_FREE_RESUMES} resumes. Delete one to create more.`
+                {isCreating 
+                  ? 'Creating your resume...'
+                  : canCreateNew 
+                    ? 'Start fresh with our AI-powered wizard to create a professional resume'
+                    : `You've reached the limit of ${MAX_FREE_RESUMES} resumes. Delete one to create more.`
                 }
               </p>
             </div>
             {canCreateNew && (
               <Button 
                 size="lg"
-                className="bg-white text-blue-600 hover:bg-white/90 font-semibold px-6 shadow-lg"
+                onClick={handleCreateNew}
+                disabled={isCreating}
+                className="bg-white text-[#295acf] hover:bg-white/90 font-semibold px-6 shadow-lg"
               >
-                <Plus className="w-5 h-5 mr-2" />
-                Get Started
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 mr-2" />
+                    Get Started
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -189,7 +330,7 @@ export function ResumeBuilderHome() {
                 <div 
                   key={i}
                   className={`w-3 h-3 rounded-full transition-colors ${
-                    i < resumes.length ? 'bg-blue-500' : 'bg-gray-200'
+                    i < resumes.length ? 'bg-[#295acf]' : 'bg-gray-200'
                   }`}
                 />
               ))}
@@ -199,7 +340,7 @@ export function ResumeBuilderHome() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-16 h-16 rounded-2xl bg-white border border-gray-200 shadow-sm flex items-center justify-center mb-4">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-[#295acf]" />
               </div>
               <p className="text-gray-500">Loading your resumes...</p>
             </div>
@@ -222,9 +363,15 @@ export function ResumeBuilderHome() {
               <p className="text-gray-500 mb-8 max-w-md mx-auto">
                 Create your first professional resume with our AI-powered wizard and stand out from the crowd
               </p>
-              <Button onClick={handleCreateNew} size="lg" className="bg-blue-600 hover:bg-blue-700 font-semibold px-8">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Create Your First Resume
+              <Button onClick={handleCreateNew} size="lg" disabled={isCreating} className="bg-[#295acf] hover:bg-[#1f4ab8] text-white font-semibold px-8">
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Your First Resume'
+                )}
               </Button>
             </div>
           ) : (

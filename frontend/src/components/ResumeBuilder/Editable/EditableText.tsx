@@ -42,7 +42,7 @@ export function EditableText({ value, placeholder, className, onSave, multiline 
             setEditing(false);
           }
         }}
-        className={`w-full outline-none border-2 border-blue-400 bg-blue-50/30 rounded px-2 py-1 ${className || ''}`}
+        className={`w-full outline-none border-2 border-[#295acf]/60 bg-[#295acf]/10 rounded px-2 py-1 ${className || ''}`}
         rows={multiline ? 3 : 1}
       />
     );
@@ -50,7 +50,7 @@ export function EditableText({ value, placeholder, className, onSave, multiline 
 
   return (
     <div
-      className={`cursor-text hover:border-2 hover:border-blue-300 hover:bg-blue-50/30 rounded px-2 py-1 border-2 border-transparent transition-all ${className || ''}`}
+      className={`cursor-text hover:border-2 hover:border-[#295acf]/40 hover:bg-[#295acf]/10 rounded px-2 py-1 border-2 border-transparent transition-all ${className || ''}`}
       onClick={() => setEditing(true)}
     >
       {value || placeholder || ''}

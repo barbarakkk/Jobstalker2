@@ -29,34 +29,34 @@ export function SkillsSection({ data, config, style }: SkillsSectionProps) {
       style={{
         ...containerStyle,
         fontFamily: bodyFont,
-        fontSize: fontSize
+        fontSize: fontSize,
+        marginBottom: '0.75rem', // Reduced spacing between sections
       }} 
       className={config?.className}
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-4"
+          className="text-xl font-bold mb-1"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
-            paddingBottom: '0.5rem'
+            paddingBottom: '0.25rem',
+            marginBottom: '0.25rem'
           }}
         >
           {title}
         </h2>
       )}
       <div className="flex flex-wrap gap-2">
-        {skills.map((skill) => (
+        {skills.map((skill, index) => (
           <span 
             key={skill.id} 
-            className="px-3 py-1 text-xs rounded-full font-medium border"
+            className="text-sm"
             style={{
-              backgroundColor: `${primaryColor}15`,
               color: String(primaryColor),
-              borderColor: `${primaryColor}40`
             }}
           >
-            {skill.name}
+            {skill.name}{index < skills.length - 1 ? ', ' : ''}
           </span>
         ))}
       </div>

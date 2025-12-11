@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Star, X, Save, Plus } from 'lucide-react';
 import { Job, CreateJobData, UpdateJobData } from '@/lib/types';
 import { jobApi } from '@/lib/api';
@@ -236,22 +237,20 @@ export function JobForm({ job, isOpen, onClose, onSave }: JobFormProps) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Date Applied
                 </label>
-                <input
-                  type="date"
+                <DatePicker
                   value={formData.date_applied || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, date_applied: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(value) => setFormData(prev => ({ ...prev, date_applied: value }))}
+                  placeholder="Select date applied"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Deadline
                 </label>
-                <input
-                  type="date"
+                <DatePicker
                   value={formData.deadline || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(value) => setFormData(prev => ({ ...prev, deadline: value }))}
+                  placeholder="Select deadline"
                 />
               </div>
             </div>

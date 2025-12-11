@@ -9,7 +9,7 @@ export function ResumeFinalizePage() {
       <div className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Finalize Resume</h1>
-        <Link to="/resume-builder/edit" className="text-blue-600">Edit</Link>
+        <Link to="/resume-builder/edit" className="text-[#295acf]">Edit</Link>
       </div>
       <div className="bg-white p-6 rounded-lg border mb-6">Full Preview (coming soon)</div>
       <div className="flex gap-3">

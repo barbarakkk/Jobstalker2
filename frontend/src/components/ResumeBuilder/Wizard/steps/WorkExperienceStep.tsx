@@ -46,7 +46,7 @@ export function WorkExperienceStep({ value, onChange }: StepProps) {
           </div>
         </div>
       ))}
-      <button className="text-blue-600 text-sm" onClick={add}>+ Add work experience</button>
+      <button className="text-[#295acf] text-sm" onClick={add}>+ Add work experience</button>
     </div>
   );
 }

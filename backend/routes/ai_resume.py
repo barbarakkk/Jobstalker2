@@ -38,12 +38,13 @@ class WorkExperience(BaseModel):
     endDate: str
     isCurrent: bool = False
     jobType: Optional[str] = None
-    description: str
+    description: Optional[str] = ""
 
 class Education(BaseModel):
     id: str
     school: str
     degree: str
+    field: Optional[str] = None
     startDate: str
     endDate: str
 
@@ -68,7 +69,7 @@ class AIGenerateRequest(BaseModel):
 
 class ResumeData(BaseModel):
     personalInfo: PersonalInfo
-    summary: str
+    summary: Optional[str] = ""
     workExperience: List[WorkExperience]
     education: List[Education]
     skills: List[Skill]
@@ -182,7 +183,10 @@ def generate_professional_summary(personal_info: PersonalInfo, work_experience: 
     
     education_text = ""
     for edu in education:
-        education_text += f"- {edu.degree} in {edu.field} from {edu.school}\n"
+        if edu.field:
+            education_text += f"- {edu.degree} in {edu.field} from {edu.school}\n"
+        else:
+            education_text += f"- {edu.degree} from {edu.school}\n"
     
     skills_text = ", ".join([skill.name for skill in skills])
     
@@ -201,12 +205,17 @@ def generate_professional_summary(personal_info: PersonalInfo, work_experience: 
     
     Skills: {skills_text}
     
-    Write a 3-4 sentence professional summary that:
-    1. Highlights key achievements and experience
-    2. Shows relevant skills for the target role
-    3. Demonstrates value proposition
-    4. Uses action-oriented language
-    5. Is tailored for the target role if specified
+    Write a concise 2-sentence professional summary that:
+    1. Highlights your most relevant experience and key achievements (first sentence)
+    2. Shows your top skills and value proposition (second sentence)
+    
+    Requirements:
+    - Maximum 2 sentences
+    - Each sentence should be clear and impactful
+    - Focus on quantifiable achievements when possible
+    - Use action-oriented language
+    - Keep total length under 150 words
+    - Do not exceed 2 sentences under any circumstances
     
     Keep it concise, professional, and impactful.
     """
@@ -215,10 +224,10 @@ def generate_professional_summary(personal_info: PersonalInfo, work_experience: 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert resume writer. Create compelling professional summaries."},
+                {"role": "system", "content": "You are an expert resume writer. Create concise professional summaries that are exactly 2 sentences long. Be direct and impactful."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=200,
+            max_tokens=120,
             temperature=0.7
         )
         
@@ -338,6 +347,41 @@ async def generate_resume(request: AIGenerateRequest, user_id: str = Depends(get
     except Exception as e:
         print(f"❌ AI RESUME: Error generating resume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate resume: {str(e)}")
+
+class ResumeSummaryRequest(BaseModel):
+    resumeData: ResumeData
+    targetRole: Optional[str] = None
+
+class ResumeSummaryResponse(BaseModel):
+    summary: str
+    success: bool = True
+
+@router.post("/api/ai/profile-summary", response_model=ResumeSummaryResponse)
+async def generate_profile_summary_from_resume(
+    request: ResumeSummaryRequest,
+    user_id: str = Depends(get_current_user)
+):
+    """Generate a professional summary from resume data"""
+    try:
+        print(f"🤖 AI SUMMARY: Generating summary for user {user_id}")
+        
+        summary = generate_professional_summary(
+            request.resumeData.personalInfo,
+            request.resumeData.workExperience,
+            request.resumeData.education,
+            request.resumeData.skills,
+            request.targetRole
+        )
+        
+        print(f"🤖 AI SUMMARY: Summary generated successfully")
+        
+        return ResumeSummaryResponse(
+            summary=summary,
+            success=True
+        )
+    except Exception as e:
+        print(f"❌ AI SUMMARY: Error generating summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate summary: {str(e)}")
 
 @router.post("/api/ai/generate-work-description", response_model=WorkDescriptionResponse)
 async def generate_work_description(

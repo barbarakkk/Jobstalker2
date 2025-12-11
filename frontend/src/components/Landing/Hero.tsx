@@ -21,10 +21,10 @@ export function Hero() {
   };
 
   return (
-    <section className="relative w-full py-20 lg:py-28 bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100/50 overflow-hidden">
+    <section className="relative w-full py-20 lg:py-28 bg-gradient-to-br from-[#4169E1]/10 via-sky-50 to-[#4169E1]/20 overflow-hidden">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
+        <div className="absolute top-0 left-0 w-96 h-96 bg-[#4169E1]/30 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-sky-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
       </div>
       
@@ -34,7 +34,7 @@ export function Hero() {
           <div className="space-y-7 relative z-10">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 leading-[1.1] tracking-tight">
               Your Job{' '}
-              <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">Search Tool</span>
+              <span className="bg-gradient-to-r from-[#4169E1] via-[#3A5BCE] to-[#2E4AB8] bg-clip-text text-transparent">Search Tool</span>
             </h1>
             
             <div className="space-y-5">
@@ -104,14 +104,14 @@ export function Hero() {
               className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-md rounded-full p-3.5 shadow-lg hover:bg-white hover:shadow-xl hover:scale-110 transition-all duration-300 z-20 border border-gray-200/60 group"
               aria-label="Previous image"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" />
+              <ChevronLeft className="w-5 h-5 text-gray-700 group-hover:text-[#4169E1] transition-colors" />
             </button>
             <button
               onClick={goToNext}
               className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur-md rounded-full p-3.5 shadow-lg hover:bg-white hover:shadow-xl hover:scale-110 transition-all duration-300 z-20 border border-gray-200/60 group"
               aria-label="Next image"
             >
-              <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" />
+              <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-[#4169E1] transition-colors" />
             </button>
 
             {/* Dots Indicator */}
@@ -122,7 +122,7 @@ export function Hero() {
                   onClick={() => setCurrentIndex(index)}
                   className={`rounded-full transition-all duration-200 ${
                     index === currentIndex 
-                      ? 'bg-blue-600 w-8 h-2' 
+                      ? 'bg-[#4169E1] w-8 h-2' 
                       : 'bg-slate-300 hover:bg-slate-400 w-2 h-2'
                   }`}
                   aria-label={`Go to image ${index + 1}`}

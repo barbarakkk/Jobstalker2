@@ -69,7 +69,7 @@ export function TemplateRenderer({
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-blue-600 mx-auto mb-2"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-[#295acf] mx-auto mb-2"></div>
           <p className="text-sm text-gray-600">Loading template...</p>
         </div>
       </div>
@@ -126,7 +126,14 @@ export function TemplateRenderer({
           if (!SectionComponent) return null;
           
           return (
-            <div key={`${sectionConfig.type}-${sectionConfig.position}`} className="col-span-full">
+            <div 
+              key={`${sectionConfig.type}-${sectionConfig.position}`} 
+              className="col-span-full"
+              style={{
+                marginBottom: '0',
+                paddingBottom: '0',
+              }}
+            >
               <SectionComponent 
                 data={data} 
                 config={sectionConfig}
@@ -157,7 +164,16 @@ export function TemplateRenderer({
             : 'col-span-full'; // Single column takes full width
           
           return (
-            <div key={`${sectionConfig.type}-${sectionConfig.position}`} className={colSpan}>
+            <div 
+              key={`${sectionConfig.type}-${sectionConfig.position}`} 
+              className={colSpan}
+              style={{
+                marginBottom: sectionConfig.type === 'summary' ? '0' : undefined,
+                marginTop: sectionConfig.type === 'summary' ? '0' : undefined,
+                paddingBottom: sectionConfig.type === 'summary' ? '0' : undefined,
+                paddingTop: sectionConfig.type === 'summary' ? '0' : undefined,
+              }}
+            >
               <SectionComponent 
                 data={data} 
                 config={sectionConfig}

@@ -60,6 +60,19 @@ class Profile(BaseModel):
     social_links: Optional[List[Dict[str, str]]] = []
     profile_completed: Optional[bool] = False
     profile_picture_url: Optional[str] = None
+    referral_source: Optional[str] = None
+    work_auth_us: Optional[bool] = None
+    work_auth_canada: Optional[bool] = None
+    work_auth_uk: Optional[bool] = None
+    requires_sponsorship: Optional[bool] = None
+    ethnicity: Optional[str] = None
+    has_disability: Optional[str] = None
+    is_veteran: Optional[str] = None
+    is_lgbtq: Optional[str] = None
+    gender: Optional[str] = None
+    current_location: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    phone_country_code: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -75,6 +88,19 @@ class CreateProfile(BaseModel):
     summary: Optional[str] = None
     professional_summary: Optional[str] = None
     social_links: Optional[List[Dict[str, str]]] = []
+    referral_source: Optional[str] = None
+    work_auth_us: Optional[bool] = None
+    work_auth_canada: Optional[bool] = None
+    work_auth_uk: Optional[bool] = None
+    requires_sponsorship: Optional[bool] = None
+    ethnicity: Optional[str] = None
+    has_disability: Optional[str] = None
+    is_veteran: Optional[str] = None
+    is_lgbtq: Optional[str] = None
+    gender: Optional[str] = None
+    current_location: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    phone_country_code: Optional[str] = None
 
 class UpdateProfile(BaseModel):
     full_name: Optional[str] = None
@@ -89,6 +115,19 @@ class UpdateProfile(BaseModel):
     professional_summary: Optional[str] = None
     social_links: Optional[List[Dict[str, str]]] = None
     profile_completed: Optional[bool] = None
+    referral_source: Optional[str] = None
+    work_auth_us: Optional[bool] = None
+    work_auth_canada: Optional[bool] = None
+    work_auth_uk: Optional[bool] = None
+    requires_sponsorship: Optional[bool] = None
+    ethnicity: Optional[str] = None
+    has_disability: Optional[str] = None
+    is_veteran: Optional[str] = None
+    is_lgbtq: Optional[str] = None
+    gender: Optional[str] = None
+    current_location: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    phone_country_code: Optional[str] = None
 
 class ProfileStats(BaseModel):
     jobs_applied: int
@@ -389,6 +428,19 @@ class ProfileResponse(BaseModel):
     social_links: Optional[List[Dict[str, str]]] = []
     profile_completed: Optional[bool] = False
     profile_picture_url: Optional[str] = None
+    referral_source: Optional[str] = None
+    work_auth_us: Optional[bool] = None
+    work_auth_canada: Optional[bool] = None
+    work_auth_uk: Optional[bool] = None
+    requires_sponsorship: Optional[bool] = None
+    ethnicity: Optional[str] = None
+    has_disability: Optional[str] = None
+    is_veteran: Optional[str] = None
+    is_lgbtq: Optional[str] = None
+    gender: Optional[str] = None
+    current_location: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    phone_country_code: Optional[str] = None
     skills: Optional[list] = []
     work_experience: Optional[list] = []
     education: Optional[list] = []

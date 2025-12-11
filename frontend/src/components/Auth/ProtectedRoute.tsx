@@ -12,43 +12,59 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
+    
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        // Use getSession which is synchronous and cached - much faster
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (session) {
+        if (!mounted) return;
+        
+        if (session && !error) {
           setAuthenticated(true);
+          setLoading(false);
+          // Show children immediately while listening for changes in background
         } else {
           setAuthenticated(false);
+          setLoading(false);
           navigate('/login');
         }
       } catch (error) {
         console.error('Auth check error:', error);
+        if (!mounted) return;
         setAuthenticated(false);
-        navigate('/login');
-      } finally {
         setLoading(false);
+        navigate('/login');
       }
     };
 
+    // Check auth immediately
     checkAuth();
 
-    // Listen for auth state changes
+    // Listen for auth state changes in background (non-blocking)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         if (event === 'SIGNED_OUT') {
           setAuthenticated(false);
           navigate('/login');
         } else if (event === 'SIGNED_IN' && session) {
           setAuthenticated(true);
+          setLoading(false);
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
-  if (loading) {
+  // Show loading only briefly - getSession is fast
+  if (loading && !authenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#f5f8ff] font-sans">
         <div className="text-center space-y-4">
@@ -63,5 +79,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return null; // Will redirect to login
   }
 
+  // Show children immediately once authenticated
   return <>{children}</>;
 }

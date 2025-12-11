@@ -23,34 +23,67 @@ export function EducationSection({ data, config, style }: EducationSectionProps)
   const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#000000';
   const bodyFont = (style as any)?.fontFamily || config?.style?.fontFamily;
   const fontSize = (style as any)?.fontSize || config?.style?.fontSize;
+
+  // Format date to "Jun 2015" format
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+      // Handle YYYY-MM format
+      if (dateString.match(/^\d{4}-\d{2}$/)) {
+        const date = new Date(dateString + '-01');
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+      // Handle YYYY-MM-DD format
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+      // Try to parse as-is
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+      return dateString; // Return as-is if can't parse
+    } catch {
+      return dateString; // Return as-is if error
+    }
+  };
   
   return (
     <section 
       style={{
         ...containerStyle,
         fontFamily: bodyFont,
-        fontSize: fontSize
+        fontSize: fontSize,
+        marginBottom: '0.75rem', // Reduced spacing between sections
       }} 
       className={config?.className}
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-4"
+          className="text-xl font-bold mb-1"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
-            paddingBottom: '0.5rem'
+            paddingBottom: '0.25rem',
+            marginBottom: '0.25rem'
           }}
         >
           {title}
         </h2>
       )}
-      <div className="space-y-3">
+      <div className="space-y-1.5">
         {education.map((edu) => (
-          <div key={edu.id} className="border-b border-gray-200 pb-3 last:border-b-0 last:pb-0">
-            <div className="font-semibold text-sm text-gray-900" style={{ color: String(primaryColor) }}>{edu.degree}</div>
-            <div className="text-xs text-gray-600 mt-1">{edu.school}</div>
-            <div className="text-xs text-gray-500 mt-1">{edu.startDate} — {edu.endDate}</div>
+          <div key={edu.id} className="border-b border-gray-200 pb-1.5 last:border-b-0 last:pb-0">
+            <div className="flex items-start justify-between flex-wrap gap-2 mb-1">
+              <div className="flex-1">
+                <div className="font-semibold text-sm text-gray-900" style={{ color: String(primaryColor) }}>{edu.degree}</div>
+                <div className="text-xs text-gray-600 mt-0.5">{edu.school}</div>
+              </div>
+              <div className="text-xs text-gray-500">
+                {formatDate(edu.startDate)} - {formatDate(edu.endDate || '')}
+              </div>
+            </div>
           </div>
         ))}
       </div>

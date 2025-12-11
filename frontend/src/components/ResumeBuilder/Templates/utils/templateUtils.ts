@@ -100,7 +100,7 @@ export function parseLayout(layoutConfig: LayoutConfig): string {
       classes.push(`gap-${layoutConfig.gap.replace('gap-', '')}`);
     }
   } else {
-    classes.push('gap-6');
+    classes.push('gap-3'); // Reduced from gap-6 to gap-3 for more compact layout
   }
   
   if (layoutConfig.className) {

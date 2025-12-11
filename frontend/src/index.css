@@ -559,6 +559,25 @@ html {
   background: #a8a8a8 !important;
 }
 
+/* Custom scrollbar for date picker year list */
+.date-picker-year-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.date-picker-year-list::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.date-picker-year-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.date-picker-year-list::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 /* Removed old thumbnail container styles - using direct image approach */
 
 /* Dynamic Color Theme Classes */

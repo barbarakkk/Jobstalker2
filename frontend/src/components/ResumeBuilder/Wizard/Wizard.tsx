@@ -42,7 +42,7 @@ export function WizardPage() {
           <div className="flex items-center gap-2 text-sm text-gray-600">
             {steps.map((s, idx) => (
               <div key={s.id} className="flex items-center">
-                <div className={idx <= stepIndex ? 'w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs' : 'w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs'}>
+                <div className={idx <= stepIndex ? 'w-7 h-7 rounded-full bg-[#295acf] text-white flex items-center justify-center text-xs' : 'w-7 h-7 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs'}>
                   {idx + 1}
                 </div>
                 <span className={idx === stepIndex ? 'ml-2 font-medium text-gray-900' : 'ml-2'}>{s.label}</span>
@@ -57,7 +57,7 @@ export function WizardPage() {
         <div className="flex justify-between mt-4">
           <Button variant="outline" onClick={prev} disabled={stepIndex === 0}>Back</Button>
           {stepIndex < steps.length - 1 ? (
-            <Button onClick={next}>Next</Button>
+            <Button onClick={next} className="text-white">Next</Button>
           ) : (
             <Button onClick={finish}>Save and Preview</Button>
           )}

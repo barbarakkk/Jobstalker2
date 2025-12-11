@@ -4,7 +4,7 @@ export function CallToAction() {
   return (
     <section className="relative w-full py-20 lg:py-32 overflow-hidden">
       {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-[#4169E1] via-[#3A5BCE] to-[#2E4AB8]"></div>
       
       {/* Background Elements */}
       <div className="absolute inset-0">
@@ -24,13 +24,13 @@ export function CallToAction() {
           {/* Main Heading */}
           <h2 className="text-4xl lg:text-7xl font-bold text-white mb-6 leading-tight animate-fadeInUp animation-delay-100">
             Ready to accelerate your{' '}
-            <span className="bg-gradient-to-r from-blue-200 to-blue-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#4169E1]/80 to-[#4169E1] bg-clip-text text-transparent">
               job search?
             </span>
           </h2>
           
           {/* Subtitle */}
-          <p className="text-xl lg:text-2xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed animate-fadeInUp animation-delay-200">
+          <p className="text-xl lg:text-2xl text-white/90 mb-12 max-w-3xl mx-auto leading-relaxed animate-fadeInUp animation-delay-200">
             Start tracking your applications today and see the difference.
           </p>
         </div>

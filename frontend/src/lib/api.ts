@@ -15,6 +15,52 @@ const getAuthToken = async (): Promise<string | null> => {
 // Enable debug logs only in development and when explicitly enabled
 const DEBUG_API_CALLS = import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true';
 
+// Request cache to prevent duplicate API calls
+const requestCache = new Map<string, { data: any; timestamp: number; promise?: Promise<any> }>();
+const CACHE_TTL = 30000; // 30 seconds - increased for better navigation performance
+
+export async function cachedApiCall<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  // Only cache GET requests
+  const method = options?.method || 'GET';
+  if (method !== 'GET') {
+    return apiCall<T>(endpoint, options);
+  }
+
+  const cacheKey = endpoint;
+  const cached = requestCache.get(cacheKey);
+  
+  // Return cached data if still valid
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  
+  // Deduplicate in-flight requests
+  if (cached?.promise) {
+    return cached.promise;
+  }
+  
+  const promise = apiCall<T>(endpoint, options);
+  requestCache.set(cacheKey, { data: null, timestamp: 0, promise });
+  
+  try {
+    const result = await promise;
+    requestCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    return result;
+  } catch (error) {
+    requestCache.delete(cacheKey);
+    throw error;
+  }
+}
+
+// Clear cache for an endpoint (call after mutations)
+export function invalidateCache(endpoint?: string) {
+  if (endpoint) {
+    requestCache.delete(endpoint);
+  } else {
+    requestCache.clear();
+  }
+}
+
 // Helper function to make authenticated API calls
 const apiCall = async <T>(
   endpoint: string,
@@ -145,7 +191,7 @@ const apiCall = async <T>(
 export const jobApi = {
   // Get all jobs for the current user
   getJobs: async (): Promise<Job[]> => {
-    return apiCall<Job[]>('/api/jobs');
+    return cachedApiCall<Job[]>('/api/jobs');
   },
 
   // Get a specific job by ID
@@ -155,10 +201,12 @@ export const jobApi = {
 
   // Create a new job
   createJob: async (jobData: CreateJobData): Promise<Job> => {
-    return apiCall<Job>('/api/jobs', {
+    const result = await apiCall<Job>('/api/jobs', {
       method: 'POST',
       body: JSON.stringify(jobData),
     });
+    invalidateCache('/api/jobs');
+    return result;
   },
 
   // Update an existing job
@@ -172,6 +220,7 @@ export const jobApi = {
         body: JSON.stringify(jobData),
       });
       console.log('API update successful:', result);
+      invalidateCache('/api/jobs');
       return result;
     } catch (error) {
       console.error('API update failed:', error);
@@ -183,9 +232,11 @@ export const jobApi = {
 
   // Delete a job
   deleteJob: async (id: string): Promise<{ success: boolean; message: string }> => {
-    return apiCall<{ success: boolean; message: string }>(`/api/jobs/${id}`, {
+    const result = await apiCall<{ success: boolean; message: string }>(`/api/jobs/${id}`, {
       method: 'DELETE',
     });
+    invalidateCache('/api/jobs');
+    return result;
   },
 };
 
@@ -249,7 +300,7 @@ export const profileApi = {
   // Get user profile
   getProfile: async (): Promise<Profile> => {
     console.log('Fetching profile from API...');
-    const result = await apiCall<Profile>('/api/profile');
+    const result = await cachedApiCall<Profile>('/api/profile');
     console.log('Profile API response:', result);
     return result;
   },
@@ -308,23 +359,48 @@ export const profileApi = {
 export const skillsApi = {
   // Get user skills
   getSkills: async (): Promise<Skill[]> => {
-    return apiCall<Skill[]>('/api/skills');
+    const skills = await apiCall<any[]>('/api/skills');
+    // Map backend 'proficiency' field to frontend 'proficiency_level' field
+    return skills.map(skill => ({
+      ...skill,
+      proficiency_level: skill.proficiency || skill.proficiency_level || 'Beginner'
+    }));
   },
 
   // Add new skill
   addSkill: async (data: CreateSkillData): Promise<Skill> => {
-    return apiCall<Skill>('/api/skills/add', {
+    // Map proficiency_level to proficiency for backend compatibility
+    const backendData = {
+      name: data.name,
+      proficiency: data.proficiency_level,
+      category: 'Technical' // Default category
+    };
+    const skill = await apiCall<any>('/api/skills/add', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(backendData),
     });
+    // Map backend 'proficiency' field to frontend 'proficiency_level' field
+    return {
+      ...skill,
+      proficiency_level: skill.proficiency || skill.proficiency_level || 'Beginner'
+    };
   },
 
   // Update skill
   updateSkill: async (id: string, data: Partial<CreateSkillData>): Promise<Skill> => {
-    return apiCall<Skill>(`/api/skills/${id}/update`, {
+    // Map proficiency_level to proficiency for backend compatibility
+    const backendData: any = {};
+    if (data.name !== undefined) backendData.name = data.name;
+    if (data.proficiency_level !== undefined) backendData.proficiency = data.proficiency_level;
+    const skill = await apiCall<any>(`/api/skills/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(backendData),
     });
+    // Map backend 'proficiency' field to frontend 'proficiency_level' field
+    return {
+      ...skill,
+      proficiency_level: skill.proficiency || skill.proficiency_level || 'Beginner'
+    };
   },
 
   // Delete skill
@@ -357,7 +433,7 @@ export const experienceApi = {
 
   // Update work experience
   updateExperience: async (id: string, data: Partial<CreateExperienceData>): Promise<WorkExperience> => {
-    return apiCall<WorkExperience>(`/api/experience/${id}/update`, {
+    return apiCall<WorkExperience>(`/api/experience/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -388,7 +464,7 @@ export const educationApi = {
 
   // Update education
   updateEducation: async (id: string, data: Partial<CreateEducationData>): Promise<Education> => {
-    return apiCall<Education>(`/api/education/${id}/update`, {
+    return apiCall<Education>(`/api/education/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { 
   Edit, 
@@ -151,8 +152,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
 
      // Skills
    const [skills, setSkills] = useState<Skill[]>([]);
-   const [newSkill, setNewSkill] = useState('');
-   const [newSkillLevel, setNewSkillLevel] = useState<'Beginner' | 'Intermediate' | 'Expert'>('Intermediate');
+  const [newSkill, setNewSkill] = useState('');
+  const [newSkillLevel, setNewSkillLevel] = useState<'Beginner' | 'Intermediate' | 'Expert'>('Intermediate');
+  const [updatingSkillId, setUpdatingSkillId] = useState<string | null>(null);
 
   // Experience
   const [experience, setExperience] = useState<WorkExperience[]>([]);
@@ -211,99 +213,102 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   };
 
   const loadProfileData = async () => {
-    try {
+    // Don't block - show page immediately
+    setError(null);
+    // Set loading only for initial load, not blocking
+    if (!profile) {
       setIsLoading(true);
-      setError(null);
+    }
 
-      // Load profile data first (most important)
-      const profileData = await profileApi.getProfile();
-      console.log('Profile data loaded:', profileData);
-      
-      // If email is missing from backend, fetch it from Supabase auth as fallback
-      let email = profileData.email;
-      if (!email) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user?.email) {
-            email = user.email;
-            // Update profileData with email
-            profileData.email = email;
-          }
-        } catch (authError) {
-          console.warn('Could not fetch email from auth:', authError);
-        }
-      }
-      
-      setProfile(profileData);
-      setProfileForm({
-        full_name: profileData.full_name || '',
-        first_name: profileData.first_name || '',
-        last_name: profileData.last_name || '',
-        email: email || '',
-        phone: profileData.phone || '',
-        job_title: profileData.job_title || '',
-        location: profileData.location || '',
-        professional_summary: profileData.professional_summary || '',
-        social_links: profileData.social_links || []
-      });
-
-      // Load stats data (quick to load)
-      try {
-        const statsData = await profileApi.getProfileStats();
-        setStats(statsData);
-      } catch (error) {
-        console.warn('Failed to load stats:', error);
-      }
-
-      // Load other data in parallel (non-critical)
-      Promise.allSettled([
+    try {
+      // Load ALL data in parallel from the start for faster navigation
+      const [profileResult, statsResult, skillsResult, experienceResult, educationResult, languagesResult] = await Promise.allSettled([
+        profileApi.getProfile(),
+        profileApi.getProfileStats(),
         skillsApi.getSkills(),
         experienceApi.getExperience(),
         educationApi.getEducation(),
         languagesApi.getLanguages()
-      ]).then((results) => {
-        // Handle skills
-        if (results[0].status === 'fulfilled') {
-          setSkills(results[0].value);
-        } else {
-          console.warn('Failed to load skills:', results[0].reason);
-        }
+      ]);
 
-        // Handle experience
-        if (results[1].status === 'fulfilled') {
-          setExperience(results[1].value);
-        } else {
-          console.warn('Failed to load experience:', results[1].reason);
-        }
-
-        // Handle education
-        if (results[2].status === 'fulfilled') {
-          setEducation(results[2].value);
-        } else {
-          // Silently handle education load failures - non-critical
-          const error = results[2].reason;
-          if (error instanceof Error && !error.message.includes('Server disconnected')) {
-            console.warn('Failed to load education:', error);
+      // Handle profile data
+      if (profileResult.status === 'fulfilled') {
+        const profileData = profileResult.value;
+        console.log('Profile data loaded:', profileData);
+        
+        // If email is missing from backend, fetch it from Supabase auth as fallback
+        let email = profileData.email;
+        if (!email) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.email) {
+              email = user.email;
+              profileData.email = email;
+            }
+          } catch (authError) {
+            console.warn('Could not fetch email from auth:', authError);
           }
-          // Set empty array if education fails to load
-          setEducation([]);
         }
+        
+        setProfile(profileData);
+        setProfileForm({
+          full_name: profileData.full_name || '',
+          first_name: profileData.first_name || '',
+          last_name: profileData.last_name || '',
+          email: email || '',
+          phone: profileData.phone || '',
+          job_title: profileData.job_title || '',
+          location: profileData.location || '',
+          professional_summary: profileData.professional_summary || '',
+          social_links: profileData.social_links || []
+        });
+      } else {
+        console.warn('Failed to load profile:', profileResult.reason);
+        setError('Failed to load profile data');
+      }
 
-        // Handle languages
-        if (results[3].status === 'fulfilled') {
-          setLanguages(results[3].value);
-        } else {
-          // Silently handle language load failures - non-critical
-          const error = results[3].reason;
-          if (error instanceof Error && !error.message.includes('Server disconnected')) {
-            console.warn('Failed to load languages:', error);
-          }
-          // Set empty array if languages fails to load
-          setLanguages([]);
+      // Handle stats
+      if (statsResult.status === 'fulfilled') {
+        setStats(statsResult.value);
+      } else {
+        console.warn('Failed to load stats:', statsResult.reason);
+      }
+
+      // Handle skills
+      if (skillsResult.status === 'fulfilled') {
+        setSkills(skillsResult.value);
+      } else {
+        console.warn('Failed to load skills:', skillsResult.reason);
+      }
+
+      // Handle experience
+      if (experienceResult.status === 'fulfilled') {
+        setExperience(experienceResult.value);
+      } else {
+        console.warn('Failed to load experience:', experienceResult.reason);
+      }
+
+      // Handle education
+      if (educationResult.status === 'fulfilled') {
+        setEducation(educationResult.value);
+      } else {
+        const error = educationResult.reason;
+        if (error instanceof Error && !error.message.includes('Server disconnected')) {
+          console.warn('Failed to load education:', error);
         }
-      });
+        setEducation([]);
+      }
 
-      // Removed resumes load
+      // Handle languages
+      if (languagesResult.status === 'fulfilled') {
+        setLanguages(languagesResult.value);
+      } else {
+        const error = languagesResult.reason;
+        if (error instanceof Error && !error.message.includes('Server disconnected')) {
+          console.warn('Failed to load languages:', error);
+        }
+        setLanguages([]);
+      }
 
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to load profile data');
@@ -395,17 +400,42 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
 
     try {
       setError(null);
+      console.log('Adding skill with proficiency level:', newSkillLevel); // Debug log
       const skill = await skillsApi.addSkill({
         name: newSkill.trim(),
-        proficiency_level: newSkillLevel
+        proficiency_level: newSkillLevel as 'Beginner' | 'Intermediate' | 'Expert'
       });
+      console.log('Skill added successfully:', skill); // Debug log
       setSkills([...skills, skill]);
       setNewSkill('');
+      setNewSkillLevel('Intermediate'); // Reset to default after adding
       setSuccessMessage('Skill added successfully!');
       
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
+      console.error('Error adding skill:', error); // Debug log
       setError(error instanceof Error ? error.message : 'Failed to add skill');
+    }
+  };
+
+  const handleUpdateSkillProficiency = async (skillId: string, proficiencyLevel: 'Beginner' | 'Intermediate' | 'Expert') => {
+    try {
+      setUpdatingSkillId(skillId);
+      setError(null);
+      const updatedSkill = await skillsApi.updateSkill(skillId, {
+        proficiency_level: proficiencyLevel
+      });
+      setSkills(skills.map(skill => {
+        const currentSkillId = skill.added_at || skill.id || '';
+        return currentSkillId === skillId ? updatedSkill : skill;
+      }));
+      setSuccessMessage('Skill proficiency updated successfully!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      console.error('Error updating skill proficiency:', error);
+      setError(error instanceof Error ? error.message : 'Failed to update skill proficiency');
+    } finally {
+      setUpdatingSkillId(null);
     }
   };
 
@@ -508,11 +538,31 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       setIsSaving(true);
       setError(null);
 
+      // Format dates: convert "YYYY-MM" to "YYYY-MM-01" (first day of month) for backend
+      const formatDateForAPI = (dateString: string | undefined): string | undefined => {
+        if (!dateString || dateString.trim() === '') return undefined;
+        // If already in YYYY-MM-DD format, return as is
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return dateString;
+        }
+        // If in YYYY-MM format, append "-01"
+        if (dateString.match(/^\d{4}-\d{2}$/)) {
+          return `${dateString}-01`;
+        }
+        return dateString;
+      };
+
+      const educationData = {
+        ...educationForm,
+        start_date: formatDateForAPI(educationForm.start_date),
+        end_date: formatDateForAPI(educationForm.end_date),
+      };
+
       if (editingEducation && editingEducationId) {
-        const updated = await educationApi.updateEducation(editingEducationId, educationForm);
+        const updated = await educationApi.updateEducation(editingEducationId, educationData);
         setEducation(education.map(edu => (edu.added_at || edu.id) === editingEducationId ? updated : edu));
       } else {
-        const newEdu = await educationApi.addEducation(educationForm);
+        const newEdu = await educationApi.addEducation(educationData);
         setEducation([...education, newEdu]);
       }
 
@@ -762,9 +812,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                       placeholder="Add a new skill..."
                       className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base"
                     />
-                    <Select value={newSkillLevel} onValueChange={(value: any) => setNewSkillLevel(value)}>
+                    <Select 
+                      value={newSkillLevel} 
+                      onValueChange={(value) => {
+                        const level = value as 'Beginner' | 'Intermediate' | 'Expert';
+                        console.log('Skill level selected:', level);
+                        setNewSkillLevel(level);
+                      }}
+                    >
                       <SelectTrigger className="w-full sm:w-32 border-gray-300 focus:border-blue-500 focus:ring-blue-500 text-sm sm:text-base">
-                        <SelectValue />
+                        <SelectValue placeholder="Select level" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Beginner">Beginner</SelectItem>
@@ -780,27 +837,45 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
 
                                      {/* Skills List */}
                    <div className="space-y-3">
-                     {skills.map((skill) => (
-                       <div key={skill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                         <div className="flex items-center space-x-3">
-                           <span className="font-medium text-gray-900">{skill.name}</span>
-                           <Badge 
-                             variant="secondary" 
-                             className={`px-2 py-1 text-xs font-medium ${getProficiencyColor(skill.proficiency_level)}`}
+                     {skills.map((skill) => {
+                       const skillId = skill.added_at || skill.id || '';
+                       const isUpdating = updatingSkillId === skillId;
+                       return (
+                         <div key={skill.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                           <div className="flex items-center space-x-3 flex-1">
+                             <span className="font-medium text-gray-900">{skill.name}</span>
+                             <Select 
+                               value={skill.proficiency_level || 'Beginner'} 
+                               onValueChange={(value: 'Beginner' | 'Intermediate' | 'Expert') => {
+                                 handleUpdateSkillProficiency(skillId, value);
+                               }}
+                               disabled={isUpdating}
+                             >
+                               <SelectTrigger className={`w-auto min-w-[80px] h-7 px-2 py-1 text-xs font-medium border rounded-md shadow-none ${getProficiencyColor(skill.proficiency_level || 'Beginner')} hover:opacity-80 transition-opacity cursor-pointer`}>
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent>
+                                 <SelectItem value="Beginner">Beginner</SelectItem>
+                                 <SelectItem value="Intermediate">Intermediate</SelectItem>
+                                 <SelectItem value="Expert">Expert</SelectItem>
+                               </SelectContent>
+                             </Select>
+                             {isUpdating && (
+                               <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
+                             )}
+                           </div>
+                           <Button
+                             size="sm"
+                             variant="ghost"
+                             onClick={() => handleDeleteSkill(skillId)}
+                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                             disabled={isUpdating}
                            >
-                             {skill.proficiency_level || 'Beginner'}
-                           </Badge>
+                             <Trash2 className="w-4 h-4" />
+                           </Button>
                          </div>
-                         <Button
-                           size="sm"
-                           variant="ghost"
-                           onClick={() => handleDeleteSkill(skill.added_at || skill.id || '')}
-                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                         >
-                           <Trash2 className="w-4 h-4" />
-                         </Button>
-                       </div>
-                     ))}
+                       );
+                     })}
                    </div>
 
                   
@@ -908,11 +983,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
                             onClick={() => {
                               setEditingEducation(edu);
                               setEditingEducationId(edu.added_at || edu.id || '');
+                              // Convert YYYY-MM-DD to YYYY-MM for DatePicker
+                              const formatDateForPicker = (dateString: string | undefined): string | undefined => {
+                                if (!dateString || dateString.trim() === '') return undefined;
+                                // If in YYYY-MM-DD format, extract YYYY-MM
+                                if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                  return dateString.substring(0, 7); // Extract YYYY-MM
+                                }
+                                // If already in YYYY-MM format, return as is
+                                if (dateString.match(/^\d{4}-\d{2}$/)) {
+                                  return dateString;
+                                }
+                                return undefined;
+                              };
                               setEducationForm({
                                 school: edu.school,
                                 degree: edu.degree,
-                                start_date: edu.start_date,
-                                end_date: edu.end_date || ''
+                                start_date: formatDateForPicker(edu.start_date) || '',
+                                end_date: formatDateForPicker(edu.end_date) || ''
                               });
                               setShowEducationModal(true);
                             }}
@@ -1434,22 +1522,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-900">Start Date</label>
-                <Input
-                  type="date"
-                  value={experienceForm.start_date || ''}
-                  onChange={(e) => setExperienceForm({...experienceForm, start_date: e.target.value})}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                <label className="text-sm font-medium text-gray-900 mb-1 block">Start Date</label>
+                <DatePicker
+                  type="month"
+                  value={experienceForm.start_date || undefined}
+                  onChange={(value) => setExperienceForm({...experienceForm, start_date: value || ''})}
+                  placeholder="Select month"
+                  className="h-9 text-sm"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-900">End Date</label>
-                <Input
-                  type="date"
-                  value={experienceForm.end_date || ''}
-                  onChange={(e) => setExperienceForm({...experienceForm, end_date: e.target.value})}
+                <label className="text-sm font-medium text-gray-900 mb-1 block">End Date</label>
+                <DatePicker
+                  type="month"
+                  value={experienceForm.end_date || undefined}
+                  onChange={(value) => setExperienceForm({...experienceForm, end_date: value || ''})}
                   disabled={experienceForm.is_current}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder={experienceForm.is_current ? 'Present' : 'Select month'}
+                  className="h-9 text-sm"
                 />
               </div>
             </div>
@@ -1520,21 +1610,23 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium text-gray-900">Start Date</label>
-                <Input
-                  type="date"
-                  value={educationForm.start_date}
-                  onChange={(e) => setEducationForm({...educationForm, start_date: e.target.value})}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                <label className="text-sm font-medium text-gray-900 mb-1 block">Start Date</label>
+                <DatePicker
+                  type="month"
+                  value={educationForm.start_date || undefined}
+                  onChange={(value) => setEducationForm({...educationForm, start_date: value || ''})}
+                  placeholder="Select month"
+                  className="h-9 text-sm"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-900">End Date</label>
-                <Input
-                  type="date"
-                  value={educationForm.end_date}
-                  onChange={(e) => setEducationForm({...educationForm, end_date: e.target.value})}
-                  className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                <label className="text-sm font-medium text-gray-900 mb-1 block">End Date</label>
+                <DatePicker
+                  type="month"
+                  value={educationForm.end_date || undefined}
+                  onChange={(value) => setEducationForm({...educationForm, end_date: value || ''})}
+                  placeholder="Select month"
+                  className="h-9 text-sm"
                 />
               </div>
             </div>

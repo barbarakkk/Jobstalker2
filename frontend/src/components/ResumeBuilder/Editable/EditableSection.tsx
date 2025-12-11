@@ -26,7 +26,7 @@ export function EditableSection({
             variant="outline"
             size="sm"
             onClick={onAdd}
-            className="text-blue-600 border-blue-300 hover:bg-blue-50 text-xs px-2 py-1 h-6"
+            className="text-[#295acf] border-[#295acf]/30 hover:bg-[#295acf]/10 text-xs px-2 py-1 h-6"
           >
             <Plus className="w-3 h-3 mr-1" />
             {addLabel}

@@ -19,7 +19,7 @@ export function Login() {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        navigate('/dashboard');
+        navigate('/resume-builder');
       }
     };
     checkUser();
@@ -35,7 +35,7 @@ export function Login() {
             window.location.href = `${redirectUri}#access_token=${token}`;
             return;
           }
-          navigate('/dashboard');
+          navigate('/resume-builder');
         }
       }
     );

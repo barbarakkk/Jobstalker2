@@ -68,6 +68,19 @@ export interface Profile {
   social_links?: SocialLink[];
   profile_completed?: boolean;
   profile_picture_url?: string;
+  referral_source?: string;
+  work_auth_us?: boolean;
+  work_auth_canada?: boolean;
+  work_auth_uk?: boolean;
+  requires_sponsorship?: boolean;
+  ethnicity?: string;
+  has_disability?: 'Yes' | 'No' | 'Decline to state';
+  is_veteran?: 'Yes' | 'No' | 'Decline to state';
+  is_lgbtq?: 'Yes' | 'No' | 'Decline to state';
+  gender?: 'Male' | 'Female' | 'Non-Binary' | 'Decline to state';
+  current_location?: string;
+  date_of_birth?: string;
+  phone_country_code?: string;
   skills?: Skill[];
   work_experience?: WorkExperience[];
   education?: Education[];
@@ -129,6 +142,19 @@ export interface CreateProfileData {
   location?: string;
   professional_summary?: string;
   social_links?: SocialLink[];
+  referral_source?: string;
+  work_auth_us?: boolean;
+  work_auth_canada?: boolean;
+  work_auth_uk?: boolean;
+  requires_sponsorship?: boolean;
+  ethnicity?: string;
+  has_disability?: 'Yes' | 'No' | 'Decline to state';
+  is_veteran?: 'Yes' | 'No' | 'Decline to state';
+  is_lgbtq?: 'Yes' | 'No' | 'Decline to state';
+  gender?: 'Male' | 'Female' | 'Non-Binary' | 'Decline to state';
+  current_location?: string;
+  date_of_birth?: string;
+  phone_country_code?: string;
 }
 
 export interface UpdateProfileData extends Partial<Omit<CreateProfileData, 'email'>> {

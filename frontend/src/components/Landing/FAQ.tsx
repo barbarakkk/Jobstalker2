@@ -3,20 +3,12 @@ import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react';
 
 const faqs = [
   {
-    question: "What is JobStalker AI?",
-    answer: "JobStalker AI is an AI-powered job search platform that helps you track job applications, save jobs from LinkedIn using our Chrome extension, build professional resumes with AI, and provides intelligent analytics to improve your job search success rate."
+    question: "Is Jobstalker free to use?",
+    answer: "Yes, Jobstalker offers a free plan with core features that will remain free forever. This includes our Job Tracker, Job Posting Saver, and Application Autofiller. We also have premium features like the ATS Resume Builder and advanced Job Matcher, which are part of a paid plan. Additionally, we charge companies a fee to post their jobs on our platform."
   },
   {
-    question: "How does the Chrome extension work?",
-    answer: "Our Chrome extension allows you to save job postings directly from LinkedIn with one click. When you're viewing a job on LinkedIn, click the extension icon to open the side panel, then click 'Save Job'. Our AI will extract all job details and add it to your dashboard automatically."
-  },
-  {
-    question: "Can I track applications from multiple sources?",
-    answer: "Yes! You can track applications from LinkedIn (using our Chrome extension), Indeed, company websites, and any other source. You can also manually add job applications directly from your dashboard."
-  },
-  {
-    question: "What is the Resume Builder?",
-    answer: "Our AI-powered Resume Builder helps you create professional resumes in minutes. Choose from multiple templates, fill in your information through our guided wizard, and let AI generate professional summaries and optimize your resume content. Export your resume as PDF when ready."
+    question: "How does Jobstalker work?",
+    answer: "Think of Jobstalker as your personal job-search assistant. Here's how it helps you land interviews faster:\n\n• Create Your Profile: Start by building a dynamic profile where you can list and assess your skills.\n• Get Smart Insights: Our platform analyzes your profile and the market to give you personalized insights and guidance.\n• Track & Manage Everything: Use our full suite of tools—like the Job Tracker, Application Autofiller, and Saved Postings—to organize your entire search in one place.\n• Move Faster to Interviews: By streamlining the process, we help you apply more effectively and get in front of hiring managers sooner.\n\nReady to stop jobstalking and start job landing? Click the Login button to get started."
   },
   {
     question: "How do I get started?",
@@ -32,23 +24,23 @@ export function FAQ() {
   };
 
   return (
-    <section id="faq" className="w-full py-24 lg:py-36 bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
+    <section id="faq" className="w-full py-24 lg:py-36 bg-gradient-to-b from-white via-[#4169E1]/10 to-white relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 right-10 w-96 h-96 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
+        <div className="absolute top-20 right-10 w-96 h-96 bg-[#4169E1]/30 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
         <div className="absolute bottom-20 left-10 w-96 h-96 bg-sky-200 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob animation-delay-2000"></div>
       </div>
       
       <div className="relative container mx-auto px-4 lg:px-8">
         {/* Header */}
         <div className="text-center mb-20 relative z-10">
-          <div className="inline-flex items-center gap-2 mb-6 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-100 via-blue-50 to-blue-100 border border-blue-200/60 text-blue-700 font-semibold text-sm shadow-sm animate-fadeInUp">
+          <div className="inline-flex items-center gap-2 mb-6 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#4169E1]/20 via-[#4169E1]/10 to-[#4169E1]/20 border border-[#4169E1]/30 text-[#4169E1] font-semibold text-sm shadow-sm animate-fadeInUp">
             <HelpCircle className="w-4 h-4 animate-pulse-slow" />
             Frequently Asked Questions
           </div>
           <h2 className="text-4xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-[1.1] tracking-tight animate-fadeInUp animation-delay-100">
             Questions about{' '}
-            <span className="bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-[#4169E1] via-[#3A5BCE] to-[#2E4AB8] bg-clip-text text-transparent">
               JobStalker AI?
             </span>
           </h2>
@@ -64,8 +56,8 @@ export function FAQ() {
               key={index}
               className={`group bg-white/90 backdrop-blur-sm rounded-2xl border-2 transition-all duration-500 overflow-hidden shadow-md hover:shadow-xl hover:scale-[1.01] animate-fadeInUp ${
                 openIndex === index 
-                  ? 'border-blue-300/80 shadow-xl scale-[1.01]' 
-                  : 'border-gray-200/60 hover:border-blue-200/80'
+                  ? 'border-[#4169E1]/50 shadow-xl scale-[1.01]' 
+                  : 'border-gray-200/60 hover:border-[#4169E1]/40'
               }`}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
@@ -73,20 +65,20 @@ export function FAQ() {
                 onClick={() => toggleFAQ(index)}
                 className={`w-full px-8 py-6 flex items-center justify-between text-left transition-all duration-300 ${
                   openIndex === index 
-                    ? 'bg-gradient-to-r from-blue-50 to-blue-100/50' 
+                    ? 'bg-gradient-to-r from-[#4169E1]/10 to-[#4169E1]/20' 
                     : 'hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-start gap-4 flex-1">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                     openIndex === index
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
-                      : 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-600 group-hover:from-blue-200 group-hover:to-blue-300'
+                      ? 'bg-gradient-to-r from-[#4169E1] to-[#3A5BCE] text-white shadow-lg'
+                      : 'bg-gradient-to-r from-[#4169E1]/20 to-[#4169E1]/30 text-[#4169E1] group-hover:from-[#4169E1]/30 group-hover:to-[#4169E1]/40'
                   }`}>
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <h3 className={`text-lg lg:text-xl font-bold pr-8 transition-colors duration-300 ${
-                    openIndex === index ? 'text-blue-900' : 'text-gray-900 group-hover:text-blue-600'
+                    openIndex === index ? 'text-[#4169E1]' : 'text-gray-900 group-hover:text-[#4169E1]'
                   }`}>
                     {faq.question}
                   </h3>
@@ -94,7 +86,7 @@ export function FAQ() {
                 <ChevronDown
                   className={`w-6 h-6 flex-shrink-0 transition-all duration-300 ${
                     openIndex === index 
-                      ? 'transform rotate-180 text-blue-600' 
+                      ? 'transform rotate-180 text-[#4169E1]' 
                       : 'text-gray-400 group-hover:text-gray-600'
                   }`}
                 />
@@ -105,8 +97,8 @@ export function FAQ() {
                 }`}
               >
                 <div className="px-8 pb-6 pt-2">
-                  <div className="pl-14 border-l-2 border-blue-200">
-                    <p className="text-gray-700 leading-relaxed text-base lg:text-lg">
+                  <div className="pl-14 border-l-2 border-[#4169E1]/30">
+                    <p className="text-gray-700 leading-snug text-base lg:text-lg whitespace-pre-line">
                       {faq.answer}
                     </p>
                   </div>
@@ -120,7 +112,7 @@ export function FAQ() {
         <div className="mt-12 text-center">
           <p className="text-gray-600 text-lg">
             Still have questions?{' '}
-            <a href="mailto:support@jobstalker-ai.com" className="text-blue-600 hover:text-blue-700 font-semibold underline underline-offset-2 transition-colors">
+            <a href="mailto:support@jobstalker-ai.com" className="text-[#4169E1] hover:text-[#3A5BCE] font-semibold underline underline-offset-2 transition-colors">
               Contact our support team
             </a>
           </p>

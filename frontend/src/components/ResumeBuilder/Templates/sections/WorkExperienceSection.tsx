@@ -24,32 +24,59 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
   const primaryColor = style?.primaryColor || config?.style?.primaryColor || '#000000';
   const bodyFont = (style as any)?.fontFamily || config?.style?.fontFamily;
   const fontSize = (style as any)?.fontSize || config?.style?.fontSize;
+
+  // Format date to "Jun 2015" format
+  const formatDate = (dateString: string): string => {
+    if (!dateString) return '';
+    try {
+      // Handle YYYY-MM format
+      if (dateString.match(/^\d{4}-\d{2}$/)) {
+        const date = new Date(dateString + '-01');
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+      // Handle YYYY-MM-DD format
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+      // Try to parse as-is
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
+      return dateString; // Return as-is if can't parse
+    } catch {
+      return dateString; // Return as-is if error
+    }
+  };
   
   return (
     <section 
       style={{
         ...containerStyle,
         fontFamily: bodyFont,
-        fontSize: fontSize
+        fontSize: fontSize,
+        marginBottom: '0.75rem', // Reduced spacing between sections
       }} 
       className={config?.className}
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-4"
+          className="text-xl font-bold mb-1"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
-            paddingBottom: '0.5rem'
+            paddingBottom: '0.25rem',
+            marginBottom: '0.25rem'
           }}
         >
           {title}
         </h2>
       )}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {workExperience.map((work) => (
-          <div key={work.id} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
-            <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
+          <div key={work.id} className="border-b border-gray-200 pb-2 last:border-b-0 last:pb-0">
+            <div className="flex items-start justify-between flex-wrap gap-2 mb-1">
               <div className="flex-1">
               <div className="font-semibold text-gray-900" style={{ color: String(primaryColor) }}>{work.title}</div>
               {work.company && (
@@ -59,17 +86,17 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
                 </div>
               )}
               </div>
-              <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                {work.startDate} — {work.isCurrent ? 'Present' : (work.endDate || '')}
+              <div className="text-xs text-gray-500">
+                {formatDate(work.startDate)} - {work.isCurrent ? 'Present' : formatDate(work.endDate || '')}
               </div>
             </div>
             {work.location && (
-              <div className="text-xs text-gray-600 mb-2">
+              <div className="text-xs text-gray-600 mb-1">
                 {work.location}
               </div>
             )}
             {work.description && (
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line mt-2">
+              <p className="text-sm text-gray-700 leading-normal whitespace-pre-line mt-1">
                 {work.description}
               </p>
             )}

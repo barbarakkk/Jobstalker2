@@ -63,8 +63,8 @@ export function AuthCallback() {
             // If profile check fails, still allow user to proceed (they can complete profile later)
           }
           
-          // User is authenticated and profile is complete, redirect to dashboard
-          navigate('/dashboard');
+          // User is authenticated and profile is complete, redirect to resume builder
+          navigate('/resume-builder');
         } else {
           // No session found, redirect to login
           navigate('/login');
