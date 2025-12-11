@@ -552,10 +552,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
         return dateString;
       };
 
-      const educationData = {
-        ...educationForm,
-        start_date: formatDateForAPI(educationForm.start_date),
-        end_date: formatDateForAPI(educationForm.end_date),
+      const educationData: CreateEducationData = {
+        school: educationForm.school,
+        degree: educationForm.degree,
+        start_date: formatDateForAPI(educationForm.start_date) || undefined,
+        end_date: formatDateForAPI(educationForm.end_date) || undefined,
       };
 
       if (editingEducation && editingEducationId) {

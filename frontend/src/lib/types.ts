@@ -179,7 +179,7 @@ export interface CreateExperienceData {
 export interface CreateEducationData {
   school: string;
   degree: string;
-  start_date: string;
+  start_date?: string;
   end_date?: string;
 }
 

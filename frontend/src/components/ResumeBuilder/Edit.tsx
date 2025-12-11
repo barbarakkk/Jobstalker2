@@ -604,7 +604,7 @@ export function ResumeEditPage() {
     
     setIsGeneratingDescription(true);
     try {
-      const experience = localData.workExperience?.find(exp => exp.id === experienceId);
+      const experience = localData.workExperience?.find((exp: WorkExperience) => exp.id === experienceId);
       if (!experience) {
         throw new Error('Experience not found');
       }
