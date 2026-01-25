@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "JobStalker AI Job Search Companion",
-  "version": "1.0.4",
-  "description": "Save job postings from LinkedIn directly to your JobStalker AI dashboard with one click.",
+  "version": "1.0.5",
+  "description": "Save job postings from LinkedIn and auto-fill application forms on Greenhouse, Lever, and more.",
   
   "permissions": [
     "activeTab",
@@ -38,6 +38,20 @@
   "side_panel": {
     "default_path": "sidepanel.html"
   },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.greenhouse.io/*",
+        "*://*.lever.co/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://*.workday.com/*",
+        "*://*.smartrecruiters.com/*"
+      ],
+      "js": ["formAutofill.js"],
+      "run_at": "document_idle"
+    }
+  ],
   
   "icons": {
     "16": "icon16.png",

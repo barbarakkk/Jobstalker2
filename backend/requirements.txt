@@ -9,3 +9,4 @@ python-dotenv>=1.1.1
 pydantic>=2.11.7
 langchain>=0.3.26
 reportlab>=4.2.5
+stripe>=7.0.0

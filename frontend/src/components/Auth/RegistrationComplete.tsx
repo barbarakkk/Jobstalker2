@@ -51,7 +51,6 @@ const STEPS = [
   { id: 4, name: 'Education', icon: GraduationCap, color: 'teal' },
   { id: 5, name: 'Skills', icon: Code, color: 'blue' },
   { id: 6, name: 'Languages', icon: Globe, color: 'teal' },
-  { id: 7, name: 'Work & Demographics', icon: FileText, color: 'blue' },
 ];
 
 const REFERRAL_SOURCES = [
@@ -69,21 +68,6 @@ const REFERRAL_SOURCES = [
   'Other'
 ];
 
-const ETHNICITY_OPTIONS = [
-  'Black/African American',
-  'East Asian',
-  'Hispanic/Latinx',
-  'Middle Eastern',
-  'Southeast Asian',
-  'South Asian',
-  'Native Hawaiian/Pacific Islander',
-  'Native American/Alaskan',
-  'White',
-  'Prefer not to say'
-];
-
-const YES_NO_DECLINE = ['Yes', 'No', 'Decline to state'];
-const GENDER_OPTIONS = ['Male', 'Female', 'Non-Binary', 'Decline to state'];
 
 // Comprehensive list of country calling codes
 const COUNTRY_CODES = [
@@ -327,22 +311,8 @@ export function RegistrationComplete() {
   // Languages
   const [languages, setLanguages] = useState<LanguageForm[]>([]);
 
-  // Work Authorization
-  const [workAuthUS, setWorkAuthUS] = useState<boolean | null>(null);
-  const [workAuthCanada, setWorkAuthCanada] = useState<boolean | null>(null);
-  const [workAuthUK, setWorkAuthUK] = useState<boolean | null>(null);
-  const [requiresSponsorship, setRequiresSponsorship] = useState<boolean | null>(null);
-  
-  // Demographics
-  const [ethnicity, setEthnicity] = useState('');
-  const [hasDisability, setHasDisability] = useState<'Yes' | 'No' | 'Decline to state' | ''>('');
-  const [isVeteran, setIsVeteran] = useState<'Yes' | 'No' | 'Decline to state' | ''>('');
-  const [isLgbtq, setIsLgbtq] = useState<'Yes' | 'No' | 'Decline to state' | ''>('');
-  const [gender, setGender] = useState<'Male' | 'Female' | 'Non-Binary' | 'Decline to state' | ''>('');
-  
   // Location & Personal
   const [currentLocation, setCurrentLocation] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
   const [phoneCountryCode, setPhoneCountryCode] = useState('+1');
   const [countryCodeSearch, setCountryCodeSearch] = useState('');
 
@@ -542,17 +512,7 @@ export function RegistrationComplete() {
         professional_summary: professionalSummary || undefined,
         social_links: socialLinks.filter(link => link.url.trim() !== ''),
         referral_source: referralSource || undefined,
-        work_auth_us: workAuthUS ?? undefined,
-        work_auth_canada: workAuthCanada ?? undefined,
-        work_auth_uk: workAuthUK ?? undefined,
-        requires_sponsorship: requiresSponsorship ?? undefined,
-        ethnicity: ethnicity || undefined,
-        has_disability: hasDisability || undefined,
-        is_veteran: isVeteran || undefined,
-        is_lgbtq: isLgbtq || undefined,
-        gender: gender || undefined,
         current_location: currentLocation || undefined,
-        date_of_birth: dateOfBirth || undefined,
         phone_country_code: phoneCountryCode || undefined,
       });
 
@@ -1366,271 +1326,6 @@ export function RegistrationComplete() {
             </Card>
           )}
 
-          {/* Step 7: Work & Demographics */}
-          {currentStep === 7 && (
-            <Card className="border border-slate-200 shadow-xl bg-white/90 backdrop-blur-sm rounded-2xl overflow-hidden">
-              <CardContent className="pt-6 space-y-6">
-                {/* Information Box */}
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-xl p-5 mb-6">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-blue-500 rounded-lg mt-0.5">
-                      <FileText className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-base font-semibold text-slate-900 mb-2">
-                        Why we collect this information
-                      </h4>
-                      <p className="text-sm text-slate-700 leading-relaxed mb-2">
-                        This information helps our Chrome extension automatically fill out job application forms on your behalf, saving you time and ensuring accuracy. The extension uses your work authorization status, location, and other details to pre-populate application fields when you're applying to jobs.
-                      </p>
-                      <p className="text-sm text-slate-600 font-medium">
-                        <span className="text-blue-600 font-semibold">💡 Important:</span> All fields in this section are completely optional. If you prefer not to share this information, you can skip any or all of these questions. Your privacy is important to us.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Work Authorization Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-slate-900 pb-2">Work Authorization</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-2.5">
-                      <Label className="text-sm font-semibold text-slate-700">
-                        Are you authorized to work in the US?
-                      </Label>
-                      <div className="flex gap-3">
-                        <Button
-                          type="button"
-                          variant={workAuthUS === true ? "default" : "outline"}
-                          onClick={() => setWorkAuthUS(true)}
-                          className={`flex-1 h-12 ${workAuthUS === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          Yes
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={workAuthUS === false ? "default" : "outline"}
-                          onClick={() => setWorkAuthUS(false)}
-                          className={`flex-1 h-12 ${workAuthUS === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label className="text-sm font-semibold text-slate-700">
-                        Are you authorized to work in Canada?
-                      </Label>
-                      <div className="flex gap-3">
-                        <Button
-                          type="button"
-                          variant={workAuthCanada === true ? "default" : "outline"}
-                          onClick={() => setWorkAuthCanada(true)}
-                          className={`flex-1 h-12 ${workAuthCanada === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          Yes
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={workAuthCanada === false ? "default" : "outline"}
-                          onClick={() => setWorkAuthCanada(false)}
-                          className={`flex-1 h-12 ${workAuthCanada === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label className="text-sm font-semibold text-slate-700">
-                        Are you authorized to work in the United Kingdom?
-                      </Label>
-                      <div className="flex gap-3">
-                        <Button
-                          type="button"
-                          variant={workAuthUK === true ? "default" : "outline"}
-                          onClick={() => setWorkAuthUK(true)}
-                          className={`flex-1 h-12 ${workAuthUK === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          Yes
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={workAuthUK === false ? "default" : "outline"}
-                          onClick={() => setWorkAuthUK(false)}
-                          className={`flex-1 h-12 ${workAuthUK === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label className="text-sm font-semibold text-slate-700">
-                        Will you now or in the future require sponsorship for employment visa status?
-                      </Label>
-                      <div className="flex gap-3">
-                        <Button
-                          type="button"
-                          variant={requiresSponsorship === true ? "default" : "outline"}
-                          onClick={() => setRequiresSponsorship(true)}
-                          className={`flex-1 h-12 ${requiresSponsorship === true ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          Yes
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={requiresSponsorship === false ? "default" : "outline"}
-                          onClick={() => setRequiresSponsorship(false)}
-                          className={`flex-1 h-12 ${requiresSponsorship === false ? 'bg-sky-500 text-white hover:bg-sky-600' : 'border-slate-300'}`}
-                        >
-                          No
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Visual Separator */}
-                <div className="border-t border-slate-200 pt-6"></div>
-
-                {/* Demographics Section */}
-                <div className="space-y-4 pt-4">
-                  <h3 className="text-lg font-semibold text-slate-900 pb-2">Demographics</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-2.5">
-                      <Label htmlFor="ethnicity" className="text-sm font-semibold text-slate-700">
-                        What is your ethnicity?
-                      </Label>
-                      <Select value={ethnicity} onValueChange={setEthnicity}>
-                        <SelectTrigger id="ethnicity" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
-                          <SelectValue placeholder="Select an option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ETHNICITY_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label htmlFor="hasDisability" className="text-sm font-semibold text-slate-700">
-                        Do you have a disability?
-                      </Label>
-                      <Select value={hasDisability} onValueChange={(value) => setHasDisability(value as 'Yes' | 'No' | 'Decline to state' | '')}>
-                        <SelectTrigger id="hasDisability" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
-                          <SelectValue placeholder="Select an option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {YES_NO_DECLINE.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label htmlFor="isVeteran" className="text-sm font-semibold text-slate-700">
-                        Are you a veteran?
-                      </Label>
-                      <Select value={isVeteran} onValueChange={(value) => setIsVeteran(value as 'Yes' | 'No' | 'Decline to state' | '')}>
-                        <SelectTrigger id="isVeteran" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
-                          <SelectValue placeholder="Select an option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {YES_NO_DECLINE.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label htmlFor="isLgbtq" className="text-sm font-semibold text-slate-700">
-                        Do you identify as LGBTQ+?
-                      </Label>
-                      <Select value={isLgbtq} onValueChange={(value) => setIsLgbtq(value as 'Yes' | 'No' | 'Decline to state' | '')}>
-                        <SelectTrigger id="isLgbtq" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
-                          <SelectValue placeholder="Select an option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {YES_NO_DECLINE.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label htmlFor="gender" className="text-sm font-semibold text-slate-700">
-                        What is your gender?
-                      </Label>
-                      <Select value={gender} onValueChange={(value) => setGender(value as 'Male' | 'Female' | 'Non-Binary' | 'Decline to state' | '')}>
-                        <SelectTrigger id="gender" className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all">
-                          <SelectValue placeholder="Select an option" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {GENDER_OPTIONS.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Visual Separator */}
-                <div className="border-t border-slate-200 pt-6"></div>
-
-                {/* Additional Information Section */}
-                <div className="space-y-4 pt-4">
-                  <h3 className="text-lg font-semibold text-slate-900 pb-2">Additional Information</h3>
-                  
-                  <div className="space-y-4">
-                    <div className="space-y-2.5">
-                      <Label htmlFor="currentLocation" className="text-sm font-semibold text-slate-700">
-                        Where are you currently located?
-                      </Label>
-                      <Input
-                        id="currentLocation"
-                        value={currentLocation}
-                        onChange={(e) => setCurrentLocation(e.target.value)}
-                        placeholder="Type city to search"
-                        className="h-12 border-slate-300 focus:border-sky-500 focus:ring-sky-500/20 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-2.5">
-                      <Label htmlFor="dateOfBirth" className="text-sm font-semibold text-slate-700">
-                        What's your date of birth?
-                      </Label>
-                      <DatePicker
-                        value={dateOfBirth}
-                        onChange={setDateOfBirth}
-                        placeholder="Select date of birth"
-                        className="h-12"
-                      />
-                    </div>
-
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Error Message */}
           {error && (

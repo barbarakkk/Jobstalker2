@@ -39,8 +39,9 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         soup = BeautifulSoup(html, 'html.parser')
         print(f"🤖 AI EXTRACTION: HTML parsed with BeautifulSoup")
         
-        # Remove unwanted elements but keep job content
-        for element in soup(['script', 'style', 'nav', 'footer', 'header', 'aside']):
+        # Remove unwanted elements but keep job content (keep <header> so we can
+        # parse Glassdoor job-details-header for title/company/location)
+        for element in soup(['script', 'style', 'nav', 'footer', 'aside']):
             element.decompose()
         print(f"🤖 AI EXTRACTION: Removed unwanted HTML elements")
         
@@ -59,7 +60,19 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         job_elements = []
         
         # Look for common job posting selectors with more specific targeting
+        # Glassdoor selectors first, then LinkedIn, then generic
         title_selectors = [
+            # Glassdoor header
+            'header[data-test="job-details-header"] h1',
+            'header[data-test="job-details-header"] [data-test="jobTitle"]',
+            # Glassdoor fallbacks
+            '[data-test="jobTitle"]',
+            '.JobDetails_jobTitle',
+            '.jobTitle',
+            'h1[data-test="jobTitle"]',
+            '.JobHeader_jobTitle',
+            'h1.JobDetails_jobTitle',
+            # LinkedIn selectors
             'h1[class*="job-title"]',
             'h1[class*="jobs-unified-top-card__job-title"]',
             'h1[class*="jobs-details-top-card__job-title"]',
@@ -71,6 +84,18 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         ]
         
         company_selectors = [
+            # Glassdoor header
+            'header[data-test="job-details-header"] [data-test="employerName"]',
+            'header[data-test="job-details-header"] a[href*="/Overview/"]',
+            # Glassdoor fallbacks
+            '[data-test="employerName"]',
+            '.JobDetails_employerName',
+            '.employerName',
+            'a[data-test="employerName"]',
+            '.JobHeader_employerName',
+            '[data-test="jobHeader"] a',
+            '.JobDetails_companyName',
+            # LinkedIn selectors
             '[data-testid*="company"]',
             '.company-name',
             '.jobs-unified-top-card__company-name',
@@ -79,6 +104,16 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         ]
         
         location_selectors = [
+            # Glassdoor header
+            'header[data-test="job-details-header"] [data-test="location"]',
+            # Glassdoor fallbacks
+            '[data-test="jobLocation"]',
+            '.JobDetails_location',
+            '.jobLocation',
+            '.JobHeader_location',
+            '[data-test="location"]',
+            '.JobDetails_jobLocation',
+            # LinkedIn selectors
             '[data-testid*="location"]',
             '.job-location',
             '.jobs-unified-top-card__bullet',
@@ -188,29 +223,86 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
                         print(f"🤖 AI EXTRACTION: Found salary via regex: {salary}")
                         break
         
-        # Get job description - look for the main description area
+        # Get job description - comprehensive extraction with multiple strategies
         description_selectors = [
+            # LinkedIn specific - updated and comprehensive selectors
+            '.jobs-description__text',
             '.jobs-description-content__text',
+            '.jobs-description__text--rich',
+            '.jobs-description-content__text--rich',
+            '.jobs-description__text--rich-text',
+            '.jobs-description-content__text--rich-text',
             '.jobs-box__html-content',
             '.jobs-details__main-content',
+            '.jobs-details-top-card__job-description',
+            '.job-details__job-description',
+            '[data-testid="job-details"]',
             '[data-testid*="job-details"]',
+            '[data-testid*="description"]',
+            # Glassdoor
+            '.JobDetails_jobDescription',
+            '.JobDetails_jobDescriptionText',
+            '[data-test="jobDescription"]',
+            # Glassdoor dynamic container that wraps full job description/body
+            '[id^="job-viewed-waypoint-"]',
+            # Generic
             '.job-description',
-            '.description'
+            '.description',
+            '[class*="description" i]',
+            '[class*="Description"]'
         ]
         
         job_description = ""
-        for selector in description_selectors:
-            elements = soup.select(selector)
-            if elements:
-                desc_text = elements[0].get_text(separator='\n', strip=True)
-                if desc_text and len(desc_text) > 50:  # Valid description
-                    job_description = desc_text
-                    job_elements.append(f"Description: {desc_text[:200]}...")
-                    break
+        max_desc_length = 0
+        best_selector = None
         
-        # Combine structured elements with focused text content
-        # Only use the first 5000 characters of the full text to avoid noise
-        focused_text = text_content[:5000] if text_content else ""
+        # Strategy 1: Try all selectors and use the longest description found
+        for selector in description_selectors:
+            try:
+                elements = soup.select(selector)
+                for element in elements:
+                    desc_text = element.get_text(separator='\n', strip=True)
+                    if desc_text and len(desc_text) > max_desc_length:
+                        job_description = desc_text
+                        max_desc_length = len(desc_text)
+                        best_selector = selector
+                        print(f"🤖 Found description ({len(desc_text)} chars) with selector: {selector}")
+            except Exception as e:
+                print(f"⚠️ Error with selector {selector}: {e}")
+                continue
+        
+        # Strategy 2: If still short, try to find main content area and extract
+        if len(job_description) < 500:
+            print("🤖 Description too short, trying main content extraction...")
+            main_content = soup.find('main') or soup.find('div', class_=lambda x: x and 'job' in x.lower())
+            if main_content:
+                # Remove unwanted elements
+                for unwanted in main_content.find_all(['nav', 'button', 'header', 'footer', 'aside', 'script', 'style', 'form']):
+                    unwanted.decompose()
+                
+                # Remove specific LinkedIn UI elements
+                for unwanted_class in ['jobs-unified-top-card', 'jobs-details-top-card', 'job-actions', 'social-share']:
+                    for unwanted in main_content.find_all(class_=lambda x: x and unwanted_class in str(x).lower()):
+                        unwanted.decompose()
+                
+                desc_text = main_content.get_text(separator='\n', strip=True)
+                if desc_text and len(desc_text) > max_desc_length:
+                    job_description = desc_text
+                    max_desc_length = len(desc_text)
+                    best_selector = "main_content"
+                    print(f"🤖 Found description from main content ({len(desc_text)} chars)")
+        
+        if job_description:
+            # Truncate preview for logging but keep full description
+            preview = job_description[:500] + "..." if len(job_description) > 500 else job_description
+            job_elements.append(f"Description: {preview} (total: {len(job_description)} chars, selector: {best_selector})")
+            print(f"✅ Final description length: {len(job_description)} chars")
+        else:
+            print("⚠️ No job description found with any selector")
+            job_elements.append("Description: Not found in HTML")
+        
+        # Combine structured elements with MORE text content (increase to 50000 for full descriptions)
+        focused_text = text_content[:50000] if text_content else ""  # Increased limit significantly for full descriptions
         combined_content = '\n'.join(job_elements) + '\n\n' + focused_text
         print(f"🤖 AI EXTRACTION: Combined content length: {len(combined_content)}")
         
@@ -230,6 +322,12 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         prompt = f"""
         You are an expert at extracting job information from LinkedIn job postings. 
         
+        CRITICAL REQUIREMENT: Extract the COMPLETE, FULL job description. 
+        - Do NOT truncate or summarize the description
+        - Include ALL requirements, responsibilities, qualifications, benefits, etc.
+        - The full description text is essential for AI job matching and skill analysis
+        - Minimum description length should be at least 500 characters if available
+        
         IMPORTANT: The content below has been pre-processed to focus on job-related information. 
         Use the structured data provided and enhance it with additional details from the content.
         
@@ -238,7 +336,7 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         Company: {company}
         Location: {location}
         Salary: {salary if salary else "Not specified"}
-        Description: {job_description[:300] + "..." if len(job_description) > 300 else job_description}
+        Description Preview: {job_description[:1000] if job_description else "See full content below - extract complete description"}
         
         Return ONLY a valid JSON object with this structure:
         {{
@@ -246,7 +344,7 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
             "company": "string - use the pre-extracted company or extract from content", 
             "location": "string - use the pre-extracted location or extract from content",
             "salary": "string or null - use the pre-extracted salary or extract from content",
-            "description": "string - use the pre-extracted description or extract from content",
+            "description": "string - REQUIRED: must be the COMPLETE, FULL job description text, not truncated. Include all details from the content.",
             "job_type": "string (e.g., Full-time, Part-time, Contract) - extract from content",
             "experience_level": "string (e.g., Entry level, Mid-level, Senior) - extract from content",
             "remote_work": "boolean - true if remote work is mentioned",
@@ -269,6 +367,7 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         6. Return ONLY valid JSON, no other text
         7. Focus on the job posting content, ignore navigation elements
         8. Pay special attention to salary information in job descriptions and requirements sections
+        9. MOST IMPORTANT: The description field must contain the ENTIRE job description text. If the description is long, include it all. Do not summarize or truncate.
         
         Return the JSON object now:
         """
@@ -276,10 +375,10 @@ def extract_job_data_with_ai(html: str, source_url: str) -> dict:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are an expert at extracting job information from HTML. Return only valid JSON."},
+                {"role": "system", "content": "You are an expert at extracting job information from HTML. Return only valid JSON. Always include the complete, full job description without truncation."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=2000,
+            max_tokens=4000,  # Increased to handle longer descriptions
             temperature=0.1
         )
         

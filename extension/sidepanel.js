@@ -22,6 +22,13 @@ const stageSelect = document.getElementById('stageSelect');
 const starsContainer = document.getElementById('starsContainer');
 const jobsList = document.getElementById('jobsList');
 
+// Application form elements
+const fillApplicationBtn = document.getElementById('fillApplicationBtn');
+const applicationData = document.getElementById('applicationData');
+const applicationDataForm = document.getElementById('applicationDataForm');
+const backToJobBtn = document.getElementById('backToJobBtn');
+const loadFromProfileBtn = document.getElementById('loadFromProfileBtn');
+
 // State
 let currentRating = 1; // Default to 1 star minimum
 let lastUrl = null;
@@ -41,6 +48,10 @@ async function init() {
   if (closePanelBtn) closePanelBtn.addEventListener('click', closePanel);
   if (searchBtn) searchBtn.addEventListener('click', handleSearch);
   if (menuBtn) menuBtn.addEventListener('click', handleMenu);
+  if (fillApplicationBtn) fillApplicationBtn.addEventListener('click', handleFillApplication);
+  if (applicationDataForm) applicationDataForm.addEventListener('submit', handleSaveApplicationData);
+  if (backToJobBtn) backToJobBtn.addEventListener('click', () => showLinkedInJob());
+  if (loadFromProfileBtn) loadFromProfileBtn.addEventListener('click', handleLoadFromProfile);
   
   // Removed test backend and manual refresh buttons
   
@@ -56,39 +67,50 @@ async function checkStatus() {
     console.log('🔍 STEP 1: Starting status check...');
     showLoading();
     
-    // Determine if we're on any job-like page; prefer LinkedIn detection but allow any site
+    // Determine if we're on any job-like page
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    const isLinkedInJobDetails = tab?.url?.includes('linkedin.com/jobs/search/') && tab?.url?.includes('currentJobId=');
-    const isGenericPage = !!tab?.url; // show save UI on any page when authenticated
+    const url = tab?.url || '';
     
-    console.log('📍 STEP 1.1: Current tab URL:', tab?.url);
-    console.log('📍 STEP 1.2: Is LinkedIn job details page:', isLinkedInJobDetails);
+    // Detect job sites
+    const isLinkedInJobDetails = url.includes('linkedin.com/jobs/search/') && url.includes('currentJobId=');
+    const isLinkedInJobView = url.includes('linkedin.com/jobs/view/');
+    // Treat any Glassdoor job experience page as a potential job page since many
+    // job details are loaded dynamically in the right column on index pages.
+    const isGlassdoorJob = url.includes('glassdoor.com');
+    const isGenericJobPage = url.includes('/job/') || url.includes('/jobs/') || url.includes('/viewjob');
     
-    if (isLinkedInJobDetails || isGenericPage) {
-      console.log('🔐 STEP 1.3: Job page detected, checking authentication...');
+    const isJobPage = isLinkedInJobDetails || isLinkedInJobView || isGlassdoorJob || isGenericJobPage;
+    
+    console.log('📍 STEP 1.1: Current tab URL:', url);
+    console.log('📍 STEP 1.2: Is LinkedIn job page:', isLinkedInJobDetails || isLinkedInJobView);
+    console.log('📍 STEP 1.3: Is Glassdoor job page:', isGlassdoorJob);
+    console.log('📍 STEP 1.4: Is generic job page:', isGenericJobPage);
+    
+    if (isJobPage) {
+      console.log('🔐 STEP 1.5: Job page detected, checking authentication...');
       // Check if user is authenticated
       const authResponse = await chrome.runtime.sendMessage({ action: 'checkAuth' });
-      console.log('🔐 STEP 1.4: Auth response:', authResponse);
+      console.log('🔐 STEP 1.6: Auth response:', authResponse);
       
       if (authResponse && authResponse.authenticated) {
-        console.log('✅ STEP 1.5: User authenticated, showing save job interface');
-        showLinkedInJob();
+        console.log('✅ STEP 1.7: User authenticated, showing save job interface');
+        showLinkedInJob(); // Function name can stay, it's generic now
       } else {
-        console.log('❌ STEP 1.6: User not authenticated, showing sign-in prompt');
+        console.log('❌ STEP 1.8: User not authenticated, showing sign-in prompt');
         console.log('❌ Auth error:', authResponse?.error || 'No response');
         showNotSignedIn();
       }
     } else {
-      console.log('🔐 STEP 1.7: Regular page detected, checking authentication...');
+      console.log('🔐 STEP 1.9: Regular page detected, checking authentication...');
       // Check authentication for regular pages
       const authResponse = await chrome.runtime.sendMessage({ action: 'checkAuth' });
-      console.log('🔐 STEP 1.8: Auth response:', authResponse);
+      console.log('🔐 STEP 1.10: Auth response:', authResponse);
       
       if (authResponse && authResponse.authenticated) {
-        console.log('✅ STEP 1.9: User authenticated, showing dashboard');
+        console.log('✅ STEP 1.11: User authenticated, showing dashboard');
         showDashboard();
       } else {
-        console.log('❌ STEP 1.10: User not authenticated, showing sign-in prompt');
+        console.log('❌ STEP 1.12: User not authenticated, showing sign-in prompt');
         console.log('❌ Auth error:', authResponse?.error || 'No response');
         showNotSignedIn();
       }
@@ -111,6 +133,7 @@ function showNotSignedIn() {
   signedIn.classList.add('hidden');
   linkedinJob.classList.add('hidden');
   dashboard.classList.add('hidden');
+  if (applicationData) applicationData.classList.add('hidden');
 }
 
 function showSignedIn() {
@@ -120,6 +143,7 @@ function showSignedIn() {
   signedIn.classList.remove('hidden');
   linkedinJob.classList.add('hidden');
   dashboard.classList.add('hidden');
+  if (applicationData) applicationData.classList.add('hidden');
 }
 
 async function showLinkedInJob() {
@@ -129,6 +153,7 @@ async function showLinkedInJob() {
   signedIn.classList.add('hidden');
   linkedinJob.classList.remove('hidden');
   dashboard.classList.add('hidden');
+  if (applicationData) applicationData.classList.add('hidden');
   
   // Set up job save interface
   await setupJobSaveInterface();
@@ -141,9 +166,23 @@ async function showDashboard() {
   signedIn.classList.add('hidden');
   linkedinJob.classList.add('hidden');
   dashboard.classList.remove('hidden');
+  if (applicationData) applicationData.classList.add('hidden');
   
   // Load dashboard data
   await loadDashboardData();
+}
+
+function showApplicationData() {
+  loading.style.display = 'none';
+  content.style.display = 'block';
+  notSignedIn.classList.add('hidden');
+  signedIn.classList.add('hidden');
+  linkedinJob.classList.add('hidden');
+  dashboard.classList.add('hidden');
+  if (applicationData) applicationData.classList.remove('hidden');
+  
+  // Load application data
+  loadApplicationData();
 }
 
 async function setupJobSaveInterface() {
@@ -321,16 +360,26 @@ async function handleSaveJob() {
       }
     }
     
-    // If we are not on a job page, stop early and guide the user
-    if (pageData && pageData.is_job_page === false) {
-      console.warn('⚠️ STEP 3.6: Not on a LinkedIn job details page. Aborting save.');
+    // If we are not on a job page AND have no HTML content, stop early
+    // Allow saving if we have HTML content even if detection failed (detection might be wrong)
+    if (pageData && pageData.is_job_page === false && !pageData.html_content) {
+      console.warn('⚠️ STEP 3.6: Not on a job details page and no HTML content. Aborting save.');
       if (saveJobBtn) {
         saveJobBtn.textContent = 'Save Link to JobStalker AI';
         saveJobBtn.disabled = false;
       }
-      alert('Please open a LinkedIn job details view (click a job so the details panel loads) before saving.');
+      alert('Please navigate to a job posting page (LinkedIn, Glassdoor, etc.) before saving.');
       return;
     }
+    
+    // Log job page detection status for debugging
+    console.log('💾 STEP 3.6.1: Job page detection:', {
+      is_job_page: pageData?.is_job_page,
+      has_html: !!pageData?.html_content,
+      html_length: pageData?.html_content?.length || 0,
+      url: pageData?.canonical_url || jobLinkInput?.value,
+      fallback_data: pageData?.fallback_data
+    });
 
     // Prepare job data for AI processing
     console.log('💾 STEP 3.6: Preparing job data for AI processing...');
@@ -577,13 +626,31 @@ async function extractJobDataFromPage() {
           };
           
           // Check if we're actually on a job page (not login/redirect)
-          const isJobPage = document.querySelector('.jobs-details') || 
-                           document.querySelector('[data-testid*="job"]') ||
-                           document.querySelector('.job-details') ||
-                           document.querySelector('.jobs-unified-top-card') ||
-                           document.querySelector('.jobs-details__main-content') ||
-                           window.location.href.includes('/jobs/view/') ||
-                           window.location.href.includes('currentJobId=');
+          // Detect LinkedIn, Glassdoor, and other job sites
+          const isLinkedIn = window.location.href.includes('linkedin.com');
+          const isGlassdoor = window.location.href.includes('glassdoor.com');
+          
+          // For Glassdoor, be very lenient - if we're on glassdoor.com, always try to extract
+          // because jobs can be in the right column on search/index pages
+          const isJobPage = 
+            // LinkedIn job page indicators
+            (isLinkedIn && (
+              document.querySelector('.jobs-details') || 
+              document.querySelector('[data-testid*="job"]') ||
+              document.querySelector('.job-details') ||
+              document.querySelector('.jobs-unified-top-card') ||
+              document.querySelector('.jobs-details__main-content') ||
+              window.location.href.includes('/jobs/view/') ||
+              window.location.href.includes('currentJobId=')
+            )) ||
+            // Glassdoor: Always treat as job page if on glassdoor.com (jobs can be in right column)
+            // This allows saving jobs from search pages where job details are in the right column
+            isGlassdoor ||
+            // Generic job page indicators
+            window.location.href.includes('/job/') ||
+            window.location.href.includes('/jobs/') ||
+            window.location.href.includes('/viewjob') ||
+            window.location.href.includes('/job-listing');
           
           console.log('🔍 CONTENT SCRIPT: Is job page detected:', isJobPage);
           
@@ -615,7 +682,7 @@ async function extractJobDataFromPage() {
           }
           
           if (!isJobPage) {
-            console.log('🔍 CONTENT SCRIPT: Not on a LinkedIn job page, skipping extraction');
+            console.log('🔍 CONTENT SCRIPT: Not on a job page, skipping extraction');
             return {
               html_content: htmlContent,
               fallback_data: {
@@ -634,6 +701,24 @@ async function extractJobDataFromPage() {
           // Helper: sleep for dynamic SPA rendering
           const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+          // For Glassdoor, wait a bit for dynamic content to load (jobs in right column)
+          if (isGlassdoor) {
+            console.log('🔍 CONTENT SCRIPT: Glassdoor detected, waiting for dynamic content...');
+            await sleep(1500); // Wait 1.5 seconds for right column job details to load
+            console.log('🔍 CONTENT SCRIPT: Wait complete, checking for job elements...');
+            
+            // Log what we can find
+            const header = document.querySelector('header[data-test="job-details-header"]');
+            const jobWaypoint = document.querySelector('[id^="job-viewed-waypoint-"]');
+            const jobTitle = document.querySelector('[data-test="jobTitle"]');
+            console.log('🔍 CONTENT SCRIPT: Glassdoor elements found:', {
+              hasHeader: !!header,
+              hasWaypoint: !!jobWaypoint,
+              hasJobTitle: !!jobTitle,
+              headerText: header ? header.textContent.substring(0, 100) : null
+            });
+          }
+
           // Derive canonical job URL from currentJobId when available
           let canonicalUrlGuess = null;
           try {
@@ -645,7 +730,19 @@ async function extractJobDataFromPage() {
           } catch (e) {}
 
           // Try to find job title with more specific selectors
+          // Add Glassdoor selectors first, then LinkedIn, then generic
           const titleSelectors = [
+            // Glassdoor header selectors
+            'header[data-test="job-details-header"] h1',
+            'header[data-test="job-details-header"] [data-test="jobTitle"]',
+            // Glassdoor fallback selectors
+            '[data-test="jobTitle"]',
+            '.JobDetails_jobTitle',
+            '.jobTitle',
+            'h1[data-test="jobTitle"]',
+            '.JobHeader_jobTitle',
+            'h1.JobDetails_jobTitle',
+            // LinkedIn selectors
             'h1[data-testid="job-title"]',
             '.job-details-jobs-unified-top-card__job-title',
             '.jobs-unified-top-card__job-title',
@@ -670,9 +767,32 @@ async function extractJobDataFromPage() {
               break;
             }
           }
+
+          // Glassdoor right-column fallback: if still unknown but header exists,
+          // use the full header text as a best-effort job title string.
+          if (isGlassdoor && (!jobData.job_title || jobData.job_title === 'Unknown Job Title')) {
+            const gdHeader = document.querySelector('header[data-test="job-details-header"]');
+            if (gdHeader && gdHeader.textContent.trim().length > 10) {
+              const headerText = gdHeader.textContent.replace(/\s+/g, ' ').trim();
+              jobData.job_title = headerText;
+              console.log('🔍 CONTENT SCRIPT: Using Glassdoor header text as job title fallback:', jobData.job_title);
+            }
+          }
           
           // Try to find company name with more specific selectors
           const companySelectors = [
+            // Glassdoor header selectors
+            'header[data-test="job-details-header"] [data-test="employerName"]',
+            'header[data-test="job-details-header"] a[href*="/Overview/"]',
+            // Glassdoor fallback selectors
+            '[data-test="employerName"]',
+            '.JobDetails_employerName',
+            '.employerName',
+            'a[data-test="employerName"]',
+            '.JobHeader_employerName',
+            '[data-test="jobHeader"] a',
+            '.JobDetails_companyName',
+            // LinkedIn selectors
             '[data-testid="company-name"]',
             '.job-details-jobs-unified-top-card__company-name',
             '.jobs-unified-top-card__company-name',
@@ -697,6 +817,16 @@ async function extractJobDataFromPage() {
           
           // Try to find location with more specific selectors
           const locationSelectors = [
+            // Glassdoor header selectors
+            'header[data-test="job-details-header"] [data-test="location"]',
+            // Glassdoor fallback selectors
+            '[data-test="jobLocation"]',
+            '.JobDetails_location',
+            '.jobLocation',
+            '.JobHeader_location',
+            '[data-test="location"]',
+            '.JobDetails_jobLocation',
+            // LinkedIn selectors
             '[data-testid="job-location"]',
             '.job-details-jobs-unified-top-card__bullet',
             '.jobs-unified-top-card__bullet',
@@ -720,6 +850,15 @@ async function extractJobDataFromPage() {
           
           // Try to find salary information with comprehensive selectors
           const salarySelectors = [
+            // Glassdoor selectors
+            '[data-test="detailSalary"]',
+            '.JobDetails_salaryEstimate',
+            '.salaryEstimate',
+            '.JobDetails_salary',
+            '[data-test="salary"]',
+            '.JobDetails_estimatedSalary',
+            '.estimatedSalary',
+            // LinkedIn selectors
             '.job-details-jobs-unified-top-card__salary',
             '.jobs-unified-top-card__salary',
             '.jobs-details-top-card__salary',
@@ -767,7 +906,10 @@ async function extractJobDataFromPage() {
             ];
             
             // Only search in job-related sections to speed up regex processing
-            const jobSections = document.querySelectorAll('.jobs-details, .jobs-unified-top-card, .job-details, [data-testid*="job"]');
+            const jobSections = document.querySelectorAll(
+              '.jobs-details, .jobs-unified-top-card, .job-details, [data-testid*="job"], ' +
+              '.JobDetails, .JobHeader, [data-test="jobHeader"], .JobDetails_jobDescription'
+            );
             const searchText = jobSections.length > 0 ? 
               Array.from(jobSections).map(section => section.textContent).join(' ') : 
               document.body.textContent;
@@ -781,6 +923,228 @@ async function extractJobDataFromPage() {
               }
             }
           }
+
+          // Extract job description with comprehensive selectors
+          const descriptionSelectors = [
+            // LinkedIn specific - article element and description details (NEW - prioritize these)
+            '#main article',
+            'article',
+            '.jobs-description_details',
+            'article .jobs-description_details',
+            // LinkedIn specific - main description containers (updated selectors)
+            '.jobs-description__text',
+            '.jobs-description-content__text',
+            '.jobs-description__text--rich',
+            '.jobs-description-content__text--rich',
+            '.jobs-box__html-content',
+            '.jobs-details__main-content',
+            '.jobs-details-top-card__job-description',
+            '[data-testid="job-details"]',
+            '[data-testid*="job-details"]',
+            '.job-details__job-description',
+            '.jobs-description__text--rich-text',
+            '.jobs-description-content__text--rich-text',
+            // Glassdoor selectors
+            '.JobDetails_jobDescription',
+            '.JobDetails_jobDescriptionText',
+            '[data-test="jobDescription"]',
+            '.jobDescription',
+            // Glassdoor dynamic job description container: id="job-viewed-waypoint-<number>"
+            '[id^="job-viewed-waypoint-"]',
+            // Generic fallbacks
+            '.job-description',
+            '.description',
+            '[class*="description" i]',
+            '[class*="Description"]'
+          ];
+
+          console.log('🔍 CONTENT SCRIPT: Searching for job description...');
+
+          // Try to click "Show more" / "See more" buttons to expand full description
+          const showMoreSelectors = [
+            'button[aria-label*="more" i]',
+            'button[aria-label*="More" i]',
+            '.jobs-description__text button',
+            '.jobs-description-content__text button',
+            '.jobs-description__text--truncated button',
+            '[data-testid*="show-more"]'
+          ];
+
+          // Click all "Show more" buttons to expand descriptions
+          for (const selector of showMoreSelectors) {
+            try {
+              const buttons = document.querySelectorAll(selector);
+              for (const button of buttons) {
+                if (button.offsetParent !== null) { // Check if visible
+                  button.click();
+                  await sleep(500); // Wait for expansion
+                  console.log('🔍 CONTENT SCRIPT: Clicked show more button');
+                }
+              }
+            } catch (e) {
+              // Ignore errors
+            }
+          }
+
+          // Wait for any dynamic content to load after expansion
+          await sleep(800);
+
+          let fullDescription = "";
+          let descriptionLength = 0;
+
+          // Strategy 1: Try XPath to find article element (NEW - highest priority)
+          try {
+            const xpathExpressions = [
+              '//*[@id="main"]/div/div[2]/div[2]/div/div[2]/div/div[2]/div[1]/div/div[5]/article',
+              '//*[@id="main"]//article',
+              '//article[contains(@class, "jobs")]',
+              '//article'
+            ];
+            
+            for (const xpath of xpathExpressions) {
+              try {
+                const result = document.evaluate(
+                  xpath,
+                  document,
+                  null,
+                  XPathResult.FIRST_ORDERED_NODE_TYPE,
+                  null
+                );
+                
+                if (result.singleNodeValue) {
+                  const articleElement = result.singleNodeValue;
+                  // Clone to avoid modifying original
+                  const clone = articleElement.cloneNode(true);
+                  
+                  // Remove navigation, buttons, and other non-description elements
+                  const toRemove = clone.querySelectorAll(
+                    'nav, button, .jobs-apply-button, .jobs-save-button, header, footer, aside, .social-share, ' +
+                    '.jobs-unified-top-card, .jobs-details-top-card, .job-actions, .job-header, script, style'
+                  );
+                  toRemove.forEach(el => el.remove());
+                  
+                  const articleText = clone.textContent || clone.innerText || '';
+                  const cleanArticleText = articleText.trim();
+                  
+                  if (cleanArticleText.length > 200 && cleanArticleText.length > descriptionLength) {
+                    fullDescription = cleanArticleText;
+                    descriptionLength = cleanArticleText.length;
+                    console.log(`🔍 CONTENT SCRIPT: Found description via XPath (${cleanArticleText.length} chars): ${xpath}`);
+                    break; // Use the first successful XPath match
+                  }
+                }
+              } catch (e) {
+                console.log(`⚠️ CONTENT SCRIPT: XPath evaluation failed for ${xpath}:`, e);
+              }
+            }
+          } catch (e) {
+            console.log('⚠️ CONTENT SCRIPT: XPath evaluation error:', e);
+          }
+
+          // Strategy 2: Try CSS selectors for article elements and description details
+          if (!fullDescription || fullDescription.length < 200) {
+            const articleSelectors = [
+              '#main article',
+              'article',
+              '.jobs-description_details',
+              'article .jobs-description_details',
+              'main article'
+            ];
+            
+            for (const selector of articleSelectors) {
+              try {
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > 0) {
+                  for (const element of elements) {
+                    // Clone to avoid modifying original
+                    const clone = element.cloneNode(true);
+                    
+                    // Remove navigation, buttons, and other non-description elements
+                    const toRemove = clone.querySelectorAll(
+                      'nav, button, .jobs-apply-button, .jobs-save-button, header, footer, aside, .social-share, ' +
+                      '.jobs-unified-top-card, .jobs-details-top-card, .job-actions, .job-header, script, style'
+                    );
+                    toRemove.forEach(el => el.remove());
+                    
+                    const text = clone.textContent || clone.innerText || '';
+                    const cleanText = text.trim();
+                    
+                    if (cleanText.length > 200 && cleanText.length > descriptionLength) {
+                      fullDescription = cleanText;
+                      descriptionLength = cleanText.length;
+                      console.log(`🔍 CONTENT SCRIPT: Found description (${cleanText.length} chars) with article selector: ${selector}`);
+                    }
+                  }
+                }
+              } catch (e) {
+                // Continue to next selector
+              }
+            }
+          }
+
+          // Strategy 3: Try each selector and combine all found descriptions
+          for (const selector of descriptionSelectors) {
+            try {
+              const elements = document.querySelectorAll(selector);
+              if (elements.length > 0) {
+                for (const element of elements) {
+                  const text = element.textContent || element.innerText || '';
+                  const cleanText = text.trim();
+                  
+                  // Only use if it's substantial (more than 100 chars) and longer than what we have
+                  if (cleanText.length > 100 && cleanText.length > descriptionLength) {
+                    fullDescription = cleanText;
+                    descriptionLength = cleanText.length;
+                    console.log(`🔍 CONTENT SCRIPT: Found description (${cleanText.length} chars) with selector: ${selector}`);
+                  }
+                }
+              }
+            } catch (e) {
+              // Continue to next selector
+            }
+          }
+
+          // If we found a description, use it; otherwise try to get from main content area
+          if (!fullDescription || fullDescription.length < 200) {
+            // Try to find the main job details section and extract all text
+            const mainContentSelectors = [
+              '.jobs-details__main-content',
+              '[data-testid*="job"]',
+              '.job-details',
+              '.JobDetails',
+              'main',
+              '[role="main"]'
+            ];
+            
+            for (const mainSelector of mainContentSelectors) {
+              const mainContent = document.querySelector(mainSelector);
+              if (mainContent) {
+                // Clone to avoid modifying original
+                const clone = mainContent.cloneNode(true);
+                
+                // Remove navigation, buttons, and other non-description elements
+                const toRemove = clone.querySelectorAll(
+                  'nav, button, .jobs-apply-button, .jobs-save-button, header, footer, aside, .social-share, ' +
+                  '.jobs-unified-top-card, .jobs-details-top-card, .job-actions, .job-header'
+                );
+                toRemove.forEach(el => el.remove());
+                
+                const mainText = clone.textContent || clone.innerText || '';
+                const cleanMainText = mainText.trim();
+                
+                // Only use if it's significantly longer and substantial
+                if (cleanMainText.length > 300 && cleanMainText.length > descriptionLength) {
+                  fullDescription = cleanMainText;
+                  descriptionLength = cleanMainText.length;
+                  console.log(`🔍 CONTENT SCRIPT: Found description from main content (${cleanMainText.length} chars)`);
+                  break;
+                }
+              }
+            }
+          }
+
+          jobData.description = fullDescription || null;
+          console.log(`🔍 CONTENT SCRIPT: Final description length: ${fullDescription ? fullDescription.length : 0} chars`);
 
           // Quick retry only once if critical fields are missing (reduced from 4 retries)
           const needsRetry = () => !jobData.job_title || jobData.job_title === 'Unknown Job Title' || jobData.company === 'Unknown Company';
@@ -851,6 +1215,176 @@ async function extractJobDataFromPage() {
         description: null
       }
     };
+  }
+}
+
+// Application Form Autofill Functions
+async function handleFillApplication() {
+  try {
+    console.log('📝 Filling application form...');
+    
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    if (!tab) {
+      alert('No active tab found');
+      return;
+    }
+    
+    // Check if we're on an application page
+    try {
+      // Inject content script if needed
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['formAutofill.js']
+      });
+      
+      // Wait a bit for script to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check if it's an application page
+      const checkResponse = await chrome.tabs.sendMessage(tab.id, { action: 'checkApplicationPage' });
+      
+      if (!checkResponse || !checkResponse.isApplicationPage) {
+        // Not on an application page, show application data form
+        showApplicationData();
+        return;
+      }
+      
+      // Trigger autofill
+      const result = await chrome.tabs.sendMessage(tab.id, { action: 'autofillForm' });
+      
+      if (result && result.success) {
+        if (fillApplicationBtn) {
+          fillApplicationBtn.textContent = `✓ ${result.message}`;
+          fillApplicationBtn.style.background = '#10b981';
+          setTimeout(() => {
+            fillApplicationBtn.textContent = '📝 Fill Application Form';
+            fillApplicationBtn.style.background = '';
+          }, 3000);
+        }
+      } else {
+        alert(result?.message || 'Failed to fill form. Please check if you have saved your application data.');
+        showApplicationData();
+      }
+    } catch (error) {
+      console.error('Error filling application:', error);
+      // If error, show application data form
+      showApplicationData();
+    }
+  } catch (error) {
+    console.error('Error in handleFillApplication:', error);
+    showApplicationData();
+  }
+}
+
+async function handleSaveApplicationData(e) {
+  e.preventDefault();
+  try {
+    const formData = {
+      firstName: document.getElementById('appFirstName').value,
+      lastName: document.getElementById('appLastName').value,
+      email: document.getElementById('appEmail').value,
+      phone: document.getElementById('appPhone').value,
+      address: document.getElementById('appAddress').value,
+      city: document.getElementById('appCity').value,
+      state: document.getElementById('appState').value,
+      zipCode: document.getElementById('appZip').value,
+      country: document.getElementById('appCountry').value,
+      currentTitle: document.getElementById('appCurrentTitle').value,
+      linkedinUrl: document.getElementById('appLinkedIn').value,
+      portfolioUrl: document.getElementById('appPortfolio').value,
+      workAuthUS: document.getElementById('appWorkAuth').value,
+      requiresSponsorship: document.getElementById('appSponsorship').value
+    };
+    
+    await chrome.storage.local.set({ applicationData: formData });
+    
+    const btn = applicationDataForm.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
+    btn.textContent = '✓ Saved!';
+    btn.style.background = '#10b981';
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = '';
+    }, 2000);
+    
+    console.log('Application data saved:', formData);
+  } catch (error) {
+    console.error('Error saving application data:', error);
+    alert('Failed to save application data. Please try again.');
+  }
+}
+
+async function handleLoadFromProfile() {
+  try {
+    const result = await chrome.storage.local.get(['jobstalker_auth_token']);
+    const token = result.jobstalker_auth_token;
+    
+    if (!token) {
+      alert('Please sign in first to load your profile data.');
+      return;
+    }
+    
+    const response = await fetch('https://jobstalker2-production.up.railway.app/api/profile', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      const profile = await response.json();
+      
+      if (profile.first_name) document.getElementById('appFirstName').value = profile.first_name;
+      if (profile.last_name) document.getElementById('appLastName').value = profile.last_name;
+      if (profile.email) document.getElementById('appEmail').value = profile.email;
+      if (profile.phone) document.getElementById('appPhone').value = profile.phone;
+      if (profile.current_location) {
+        const parts = profile.current_location.split(',');
+        if (parts[0]) document.getElementById('appCity').value = parts[0].trim();
+        if (parts[1]) document.getElementById('appState').value = parts[1].trim();
+      }
+      if (profile.job_title) document.getElementById('appCurrentTitle').value = profile.job_title;
+      if (profile.social_links && profile.social_links.length > 0) {
+        const linkedin = profile.social_links.find(l => l.type === 'linkedin' || l.url?.includes('linkedin'));
+        if (linkedin) document.getElementById('appLinkedIn').value = linkedin.url;
+      }
+      if (profile.work_auth_us !== undefined) {
+        document.getElementById('appWorkAuth').value = profile.work_auth_us ? 'yes' : 'no';
+      }
+      if (profile.requires_sponsorship !== undefined) {
+        document.getElementById('appSponsorship').value = profile.requires_sponsorship ? 'yes' : 'no';
+      }
+      
+      alert('Profile data loaded! Please review and save.');
+    } else {
+      alert('Failed to load profile data.');
+    }
+  } catch (error) {
+    console.error('Error loading profile:', error);
+    alert('Failed to load profile data.');
+  }
+}
+
+async function loadApplicationData() {
+  try {
+    const result = await chrome.storage.local.get(['applicationData']);
+    if (result.applicationData) {
+      const data = result.applicationData;
+      if (data.firstName) document.getElementById('appFirstName').value = data.firstName;
+      if (data.lastName) document.getElementById('appLastName').value = data.lastName;
+      if (data.email) document.getElementById('appEmail').value = data.email;
+      if (data.phone) document.getElementById('appPhone').value = data.phone;
+      if (data.address) document.getElementById('appAddress').value = data.address;
+      if (data.city) document.getElementById('appCity').value = data.city;
+      if (data.state) document.getElementById('appState').value = data.state;
+      if (data.zipCode) document.getElementById('appZip').value = data.zipCode;
+      if (data.country) document.getElementById('appCountry').value = data.country;
+      if (data.currentTitle) document.getElementById('appCurrentTitle').value = data.currentTitle;
+      if (data.linkedinUrl) document.getElementById('appLinkedIn').value = data.linkedinUrl;
+      if (data.portfolioUrl) document.getElementById('appPortfolio').value = data.portfolioUrl;
+      if (data.workAuthUS) document.getElementById('appWorkAuth').value = data.workAuthUS;
+      if (data.requiresSponsorship) document.getElementById('appSponsorship').value = data.requiresSponsorship;
+    }
+  } catch (error) {
+    console.error('Error loading application data:', error);
   }
 }
 

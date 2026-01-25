@@ -163,9 +163,23 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to save resume:', errorText);
-        throw new Error('Failed to save resume');
+        let errorMessage = 'Failed to save resume';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const parsed = JSON.parse(errorText);
+              errorMessage = parsed.detail || parsed.message || errorMessage;
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
+          }
+        }
+        console.error('Failed to save resume:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();

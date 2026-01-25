@@ -29,7 +29,7 @@ class CreateJob(BaseModel):
     excitement_level: Optional[int] = Field(None, ge=1, le=5)
     date_applied: Optional[date] = None
     deadline: Optional[date] = None
-    description: Optional[str] = Field(None, max_length=15000)
+    description: Optional[str] = None  # Removed max_length to allow full descriptions
 
 class UpdateJob(BaseModel):
     job_title: Optional[str] = None
@@ -41,7 +41,7 @@ class UpdateJob(BaseModel):
     excitement_level: Optional[int] = Field(None, ge=1, le=5)
     date_applied: Optional[date] = None
     deadline: Optional[date] = None
-    description: Optional[str] = Field(None, max_length=15000)
+    description: Optional[str] = None  # Removed max_length to allow full descriptions
 
 # Profile-related models
 class Profile(BaseModel):
@@ -414,6 +414,23 @@ class FileUploadResponse(BaseModel):
 
 class ProfilePictureResponse(BaseModel):
     profile_picture_url: str 
+
+# Job Matching Preferences (Temporary) - Simplified: Only location and salary
+class JobMatchingPreferencesTemp(BaseModel):
+    id: Optional[UUID] = None
+    user_id: UUID
+    preferred_locations: Optional[List[str]] = []
+    min_salary: Optional[int] = None
+    salary_currency: Optional[str] = 'USD'
+    expires_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+class CreateJobMatchingPreferencesTemp(BaseModel):
+    preferred_locations: Optional[List[str]] = []
+    min_salary: Optional[int] = None
+    salary_currency: Optional[str] = 'USD'
+    expires_at: Optional[datetime] = None  # Optional: set custom expiration 
 
 class ProfileResponse(BaseModel):
     id: str

@@ -295,21 +295,24 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
                   handleInputChange('description', value);
                 }
               }}
-              placeholder="Add a job description..."
+              placeholder="Drop the full job description here so the AI job matcher can analyze skills and requirements..."
               rows={6}
               maxLength={15000}
               className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500 resize-y min-h-[120px] max-h-[400px]"
             />
             <div className="flex justify-between items-center">
+              <p className="text-xs text-blue-600 font-medium">
+                💡 Paste the complete job description for better AI skill matching
+              </p>
               <p className={`text-xs ${(formData.description?.length || 0) > 14000 ? 'text-orange-600 font-semibold' : 'text-gray-500'}`}>
                 {(formData.description?.length || 0).toLocaleString()} / 15,000 characters
               </p>
-              {(formData.description?.length || 0) > 14000 && (
-                <p className="text-xs text-orange-600 font-medium">
-                  Approaching character limit
-                </p>
-              )}
             </div>
+            {(formData.description?.length || 0) > 14000 && (
+              <p className="text-xs text-orange-600 font-medium">
+                Approaching character limit
+              </p>
+            )}
           </div>
           </form>
         </div>

@@ -30,7 +30,7 @@ export function SkillsSection({ data, config, style }: SkillsSectionProps) {
         ...containerStyle,
         fontFamily: bodyFont,
         fontSize: fontSize,
-        marginBottom: '0.75rem', // Reduced spacing between sections
+        marginBottom: '0.4rem', // Reduced spacing between sections
       }} 
       className={config?.className}
     >
@@ -47,19 +47,20 @@ export function SkillsSection({ data, config, style }: SkillsSectionProps) {
           {title}
         </h2>
       )}
-      <div className="flex flex-wrap gap-2">
-        {skills.map((skill, index) => (
-          <span 
+      <ul className="list-none pl-0 space-y-0.5">
+        {skills.map((skill) => (
+          <li 
             key={skill.id} 
-            className="text-sm"
+            className="text-sm flex items-start"
             style={{
               color: String(primaryColor),
             }}
           >
-            {skill.name}{index < skills.length - 1 ? ', ' : ''}
-          </span>
+            <span className="mr-2" style={{ color: String(primaryColor) }}>•</span>
+            <span>{skill.name}</span>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

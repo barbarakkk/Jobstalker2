@@ -9,6 +9,8 @@ import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuild
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { TemplateRenderer } from '@/components/ResumeBuilder/Templates/TemplateRenderer';
 import { supabase } from '@/lib/supabaseClient';
+import { profileApi, skillsApi, experienceApi, educationApi } from '@/lib/api';
+import type { Profile, Skill as ProfileSkill, WorkExperience as ProfileWorkExperience, Education as ProfileEducation } from '@/types/resume';
 import { 
   Loader2, 
   Download, 
@@ -30,7 +32,8 @@ import {
   AlertCircle,
   Info,
   XCircle,
-  Sparkles
+  Sparkles,
+  Target
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -64,6 +67,7 @@ export function ResumeEditPage() {
   const [questionnaireAnswers, setQuestionnaireAnswers] = useState<{ whatDidYouDo: string; impactResults: string }>({ whatDidYouDo: '', impactResults: '' });
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isTailoringResume, setIsTailoringResume] = useState(false);
   
   // Wizard step state
   const [currentWizardStep, setCurrentWizardStep] = useState(0);
@@ -75,6 +79,12 @@ export function ResumeEditPage() {
   const templateIdFromUrl = searchParams.get('template');
   const templateId = templateIdFromUrl || selectedTemplate || 'modern-professional';
   const resumeIdFromUrl = searchParams.get('resume');
+  const targetRoleParam = searchParams.get('targetRole');
+  const jobDescriptionParam = searchParams.get('jobDescription');
+  
+  // Target role and job description state (for AI tailoring)
+  const [targetRole, setTargetRole] = useState(targetRoleParam || '');
+  const [jobDescription, setJobDescription] = useState(jobDescriptionParam || '');
 
   // Sync local data when resumeData changes (e.g., on load)
   useEffect(() => {
@@ -106,6 +116,144 @@ export function ResumeEditPage() {
       state.injectedResumeData = undefined;
     }
   }, [state?.injectedResumeData, replaceResumeData]);
+
+  // Set targetRole and jobDescription from URL parameters if provided
+  useEffect(() => {
+    if (targetRoleParam) {
+      setTargetRole(targetRoleParam);
+    }
+  }, [targetRoleParam]);
+
+  useEffect(() => {
+    if (jobDescriptionParam) {
+      setJobDescription(jobDescriptionParam);
+    }
+  }, [jobDescriptionParam]);
+
+  // Auto-fill from profile data if resume is empty (only run once)
+  const [hasAutoFilled, setHasAutoFilled] = useState(false);
+  useEffect(() => {
+    const loadProfileData = async () => {
+      // Only auto-fill once and if resume data is empty or minimal
+      if (hasAutoFilled || !localData) return;
+      
+      const hasPersonalInfo = localData.personalInfo?.firstName || localData.personalInfo?.lastName || localData.personalInfo?.email;
+      const hasWorkExp = localData.workExperience?.length > 0;
+      const hasEducation = localData.education?.length > 0;
+      const hasSkills = localData.skills?.length > 0;
+
+      // If resume already has data, skip auto-fill
+      if (hasPersonalInfo && (hasWorkExp || hasEducation || hasSkills)) {
+        setHasAutoFilled(true);
+        return;
+      }
+
+      try {
+        // Fetch profile data in parallel
+        const [profileResult, skillsResult, experienceResult, educationResult] = await Promise.allSettled([
+          profileApi.getProfile(),
+          skillsApi.getSkills(),
+          experienceApi.getExperience(),
+          educationApi.getEducation()
+        ]);
+
+        const updates: any = { ...localData };
+
+        // Helper function to convert date to YYYY-MM format
+        const formatDateForPicker = (dateStr: string | undefined | null): string => {
+          if (!dateStr || dateStr.trim() === '') return '';
+          try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return '';
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${year}-${month}`;
+          } catch (e) {
+            return '';
+          }
+        };
+
+        // Update personal info if missing
+        if (profileResult.status === 'fulfilled' && !hasPersonalInfo) {
+          const profile = profileResult.value;
+          let firstName = profile.first_name || '';
+          let lastName = profile.last_name || '';
+          if (!firstName && !lastName && profile.full_name) {
+            const nameParts = profile.full_name.trim().split(' ');
+            firstName = nameParts[0] || '';
+            lastName = nameParts.slice(1).join(' ') || '';
+          }
+
+          updates.personalInfo = {
+            ...updates.personalInfo,
+            firstName: firstName || updates.personalInfo?.firstName || '',
+            lastName: lastName || updates.personalInfo?.lastName || '',
+            email: profile.email || updates.personalInfo?.email || '',
+            phone: profile.phone || updates.personalInfo?.phone || '',
+            location: profile.location || updates.personalInfo?.location || '',
+            jobTitle: profile.job_title || updates.personalInfo?.jobTitle || '',
+            linkedin: profile.social_links?.find((l: any) => l.url?.toLowerCase().includes('linkedin'))?.url || updates.personalInfo?.linkedin || '',
+            website: profile.social_links?.find((l: any) => !l.url?.toLowerCase().includes('linkedin') && l.url?.includes('http'))?.url || updates.personalInfo?.website || ''
+          };
+
+          if (profile.professional_summary && !updates.summary) {
+            updates.summary = profile.professional_summary;
+          }
+        }
+
+        // Update work experience if missing
+        if (experienceResult.status === 'fulfilled' && !hasWorkExp) {
+          const experience = experienceResult.value;
+          updates.workExperience = experience.map((exp: ProfileWorkExperience | any) => ({
+            id: exp.id || `exp-${Date.now()}-${Math.random()}`,
+            title: exp.title || '',
+            company: exp.company || '',
+            location: exp.location || '',
+            startDate: formatDateForPicker(exp.start_date),
+            endDate: exp.is_current ? '' : formatDateForPicker(exp.end_date),
+            isCurrent: exp.is_current || false,
+            description: exp.description || ''
+          }));
+        }
+
+        // Update education if missing
+        if (educationResult.status === 'fulfilled' && !hasEducation) {
+          const educationData = educationResult.value;
+          updates.education = educationData.map((edu: ProfileEducation) => ({
+            id: edu.id || `edu-${Date.now()}-${Math.random()}`,
+            school: edu.school || '',
+            degree: edu.degree || '',
+            field: '',
+            startDate: formatDateForPicker(edu.start_date),
+            endDate: formatDateForPicker(edu.end_date)
+          }));
+        }
+
+        // Update skills if missing
+        if (skillsResult.status === 'fulfilled' && !hasSkills) {
+          const skillsData = skillsResult.value;
+          updates.skills = skillsData.map((skill: ProfileSkill) => ({
+            id: skill.id || `skill-${Date.now()}-${Math.random()}`,
+            name: skill.name || '',
+            category: 'Technical'
+          }));
+        }
+
+        // Apply updates
+        setLocalData(updates);
+        replaceResumeData(updates);
+        setHasAutoFilled(true);
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+        setHasAutoFilled(true); // Mark as attempted even on error
+      }
+    };
+
+    // Only run if we have localData and haven't auto-filled yet
+    if (localData && !hasAutoFilled) {
+      loadProfileData();
+    }
+  }, [localData, hasAutoFilled, replaceResumeData]);
 
   const goToStep = (step: number) => {
     if (step >= 0 && step < sectionConfig.length) {
@@ -650,6 +798,65 @@ export function ResumeEditPage() {
     }
   };
 
+  const tailorResumeWithAI = async () => {
+    if (!localData) {
+      alert('Please fill out your resume first');
+      return;
+    }
+
+    if (!jobDescription || jobDescription.trim().length < 50) {
+      alert('Please provide a job description (at least 50 characters) to tailor your resume');
+      return;
+    }
+
+    if (!targetRole || targetRole.trim().length < 2) {
+      alert('Please provide a target role to tailor your resume');
+      return;
+    }
+
+    setIsTailoringResume(true);
+    try {
+      const token = await getAuthToken();
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/ai/tailor-resume`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          resumeData: localData,
+          targetRole: targetRole,
+          jobDescription: jobDescription,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(errorData.detail || 'Failed to tailor resume');
+      }
+      
+      const data = await response.json();
+      if (data.resumeData) {
+        // Update the resume with tailored data
+        replaceResumeData(data.resumeData);
+        setLocalData(data.resumeData);
+        alert('Resume tailored successfully! Your resume has been updated to match the job description.');
+      }
+    } catch (error) {
+      console.error('Error tailoring resume:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to tailor resume. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsTailoringResume(false);
+    }
+  };
+
   if (!localData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -667,6 +874,7 @@ export function ResumeEditPage() {
     { id: 'education', label: 'Education', icon: GraduationCap, color: 'orange', count: localData.education?.length || 0 },
     { id: 'skills', label: 'Skills', icon: Wrench, color: 'red', count: localData.skills?.length || 0 },
     { id: 'summary', label: 'Professional Summary', icon: FileText, color: 'purple' },
+    { id: 'targetRole', label: 'Target Role & Job Description', icon: Target, color: 'blue' },
   ];
 
   const colorClasses: Record<string, { bg: string; text: string }> = {
@@ -911,6 +1119,63 @@ export function ResumeEditPage() {
                             <span className="inline-block w-1 h-1 bg-purple-400 rounded-full"></span>
                             Keep it concise, 2-4 sentences work best
                           </p>
+                        </div>
+                      )}
+
+                      {section.id === 'targetRole' && (
+                        <div className="space-y-6">
+                          <div>
+                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Target Role</Label>
+                            <Input
+                              value={targetRole}
+                              onChange={(e) => setTargetRole(e.target.value)}
+                              placeholder="e.g., Software Engineer, Product Manager, Marketing Specialist..."
+                              className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-[#295acf] focus:ring-[#295acf] focus:bg-white transition-colors placeholder:text-gray-300"
+                            />
+                            <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
+                              <span className="inline-block w-1 h-1 bg-blue-400 rounded-full"></span>
+                              This helps AI tailor your resume for specific roles
+                            </p>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Job Description (Required for Tailoring)</Label>
+                            <Textarea
+                              value={jobDescription}
+                              onChange={(e) => setJobDescription(e.target.value)}
+                              placeholder="Paste the full job description here to help AI tailor your resume structure, skills emphasis, and terminology to match the job requirements..."
+                              rows={8}
+                              className="resize-none bg-gray-50/80 border-gray-200 rounded-xl focus:border-[#295acf] focus:ring-[#295acf] focus:bg-white transition-colors placeholder:text-gray-300"
+                            />
+                            <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
+                              <span className="inline-block w-1 h-1 bg-blue-400 rounded-full"></span>
+                              Providing the job description helps AI better tailor your resume structure, highlight relevant skills, and use industry-specific terminology
+                            </p>
+                          </div>
+
+                          <div className="pt-4 border-t border-gray-200">
+                            <Button
+                              type="button"
+                              onClick={tailorResumeWithAI}
+                              disabled={isTailoringResume || !jobDescription || jobDescription.trim().length < 50 || !targetRole || targetRole.trim().length < 2}
+                              className="w-full h-12 bg-gradient-to-r from-[#295acf] to-[#1f4ab8] hover:from-[#1f4ab8] hover:to-[#295acf] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isTailoringResume ? (
+                                <>
+                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                  Tailoring Resume with AI...
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="w-5 h-5 mr-2" />
+                                  Tailor Resume with AI
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-[11px] text-gray-500 mt-3 text-center">
+                              This will tailor your entire resume to 100% match the job description, using only skills you actually have
+                            </p>
+                          </div>
                         </div>
                       )}
 

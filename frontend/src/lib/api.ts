@@ -1,4 +1,4 @@
-import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, Language, ProfileStats, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData, CreateLanguageData, UpdateLanguageData } from './types';
+import { Job, CreateJobData, UpdateJobData, Profile, Skill, WorkExperience, Education, Language, ProfileStats, UpdateProfileData, CreateSkillData, CreateExperienceData, CreateEducationData, CreateLanguageData, UpdateLanguageData, SubscriptionInfo, SubscriptionTier, SubscriptionStatus } from './types';
 import { supabase } from './supabaseClient';
 
 // Base URL for the backend API. In production, set VITE_API_BASE_URL in a .env file.
@@ -523,8 +523,14 @@ export const templatesApi = {
 
 // Subscription API
 export const subscriptionApi = {
-  getStatus: async (): Promise<{ tier: string; status: string; limits: any; usage: any; subscription?: any }> => {
-    return apiCall('/api/subscription/status');
+  getStatus: async (): Promise<SubscriptionInfo> => {
+    const response = await apiCall<{ tier: string; status: string; limits: any; usage: any; subscription?: any }>('/api/subscription/status');
+    // Transform the response to match SubscriptionInfo type
+    return {
+      ...response,
+      tier: response.tier as SubscriptionTier,
+      status: response.status as SubscriptionStatus,
+    } as SubscriptionInfo;
   },
   createCheckoutSession: async (priceId?: string): Promise<{ session_id: string; url: string }> => {
     return apiCall('/api/subscription/create-checkout-session', {

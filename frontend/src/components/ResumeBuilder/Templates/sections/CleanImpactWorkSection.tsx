@@ -28,10 +28,14 @@ export function CleanImpactWorkSection({ data, config, style }: CleanImpactWorkS
     // Split by newlines first
     const lines = description.split(/\n+/).filter(line => line.trim());
     
-    // If lines contain bullet markers, clean them up
+    // If lines contain bullet markers, clean them up - remove ALL asterisks and bullet symbols
     return lines.map(line => {
-      // Remove common bullet markers
-      return line.replace(/^[\u2022\u2023\u25E6\u2043\u2219\*\-\•]\s*/, '').trim();
+      // Remove common bullet markers, asterisks, and dashes
+      let cleaned = line.replace(/^[\u2022\u2023\u25E6\u2043\u2219\*\-\•]\s*/, '');
+      cleaned = cleaned.replace(/[\*\u2022\u2023\u25E6\u2043\u2219•]/g, ''); // Remove asterisks anywhere in line
+      cleaned = cleaned.replace(/\*/g, ''); // Remove any remaining asterisks
+      cleaned = cleaned.replace(/^\s*[-]\s*/, ''); // Remove leading dashes
+      return cleaned.trim();
     }).filter(line => line.length > 0);
   };
 
@@ -77,20 +81,19 @@ export function CleanImpactWorkSection({ data, config, style }: CleanImpactWorkS
               </div>
               
               {bullets.length > 0 && (
-                <ul className="list-none pl-4 space-y-1" style={{ marginLeft: '16px' }}>
+                <ul className="list-none pl-0 space-y-0.5" style={{ marginLeft: '0' }}>
                   {bullets.map((bullet, index) => (
                     <li 
                       key={index} 
-                      className="text-sm"
+                      className="text-sm flex items-start"
                       style={{ 
                         color: '#1c1e21',
-                        marginTop: '3px',
-                        marginBottom: '3px',
-                        listStyle: 'disc',
-                        listStylePosition: 'outside'
+                        marginTop: '2px',
+                        marginBottom: '2px',
                       }}
                     >
-                      {bullet}
+                      <span className="mr-2" style={{ color: accentColor }}>•</span>
+                      <span>{bullet}</span>
                     </li>
                   ))}
                 </ul>

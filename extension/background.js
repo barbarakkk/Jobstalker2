@@ -267,12 +267,16 @@ async function handleSaveJob(data, sendResponse) {
     // Send job data to backend for AI scraping
     console.log('🚀 STEP 5.5: Determining backend endpoint based on URL...');
     const isLinkedIn = (data.url || '').includes('linkedin.com');
+    const isGlassdoor = (data.url || '').includes('glassdoor.com');
+    
+    // Use LinkedIn endpoint for LinkedIn, universal endpoint for all others (including Glassdoor)
     const endpoint = isLinkedIn 
       ? `${CONFIG.API_BASE_URL}/api/jobs/scrape-linkedin`
       : `${CONFIG.API_BASE_URL}/api/jobs/ingest-html`;
     console.log('🚀 STEP 5.6: API endpoint:', endpoint);
+    console.log('🚀 STEP 5.6.1: Site detected:', isLinkedIn ? 'LinkedIn' : (isGlassdoor ? 'Glassdoor' : 'Other'));
 
-    // Build request payload depending on endpoint
+    // Build request payload - universal format for all sites
     const payload = isLinkedIn
       ? {
           url: data.url,
@@ -284,7 +288,12 @@ async function handleSaveJob(data, sendResponse) {
         }
       : {
           html: data.html_content || '',
-          source_url: data.url || data.canonical_url || ''
+          source_url: data.url || data.canonical_url || '',
+          url: data.url || data.canonical_url || '',
+          canonical_url: data.canonical_url,
+          stage: data.stage || "Bookmarked",
+          excitement: data.excitement || 0,
+          fallback_data: data.fallback_data
         };
 
     const response = await fetch(endpoint, {

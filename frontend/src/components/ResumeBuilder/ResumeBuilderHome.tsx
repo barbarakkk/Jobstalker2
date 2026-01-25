@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
 import { TemplateRenderer } from '@/components/ResumeBuilder/Templates/TemplateRenderer';
@@ -14,8 +15,12 @@ import {
   AlertCircle,
   Lock,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Crown,
+  Check,
+  Sparkles
 } from 'lucide-react';
+import { UpgradeModal } from '@/components/Subscription';
 import {
   Dialog,
   DialogContent,
@@ -25,10 +30,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { ResumeData, Skill, WorkExperience, Education } from '@/types/resume';
-import { profileApi, skillsApi, experienceApi, educationApi } from '@/lib/api';
+import { profileApi, skillsApi, experienceApi, educationApi, subscriptionApi } from '@/lib/api';
 import type { Profile, Skill as ProfileSkill, WorkExperience as ProfileWorkExperience, Education as ProfileEducation } from '@/lib/types';
-
-const MAX_FREE_RESUMES = 3;
 
 interface SavedResume {
   id: string;
@@ -49,10 +52,29 @@ export function ResumeBuilderHome() {
   const [resumeToDelete, setResumeToDelete] = useState<SavedResume | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [maxResumes, setMaxResumes] = useState<number>(1); // Default to 1 (free tier)
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro'>('free');
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [processingUpgrade, setProcessingUpgrade] = useState(false);
 
   useEffect(() => {
     loadResumes();
+    loadSubscriptionInfo();
   }, []);
+
+  const loadSubscriptionInfo = async () => {
+    try {
+      const subscriptionInfo = await subscriptionApi.getStatus();
+      const limit = subscriptionInfo.limits.max_resumes;
+      setMaxResumes(limit || 1); // Default to 1 if null
+      setSubscriptionTier(subscriptionInfo.tier);
+    } catch (error) {
+      console.error('Failed to load subscription info:', error);
+      // Default to free tier limits on error
+      setMaxResumes(1);
+      setSubscriptionTier('free');
+    }
+  };
 
   const loadResumes = async () => {
     // Only show loading on initial load, not blocking navigation
@@ -77,10 +99,18 @@ export function ResumeBuilderHome() {
   };
 
   const handleCreateNew = async () => {
-    if (resumes.length >= MAX_FREE_RESUMES) {
+    if (resumes.length >= maxResumes) {
+      // Show upgrade modal for free tier users
+      if (subscriptionTier === 'free') {
+        setUpgradeModalOpen(true);
+        return;
+      }
+      // For pro users who hit limit, show alert
+      alert(`You've reached your resume limit of ${maxResumes} resume(s).`);
       return;
     }
     setIsCreating(true);
+    setError(null);
     try {
       // Fetch profile data in parallel
       const [profileResult, skillsResult, experienceResult, educationResult] = await Promise.allSettled([
@@ -196,9 +226,21 @@ export function ResumeBuilderHome() {
       } else {
         throw new Error('Failed to create resume');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create resume:', err);
-      setError('Failed to create resume. Please try again.');
+      
+      // Check if it's a limit error
+      const errorMessage = err?.message || '';
+      if (errorMessage.includes('Resume limit reached') || errorMessage.includes('403')) {
+        const limitMessage = subscriptionTier === 'free'
+          ? `Resume limit reached. Free tier allows ${maxResumes} resume(s). You currently have ${resumes.length}. Upgrade to Pro for up to 20 professional resumes.`
+          : `Resume limit reached. You currently have ${resumes.length} of ${maxResumes} resumes.`;
+        setError(limitMessage);
+        // Reload subscription info in case it changed
+        await loadSubscriptionInfo();
+      } else {
+        setError('Failed to create resume. Please try again.');
+      }
     } finally {
       setIsCreating(false);
     }
@@ -230,6 +272,19 @@ export function ResumeBuilderHome() {
     }
   };
 
+  const handleActivatePro = async () => {
+    try {
+      setProcessingUpgrade(true);
+      const session = await subscriptionApi.createCheckoutSession();
+      // Redirect to Stripe checkout
+      window.location.href = session.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert('Failed to start checkout. Please try again.');
+      setProcessingUpgrade(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -238,7 +293,7 @@ export function ResumeBuilderHome() {
     });
   };
 
-  const canCreateNew = resumes.length < MAX_FREE_RESUMES;
+  const canCreateNew = resumes.length < maxResumes;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -248,65 +303,89 @@ export function ResumeBuilderHome() {
 
         {/* Create New Resume Card */}
         <div 
-          className={`mb-10 relative overflow-hidden rounded-2xl transition-all duration-300 ${
-            canCreateNew && !isCreating
-              ? 'cursor-pointer group' 
+          className={`mb-10 relative overflow-hidden rounded-3xl transition-all duration-500 ${
+            !isCreating
+              ? 'cursor-pointer group shadow-xl hover:shadow-2xl transform hover:scale-[1.02]' 
               : 'cursor-not-allowed opacity-70'
           }`}
-          onClick={canCreateNew && !isCreating ? handleCreateNew : undefined}
+          onClick={!isCreating ? handleCreateNew : undefined}
         >
+          {/* Gradient Background */}
           <div className={`absolute inset-0 ${
             canCreateNew 
-              ? 'bg-[#295acf] group-hover:bg-[#295acf]/90' 
-              : 'bg-slate-700'
-          } transition-all duration-300`} />
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+              ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 group-hover:from-blue-500 group-hover:via-blue-400 group-hover:to-indigo-500' 
+              : 'bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800'
+          } transition-all duration-500`} />
           
-          <div className="relative p-8 flex items-center gap-6">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-              canCreateNew ? 'bg-white/20' : 'bg-white/10'
+          {/* Animated Pattern Overlay */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wOCI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
+          
+          {/* Shine Effect on Hover */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+          
+          <div className="relative p-8 md:p-10 flex flex-col md:flex-row items-center gap-6">
+            {/* Icon Container */}
+            <div className={`w-20 h-20 md:w-24 md:h-24 rounded-3xl flex items-center justify-center transition-all duration-300 ${
+              canCreateNew 
+                ? 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30 group-hover:scale-110 shadow-lg' 
+                : 'bg-white/10'
             }`}>
               {isCreating ? (
-                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-white animate-spin" />
               ) : canCreateNew ? (
-                <Plus className="w-8 h-8 text-white" />
+                <Plus className="w-10 h-10 md:w-12 md:h-12 text-white group-hover:rotate-90 transition-transform duration-300" />
               ) : (
-                <Lock className="w-7 h-7 text-white/70" />
+                <Lock className="w-9 h-9 md:w-11 md:h-11 text-white/80" />
               )}
             </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white mb-1">
+            
+            {/* Content */}
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-2 group-hover:scale-105 transition-transform duration-300">
                 Craft New Resume
               </h2>
-              <p className="text-white/80">
+              <p className="text-white/90 text-base md:text-lg leading-relaxed">
                 {isCreating 
                   ? 'Creating your resume...'
                   : canCreateNew 
-                    ? 'Start fresh with our AI-powered wizard to create a professional resume'
-                    : `You've reached the limit of ${MAX_FREE_RESUMES} resumes. Delete one to create more.`
+                    ? 'Start fresh with our AI-powered wizard to create a professional resume that stands out'
+                    : subscriptionTier === 'free'
+                      ? `You've reached the free tier limit. Click to upgrade to Pro and create up to 20 professional resumes.`
+                      : `You've reached your resume limit. Delete one to create more.`
                 }
               </p>
             </div>
-            {canCreateNew && (
-              <Button 
-                size="lg"
-                onClick={handleCreateNew}
-                disabled={isCreating}
-                className="bg-white text-[#295acf] hover:bg-white/90 font-semibold px-6 shadow-lg"
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5 mr-2" />
-                    Get Started
-                  </>
-                )}
-              </Button>
-            )}
+            
+            {/* CTA Button */}
+            <Button 
+              size="lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCreateNew();
+              }}
+              disabled={isCreating}
+              className={`font-bold px-8 py-6 text-base md:text-lg shadow-2xl transition-all duration-300 ${
+                canCreateNew
+                  ? 'bg-white text-blue-600 hover:bg-white/95 hover:scale-105 active:scale-95'
+                  : 'bg-white/20 text-white border-2 border-white/30 hover:bg-white/30'
+              }`}
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : canCreateNew ? (
+                <>
+                  <Plus className="w-5 h-5 mr-2" />
+                  Get Started
+                </>
+              ) : (
+                <>
+                  Upgrade to Pro
+                </>
+              )}
+            </Button>
           </div>
         </div>
 
@@ -320,13 +399,16 @@ export function ResumeBuilderHome() {
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">My Resumes</h2>
                 <p className="text-sm text-gray-500">
-                  {resumes.length} of {MAX_FREE_RESUMES} resumes used
+                  {resumes.length} of {maxResumes} resume{maxResumes !== 1 ? 's' : ''} used
+                  {subscriptionTier === 'free' && maxResumes === 1 && (
+                    <span className="ml-2 text-blue-600 font-medium">(Free tier)</span>
+                  )}
                 </p>
               </div>
             </div>
             {/* Progress indicator */}
             <div className="flex items-center gap-2">
-              {[...Array(MAX_FREE_RESUMES)].map((_, i) => (
+              {[...Array(Math.min(maxResumes, 10))].map((_, i) => (
                 <div 
                   key={i}
                   className={`w-3 h-3 rounded-full transition-colors ${
@@ -334,6 +416,9 @@ export function ResumeBuilderHome() {
                   }`}
                 />
               ))}
+              {maxResumes > 10 && (
+                <span className="text-xs text-gray-500 ml-1">+{maxResumes - 10}</span>
+              )}
             </div>
           </div>
 
@@ -485,6 +570,14 @@ export function ResumeBuilderHome() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade to Pro Modal */}
+      <UpgradeModal
+        open={upgradeModalOpen}
+        onOpenChange={setUpgradeModalOpen}
+        onActivate={handleActivatePro}
+        processing={processingUpgrade}
+      />
     </div>
   );
 }

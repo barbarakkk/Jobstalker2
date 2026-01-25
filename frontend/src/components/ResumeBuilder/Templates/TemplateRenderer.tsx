@@ -130,7 +130,7 @@ export function TemplateRenderer({
               key={`${sectionConfig.type}-${sectionConfig.position}`} 
               className="col-span-full"
               style={{
-                marginBottom: '0',
+                marginBottom: '0.3rem',
                 paddingBottom: '0',
               }}
             >
@@ -168,7 +168,7 @@ export function TemplateRenderer({
               key={`${sectionConfig.type}-${sectionConfig.position}`} 
               className={colSpan}
               style={{
-                marginBottom: sectionConfig.type === 'summary' ? '0' : undefined,
+                marginBottom: sectionConfig.type === 'summary' ? '0' : '0.3rem',
                 marginTop: sectionConfig.type === 'summary' ? '0' : undefined,
                 paddingBottom: sectionConfig.type === 'summary' ? '0' : undefined,
                 paddingTop: sectionConfig.type === 'summary' ? '0' : undefined,

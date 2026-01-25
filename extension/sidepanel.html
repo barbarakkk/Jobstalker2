@@ -569,6 +569,116 @@
         <button id="saveJobBtn" class="btn btn-primary">
           Save Link to JobStalker AI
         </button>
+        <button id="fillApplicationBtn" class="btn btn-secondary" style="margin-top: 8px;">
+          📝 Fill Application Form
+        </button>
+      </div>
+    </div>
+    
+    <!-- Application Data Management -->
+    <div id="applicationData" class="hidden">
+      <div class="job-save-header">
+        <div class="job-save-title">Application Data</div>
+        <div class="menu-icon" id="backToJobBtn">←</div>
+      </div>
+      
+      <div class="job-save-content" style="max-height: calc(100vh - 200px); overflow-y: auto;">
+        <div style="font-size: 12px; color: #6b7280; margin-bottom: 20px; padding: 12px; background: #f9fafb; border-radius: 8px;">
+          Fill out your information once, and we'll automatically fill job application forms for you on sites like Greenhouse, Lever, and more.
+        </div>
+        
+        <form id="applicationDataForm">
+          <div class="field-group">
+            <label class="field-label">First Name *</label>
+            <input type="text" id="appFirstName" class="link-input" required />
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Last Name *</label>
+            <input type="text" id="appLastName" class="link-input" required />
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Email *</label>
+            <input type="email" id="appEmail" class="link-input" required />
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Phone *</label>
+            <input type="tel" id="appPhone" class="link-input" placeholder="+1 (555) 123-4567" required />
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Address</label>
+            <input type="text" id="appAddress" class="link-input" />
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field-group">
+              <label class="field-label">City</label>
+              <input type="text" id="appCity" class="link-input" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">State</label>
+              <input type="text" id="appState" class="link-input" />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field-group">
+              <label class="field-label">ZIP Code</label>
+              <input type="text" id="appZip" class="link-input" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Country</label>
+              <input type="text" id="appCountry" class="link-input" placeholder="United States" />
+            </div>
+          </div>
+          
+          <div class="separator" style="margin: 24px 0;"></div>
+          <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 16px;">Professional</div>
+          
+          <div class="field-group">
+            <label class="field-label">Current Job Title</label>
+            <input type="text" id="appCurrentTitle" class="link-input" />
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">LinkedIn URL</label>
+            <input type="url" id="appLinkedIn" class="link-input" placeholder="https://linkedin.com/in/yourprofile" />
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Portfolio/Website</label>
+            <input type="url" id="appPortfolio" class="link-input" />
+          </div>
+          
+          <div class="separator" style="margin: 24px 0;"></div>
+          <div style="font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 16px;">Work Authorization</div>
+          
+          <div class="field-group">
+            <label class="field-label">Authorized to work in US?</label>
+            <select id="appWorkAuth" class="stage-select">
+              <option value="">Select...</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          
+          <div class="field-group">
+            <label class="field-label">Require sponsorship?</label>
+            <select id="appSponsorship" class="stage-select">
+              <option value="">Select...</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          
+          <div class="job-save-footer">
+            <button type="submit" class="btn btn-primary">Save Application Data</button>
+            <button type="button" id="loadFromProfileBtn" class="btn btn-secondary" style="margin-top: 8px;">Load from Profile</button>
+          </div>
+        </form>
       </div>
     </div>
     

@@ -66,6 +66,7 @@ class AIGenerateRequest(BaseModel):
     skills: List[Skill]
     languages: List[Language]
     targetRole: Optional[str] = None
+    jobDescription: Optional[str] = None
 
 class ResumeData(BaseModel):
     personalInfo: PersonalInfo
@@ -170,7 +171,8 @@ def get_openai_client():
     return openai.OpenAI(api_key=api_key)
 
 def generate_professional_summary(personal_info: PersonalInfo, work_experience: List[WorkExperience], 
-                                education: List[Education], skills: List[Skill], target_role: Optional[str] = None) -> str:
+                                education: List[Education], skills: List[Skill], target_role: Optional[str] = None,
+                                job_description: Optional[str] = None) -> str:
     """Generate a professional summary using AI"""
     client = get_openai_client()
     
@@ -190,12 +192,23 @@ def generate_professional_summary(personal_info: PersonalInfo, work_experience: 
     
     skills_text = ", ".join([skill.name for skill in skills])
     
+    job_description_context = ""
+    if job_description:
+        job_description_context = f"""
+    
+    JOB DESCRIPTION FOR TARGET POSITION:
+    {job_description[:2000]}
+    
+    IMPORTANT: Tailor the professional summary to match the requirements, skills, and responsibilities mentioned in the job description above.
+    """
+    
     prompt = f"""
     Create a compelling professional summary for a resume based on the following information:
     
     Name: {personal_info.firstName} {personal_info.lastName}
     Job Title: {personal_info.jobTitle or 'Professional'}
     Target Role: {target_role or 'General professional role'}
+    {job_description_context}
     
     Work Experience:
     {experience_text}
@@ -206,8 +219,8 @@ def generate_professional_summary(personal_info: PersonalInfo, work_experience: 
     Skills: {skills_text}
     
     Write a concise 2-sentence professional summary that:
-    1. Highlights your most relevant experience and key achievements (first sentence)
-    2. Shows your top skills and value proposition (second sentence)
+    1. Highlights your most relevant experience and key achievements that align with the job description (first sentence)
+    2. Shows your top skills and value proposition that match the job requirements (second sentence)
     
     Requirements:
     - Maximum 2 sentences
@@ -216,6 +229,7 @@ def generate_professional_summary(personal_info: PersonalInfo, work_experience: 
     - Use action-oriented language
     - Keep total length under 150 words
     - Do not exceed 2 sentences under any circumstances
+    - If job description is provided, tailor the summary to match the specific requirements and terminology used in the job posting
     
     Keep it concise, professional, and impactful.
     """
@@ -231,15 +245,29 @@ def generate_professional_summary(personal_info: PersonalInfo, work_experience: 
             temperature=0.7
         )
         
-        return response.choices[0].message.content.strip()
+        summary = response.choices[0].message.content.strip()
+        # Remove any asterisks from summary
+        summary = re.sub(r'[\*\u2022\u2023\u25E6\u2043\u2219•]', '', summary)
+        return summary
     except Exception as e:
         print(f"Error generating summary: {str(e)}")
         return f"Experienced {personal_info.jobTitle or 'professional'} with expertise in {', '.join([skill.name for skill in skills[:3]])}."
 
-def enhance_work_experience(work_experience: List[WorkExperience], target_role: Optional[str] = None) -> List[WorkExperience]:
+def enhance_work_experience(work_experience: List[WorkExperience], target_role: Optional[str] = None,
+                           job_description: Optional[str] = None) -> List[WorkExperience]:
     """Enhance work experience descriptions using AI"""
     client = get_openai_client()
     enhanced_experience = []
+    
+    job_desc_context = ""
+    if job_description:
+        job_desc_context = f"""
+    
+    JOB DESCRIPTION FOR TARGET POSITION:
+    {job_description[:2000]}
+    
+    CRITICAL: Tailor the language, terminology, and emphasis to match BOTH the target role AND the specific requirements mentioned in the job description above.
+    """
     
     for exp in work_experience:
         if not exp.description or len(exp.description.strip()) < 20:
@@ -250,6 +278,7 @@ def enhance_work_experience(work_experience: List[WorkExperience], target_role: 
             Create a professional job description tailored specifically for the target role.
             
             {target_role_context}
+            {job_desc_context}
             Job Title: {exp.title}
             Company: {exp.company}
             Duration: {exp.startDate} - {exp.endDate if not exp.isCurrent else 'Present'}
@@ -260,15 +289,18 @@ def enhance_work_experience(work_experience: List[WorkExperience], target_role: 
             - Emphasize skills and achievements relevant to the target role
             - Frame responsibilities to highlight transferable skills that apply to the target role
             - Use action verbs appropriate for the target role industry
+            - If job description is provided, use the same terminology and keywords from the job description
+            - Highlight experiences that directly relate to requirements mentioned in the job description
             
-            Write 3-4 bullet points that:
+            Write 3-4 sentences that:
             1. Use action verbs appropriate for the target role
             2. Highlight skills and responsibilities relevant to the target role
             3. Show impact and results (if mentioned in current description)
             4. Use terminology that resonates with the target role industry
             5. Sound professional and compelling for the target role
+            6. If job description is provided, incorporate relevant keywords and requirements from it
             
-            Format as bullet points, each starting with a strong action verb.
+            CRITICAL: Do NOT use asterisks (*), bullet symbols (•), or dashes (-) at the start of lines. Write as plain text sentences separated by newlines.
             """
             
             system_message = f"You are an expert resume writer specializing in {target_role if target_role else 'professional'} roles. Create compelling job descriptions tailored specifically for {target_role if target_role else 'the target position'}."
@@ -285,11 +317,54 @@ def enhance_work_experience(work_experience: List[WorkExperience], target_role: 
                 )
                 
                 enhanced_description = response.choices[0].message.content.strip()
+                # Remove ALL asterisks completely - no asterisks should remain
+                enhanced_description = re.sub(r'\*', '', enhanced_description)  # Remove all asterisks first
+                # Remove bullet symbols
+                enhanced_description = re.sub(r'[\u2022\u2023\u25E6\u2043\u2219•]', '', enhanced_description)
+                # Remove leading dashes
+                enhanced_description = re.sub(r'^\s*[-]\s*', '', enhanced_description, flags=re.MULTILINE)
+                # Split by newlines and clean each line thoroughly
+                lines = enhanced_description.split('\n')
+                cleaned_lines = []
+                for line in lines:
+                    cleaned = line.strip()
+                    # Remove any remaining asterisks (double check)
+                    cleaned = re.sub(r'\*', '', cleaned)
+                    # Remove any bullet symbols
+                    cleaned = re.sub(r'[\u2022\u2023\u25E6\u2043\u2219•]', '', cleaned)
+                    # Remove leading dashes
+                    cleaned = re.sub(r'^\s*[-]\s*', '', cleaned)
+                    if cleaned:
+                        cleaned_lines.append(cleaned)
+                enhanced_description = '\n'.join(cleaned_lines)
             except Exception as e:
                 print(f"Error enhancing experience: {str(e)}")
-                enhanced_description = exp.description or "• Responsible for key duties and achieved measurable results"
+                enhanced_description = exp.description or "Responsible for key duties and achieved measurable results"
         else:
             enhanced_description = exp.description
+        
+        # Clean any asterisks from existing descriptions - remove ALL asterisks completely
+        if enhanced_description:
+            # Remove ALL asterisks first (most important - no asterisks should remain anywhere)
+            enhanced_description = re.sub(r'\*', '', enhanced_description)
+            # Remove bullet symbols
+            enhanced_description = re.sub(r'[\u2022\u2023\u25E6\u2043\u2219•]', '', enhanced_description)
+            # Remove leading dashes
+            enhanced_description = re.sub(r'^\s*[-]\s*', '', enhanced_description, flags=re.MULTILINE)
+            # Split by newlines and clean each line thoroughly
+            lines = enhanced_description.split('\n')
+            cleaned_lines = []
+            for line in lines:
+                cleaned = line.strip()
+                # Remove any remaining asterisks (double check - no asterisks should remain)
+                cleaned = re.sub(r'\*', '', cleaned)
+                # Remove any bullet symbols
+                cleaned = re.sub(r'[\u2022\u2023\u25E6\u2043\u2219•]', '', cleaned)
+                # Remove leading dashes
+                cleaned = re.sub(r'^\s*[-]\s*', '', cleaned)
+                if cleaned:
+                    cleaned_lines.append(cleaned)
+            enhanced_description = '\n'.join(cleaned_lines)
         
         enhanced_experience.append(WorkExperience(
             id=exp.id,
@@ -311,6 +386,7 @@ async def generate_resume(request: AIGenerateRequest, user_id: str = Depends(get
         print(f"🤖 AI RESUME: Generating resume for user {user_id}")
         print(f"🤖 AI RESUME: Template: {request.templateId}")
         print(f"🤖 AI RESUME: Target role: {request.targetRole}")
+        print(f"🤖 AI RESUME: Job description provided: {bool(request.jobDescription)}")
         
         # Generate professional summary
         summary = request.summary
@@ -320,11 +396,16 @@ async def generate_resume(request: AIGenerateRequest, user_id: str = Depends(get
                 request.workExperience,
                 request.education,
                 request.skills,
-                request.targetRole
+                request.targetRole,
+                request.jobDescription
             )
         
         # Enhance work experience descriptions
-        enhanced_experience = enhance_work_experience(request.workExperience, request.targetRole)
+        enhanced_experience = enhance_work_experience(
+            request.workExperience, 
+            request.targetRole,
+            request.jobDescription
+        )
         
         # Create the resume data
         resume_data = ResumeData(
@@ -355,6 +436,16 @@ class ResumeSummaryRequest(BaseModel):
 class ResumeSummaryResponse(BaseModel):
     summary: str
     success: bool = True
+
+class TailorResumeRequest(BaseModel):
+    resumeData: ResumeData
+    targetRole: Optional[str] = None
+    jobDescription: Optional[str] = None
+
+class TailorResumeResponse(BaseModel):
+    resumeData: ResumeData
+    success: bool = True
+    message: str
 
 @router.post("/api/ai/profile-summary", response_model=ResumeSummaryResponse)
 async def generate_profile_summary_from_resume(
@@ -431,11 +522,12 @@ async def generate_work_description(
         6. Use parallel structure across bullets for professional appearance
         
         OUTPUT FORMAT:
-        - Generate 2-3 bullet points
-        - Each bullet MUST start with a bullet symbol (•)
-        - Format: "• [Action verb] [description with metrics if available]"
-        - Include metrics/percentages in ONE sentence per bullet when impact is provided
-        - Place metrics at the end of the bullet for maximum impact
+        - Generate 2-3 sentences
+        - Each sentence should start with a strong action verb
+        - Format: "[Action verb] [description with metrics if available]"
+        - Include metrics/percentages in ONE sentence when impact is provided
+        - Place metrics at the end of the sentence for maximum impact
+        - CRITICAL: Do NOT use asterisks (*), bullet symbols (•), or dashes (-) at the start of lines
         
         PROFESSIONAL WRITING STANDARDS:
         - Use quantifiable language when impact is provided (e.g., "increased efficiency by 40%", "reduced costs by $50K", "improved performance by 25%")
@@ -494,7 +586,8 @@ async def generate_work_description(
         • Established project governance frameworks and risk mitigation strategies, reducing project delays by 30%
         • Facilitated stakeholder communication and managed expectations, maintaining 95% client satisfaction rate
         
-        Now generate 2-3 professional, impactful bullet points with bullet symbols (•). Make it compelling, specific, and tailored to the target role. {"Include metrics and percentages when impact is provided." if has_impact else "Focus only on responsibilities - no metrics."}
+        Now generate 2-3 professional, impactful sentences. Make it compelling, specific, and tailored to the target role. {"Include metrics and percentages when impact is provided." if has_impact else "Focus only on responsibilities - no metrics."}
+        CRITICAL: Do NOT use asterisks (*), bullet symbols (•), or dashes (-) at the start of lines. Write as plain text sentences separated by newlines.
         """
         
         system_message = f"""You are an expert resume writer with 15+ years of experience crafting compelling work experience descriptions for Fortune 500 companies. 
@@ -505,8 +598,9 @@ async def generate_work_description(
         - Tailored to the target role
         - Free of generic filler language
         
-        Generate 2-3 professional bullet points with bullet symbols (•). Use strong action verbs, industry terminology, and highlight technical depth. 
-        {"Include metrics and percentages when impact/results are provided, placing them in one sentence per bullet." if has_impact else "NO percentages, metrics, or achievements unless explicitly provided by the user."}"""
+        Generate 2-3 professional sentences. Use strong action verbs, industry terminology, and highlight technical depth. 
+        {"Include metrics and percentages when impact/results are provided, placing them in one sentence." if has_impact else "NO percentages, metrics, or achievements unless explicitly provided by the user."}
+        CRITICAL: Do NOT use asterisks (*), bullet symbols (•), or dashes (-) at the start of lines. Write as plain text sentences separated by newlines."""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -520,41 +614,45 @@ async def generate_work_description(
         
         description = response.choices[0].message.content.strip()
         
-        # Post-process to ensure maximum 3 bullets, keep bullet symbols, and clean up formatting
+        # Post-process to remove all asterisks and bullet symbols, clean up formatting
         lines = description.split('\n')
-        # Get all non-empty lines and ensure they have bullet symbols
-        bullet_lines = []
+        # Get all non-empty lines and remove bullet symbols/asterisks
+        cleaned_lines = []
         for line in lines:
             cleaned = line.strip()
             if cleaned:
-                # Ensure bullet symbol is present, add if missing
-                if not re.match(r'^[•\-\*\u2022\u2023\u25E6\u2043\u2219]', cleaned):
-                    cleaned = '• ' + cleaned
-                else:
-                    # Normalize to use • symbol
-                    cleaned = re.sub(r'^[•\-\*\u2022\u2023\u25E6\u2043\u2219]\s*', '• ', cleaned)
-                bullet_lines.append(cleaned)
+                # Remove ALL asterisks first (most important - no asterisks should remain)
+                cleaned = re.sub(r'\*', '', cleaned)
+                # Remove bullet symbols
+                cleaned = re.sub(r'[\u2022\u2023\u25E6\u2043\u2219•]', '', cleaned)
+                # Remove leading dashes and bullet markers
+                cleaned = re.sub(r'^[\u2022\u2023\u25E6\u2043\u2219\-\•]\s*', '', cleaned)
+                cleaned = re.sub(r'^\s*[-]\s*', '', cleaned)
+                # Double check for any remaining asterisks
+                cleaned = re.sub(r'\*', '', cleaned)
+                if cleaned:
+                    cleaned_lines.append(cleaned)
         
         # If impact wasn't provided, remove any metrics/percentages that might have been hallucinated
         if not has_impact:
-            final_bullets = []
-            for bullet in bullet_lines:
+            final_lines = []
+            for line in cleaned_lines:
                 # Remove percentage patterns unless they're part of skill names (like "C++")
-                cleaned = re.sub(r'\b\d+%', '', bullet)
+                cleaned = re.sub(r'\b\d+%', '', line)
                 cleaned = re.sub(r'\b\d+\s*(percent|percentage)', '', cleaned, flags=re.IGNORECASE)
                 cleaned = re.sub(r'\b(increased|decreased|reduced|improved|enhanced)\s+by\s+\d+', '', cleaned, flags=re.IGNORECASE)
                 cleaned = re.sub(r'\b(resulting in|leading to|contributing to)\s+[^,]+', '', cleaned, flags=re.IGNORECASE)
                 cleaned = re.sub(r'\s+', ' ', cleaned).strip()  # Clean up extra spaces
                 if cleaned:
-                    final_bullets.append(cleaned)
-            bullet_lines = final_bullets
+                    final_lines.append(cleaned)
+            cleaned_lines = final_lines
         
-        if len(bullet_lines) > 3:
-            # Take only the first 3 bullets
-            description = '\n'.join(bullet_lines[:3])
-            print(f"⚠️ AI WORK DESC: Generated {len(bullet_lines)} bullets, truncated to 3")
+        if len(cleaned_lines) > 3:
+            # Take only the first 3 lines
+            description = '\n'.join(cleaned_lines[:3])
+            print(f"⚠️ AI WORK DESC: Generated {len(cleaned_lines)} lines, truncated to 3")
         else:
-            description = '\n'.join(bullet_lines)
+            description = '\n'.join(cleaned_lines)
         
         print(f"🤖 AI WORK DESC: Description generated successfully")
         
@@ -565,6 +663,265 @@ async def generate_work_description(
     except Exception as e:
         print(f"❌ AI WORK DESC: Error generating description: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate description: {str(e)}")
+
+@router.post("/api/ai/tailor-resume", response_model=TailorResumeResponse)
+async def tailor_resume(
+    request: TailorResumeRequest,
+    user_id: str = Depends(get_current_user)
+):
+    """Tailor an existing resume to match a job description perfectly"""
+    try:
+        print(f"🎯 AI TAILOR: Tailoring resume for user {user_id}")
+        print(f"🎯 AI TAILOR: Target role: {request.targetRole}")
+        print(f"🎯 AI TAILOR: Job description provided: {bool(request.jobDescription)}")
+        
+        if not request.jobDescription or len(request.jobDescription.strip()) < 50:
+            raise HTTPException(status_code=400, detail="Job description is required and must be at least 50 characters")
+        
+        # Fetch user skills from database to ensure we only use skills the user actually has
+        try:
+            skills_response = supabase.table("user_skills").select("name").eq("user_id", user_id).execute()
+            user_skills_from_db = [skill.get("name", "").lower().strip() for skill in (skills_response.data or []) if skill.get("name")]
+            print(f"🎯 AI TAILOR: Found {len(user_skills_from_db)} user skills: {', '.join(user_skills_from_db[:10])}")
+        except Exception as e:
+            print(f"⚠️ Could not fetch user skills: {str(e)}")
+            user_skills_from_db = []
+        
+        # Filter resume skills to only include what user actually has
+        resume_skill_names = [skill.name.lower().strip() for skill in request.resumeData.skills]
+        valid_skills = []
+        for skill in request.resumeData.skills:
+            skill_name_lower = skill.name.lower().strip()
+            # Check if skill exists in user's profile skills
+            if skill_name_lower in user_skills_from_db or any(
+                user_skill in skill_name_lower or skill_name_lower in user_skill 
+                for user_skill in user_skills_from_db
+            ):
+                valid_skills.append(skill)
+            else:
+                print(f"⚠️ Skipping skill '{skill.name}' - not in user's profile")
+        
+        print(f"🎯 AI TAILOR: Filtered to {len(valid_skills)} valid skills from {len(request.resumeData.skills)} total")
+        
+        # Generate tailored professional summary
+        tailored_summary = generate_professional_summary(
+            request.resumeData.personalInfo,
+            request.resumeData.workExperience,
+            request.resumeData.education,
+            valid_skills,
+            request.targetRole,
+            request.jobDescription
+        )
+        
+        # Generate tailored work experience descriptions with bullet points (max 3 per job)
+        client = get_openai_client()
+        tailored_experience = []
+        
+        for exp in request.resumeData.workExperience:
+            job_desc_text = request.jobDescription[:3000]
+            target_role_context = f"Target Role: {request.targetRole}" if request.targetRole else "Target Role: General professional role"
+            
+            # Create a comprehensive prompt for generating tailored work experience
+            tailor_prompt = f"""
+            You are an expert resume writer. Create professional work experience descriptions tailored to match the job description perfectly.
+            
+            {target_role_context}
+            
+            JOB DESCRIPTION FOR TARGET POSITION:
+            {job_desc_text}
+            
+            CURRENT WORK EXPERIENCE:
+            Job Title: {exp.title}
+            Company: {exp.company}
+            Duration: {exp.startDate} - {exp.endDate if not exp.isCurrent else 'Present'}
+            Current Description: {exp.description or 'No description provided'}
+            
+            USER'S SKILLS:
+            {', '.join([skill.name for skill in valid_skills[:15]])}
+            
+            INSTRUCTIONS:
+            Generate EXACTLY 3 bullet points (one per line, separated by newlines) that describe this work experience:
+            
+            1. First bullet: What they did - Describe their main responsibilities and daily tasks using strong action verbs
+            2. Second bullet: What they helped with - Describe how they contributed to team goals, projects, or initiatives
+            3. Third bullet: How they improved efficiency/sales/performance - Describe measurable impact, improvements, or results they achieved
+            
+            CRITICAL REQUIREMENTS:
+            - Generate EXACTLY 3 bullet points, no more, no less
+            - Each bullet should be 15-25 words
+            - Use powerful action verbs (Led, Developed, Implemented, Optimized, Increased, Reduced, etc.)
+            - Tailor language and terminology to match the job description above
+            - Use keywords from the job description when relevant
+            - Focus on achievements and impact, especially in the third bullet
+            - Write in past tense (unless current role)
+            - Do NOT use asterisks (*), bullet symbols (•), or dashes (-) at the start of lines
+            - Write as plain text, one sentence per line (3 lines total)
+            
+            FORMAT:
+            Line 1: [Action verb] [what they did] [relevant details]
+            Line 2: [Action verb] [what they helped with] [how they contributed]
+            Line 3: [Action verb] [how they improved efficiency/sales/performance] [measurable impact if possible]
+            
+            Generate the 3 bullet points now:
+            """
+            
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "You are an expert resume writer. Generate exactly 3 professional bullet points for work experience descriptions. Do not use asterisks, bullet symbols, or dashes."},
+                        {"role": "user", "content": tailor_prompt}
+                    ],
+                    max_tokens=250,
+                    temperature=0.7
+                )
+                
+                generated_description = response.choices[0].message.content.strip()
+                
+                # Remove ALL asterisks completely
+                generated_description = re.sub(r'\*', '', generated_description)
+                # Remove bullet symbols
+                generated_description = re.sub(r'[\u2022\u2023\u25E6\u2043\u2219•]', '', generated_description)
+                # Remove leading dashes
+                generated_description = re.sub(r'^\s*[-]\s*', '', generated_description, flags=re.MULTILINE)
+                
+                # Split by newlines and clean each line
+                lines = generated_description.split('\n')
+                cleaned_lines = []
+                for line in lines:
+                    cleaned = line.strip()
+                    # Remove any remaining asterisks
+                    cleaned = re.sub(r'\*', '', cleaned)
+                    # Remove any bullet symbols
+                    cleaned = re.sub(r'[\u2022\u2023\u25E6\u2043\u2219•]', '', cleaned)
+                    # Remove leading dashes
+                    cleaned = re.sub(r'^\s*[-]\s*', '', cleaned)
+                    # Remove numbered prefixes (1., 2., 3., etc.)
+                    cleaned = re.sub(r'^\d+[\.\)]\s*', '', cleaned)
+                    if cleaned:
+                        cleaned_lines.append(cleaned)
+                
+                # Limit to exactly 3 bullet points
+                if len(cleaned_lines) > 3:
+                    cleaned_lines = cleaned_lines[:3]
+                elif len(cleaned_lines) < 3 and len(cleaned_lines) > 0:
+                    # If we have fewer than 3, pad with generic descriptions
+                    while len(cleaned_lines) < 3:
+                        cleaned_lines.append(f"Contributed to key initiatives and achieved measurable results at {exp.company}")
+                
+                tailored_description = '\n'.join(cleaned_lines[:3])
+                
+            except Exception as e:
+                print(f"⚠️ Error tailoring work experience for {exp.title}: {str(e)}")
+                # Fallback: use existing description or create a simple one
+                tailored_description = exp.description or f"Responsible for key duties and achieved measurable results at {exp.company}"
+            
+            tailored_experience.append(WorkExperience(
+                id=exp.id,
+                title=exp.title,
+                company=exp.company,
+                location=exp.location,
+                startDate=exp.startDate,
+                endDate=exp.endDate,
+                isCurrent=exp.isCurrent,
+                description=tailored_description
+            ))
+        
+        print(f"🎯 AI TAILOR: Generated tailored descriptions for {len(tailored_experience)} work experiences")
+        
+        # Extract relevant skills from job description and match with user's skills
+        job_desc_text = request.jobDescription[:4000]  # Limit for skill extraction
+        
+        skills_prompt = f"""
+        Analyze the following job description and extract the REQUIRED SKILLS and TECHNOLOGIES.
+        
+        JOB DESCRIPTION:
+        {job_desc_text}
+        
+        USER'S AVAILABLE SKILLS:
+        {', '.join([skill.name for skill in valid_skills])}
+        
+        INSTRUCTIONS:
+        1. Extract ONLY skills/technologies mentioned in the job description
+        2. Match them with the user's available skills (case-insensitive, partial matches allowed)
+        3. Return ONLY skills that:
+           - Are mentioned in the job description
+           - Match (exactly or partially) with the user's available skills
+        4. Prioritize skills that are most important/relevant to the job
+        5. Return a JSON array of skill names (strings only)
+        6. Limit to 20 most relevant skills
+        
+        Return ONLY a valid JSON array, no other text. Example: ["JavaScript", "React", "Node.js", "AWS"]
+        """
+        
+        try:
+            skills_response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are an expert at matching job requirements with candidate skills. Return only valid JSON arrays."},
+                    {"role": "user", "content": skills_prompt}
+                ],
+                max_tokens=300,
+                temperature=0.3
+            )
+            
+            skills_json = skills_response.choices[0].message.content.strip()
+            # Remove markdown code blocks if present
+            skills_json = re.sub(r'```json\s*', '', skills_json)
+            skills_json = re.sub(r'```\s*', '', skills_json)
+            skills_json = skills_json.strip()
+            
+            extracted_skill_names = json.loads(skills_json)
+            print(f"🎯 AI TAILOR: Extracted {len(extracted_skill_names)} relevant skills from job description")
+            
+            # Match extracted skills with user's valid skills
+            final_skills = []
+            for extracted_skill in extracted_skill_names:
+                extracted_lower = extracted_skill.lower().strip()
+                # Find matching skill from valid_skills
+                for valid_skill in valid_skills:
+                    if extracted_lower == valid_skill.name.lower().strip() or \
+                       extracted_lower in valid_skill.name.lower() or \
+                       valid_skill.name.lower() in extracted_lower:
+                        if valid_skill not in final_skills:
+                            final_skills.append(valid_skill)
+                            break
+            
+            # If no matches found, use all valid skills
+            if not final_skills:
+                final_skills = valid_skills[:20]  # Limit to 20
+                print(f"🎯 AI TAILOR: No direct matches, using all {len(final_skills)} valid skills")
+            else:
+                print(f"🎯 AI TAILOR: Matched {len(final_skills)} skills from job description")
+                
+        except Exception as e:
+            print(f"⚠️ Error extracting skills from job description: {str(e)}")
+            # Fallback: use all valid skills
+            final_skills = valid_skills[:20]
+        
+        # Create tailored resume data
+        tailored_resume_data = ResumeData(
+            personalInfo=request.resumeData.personalInfo,
+            summary=tailored_summary,
+            workExperience=tailored_experience,
+            education=request.resumeData.education,
+            skills=final_skills,
+            languages=request.resumeData.languages
+        )
+        
+        print(f"🎯 AI TAILOR: Resume tailored successfully")
+        
+        return TailorResumeResponse(
+            resumeData=tailored_resume_data,
+            success=True,
+            message="Resume tailored successfully to match job description"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ AI TAILOR: Error tailoring resume: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to tailor resume: {str(e)}")
 
 @router.get("/api/ai/health")
 async def ai_health_check():
@@ -605,6 +962,17 @@ async def save_resume(request: SaveResumeRequest, user_id: str = Depends(get_cur
     try:
         print(f"💾 RESUME BUILDER: Saving resume for user {user_id}")
         print(f"💾 RESUME BUILDER: Template: {request.template_id}, Title: {request.title}")
+        
+        # Check resume limit based on subscription tier
+        from utils.subscription import check_resume_limit, get_user_subscription_tier
+        can_create, current_count, max_allowed = await check_resume_limit(user_id)
+        
+        if not can_create:
+            tier = await get_user_subscription_tier(user_id)
+            raise HTTPException(
+                status_code=403,
+                detail=f"Resume limit reached. Free tier allows {max_allowed} resume(s). You currently have {current_count}. Upgrade to Pro for up to 20 professional resumes."
+            )
         
         # Prepare data for insertion
         resume_data = {
@@ -812,3 +1180,114 @@ async def delete_resume(resume_id: UUID, user_id: str = Depends(get_current_user
         print(f"❌ RESUME BUILDER: Error deleting resume: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to delete resume: {str(e)}")
 
+# Templates API Endpoints
+
+@router.get("/api/templates")
+async def list_templates(user_id: str = Depends(get_current_user)):
+    """List all available resume templates"""
+    try:
+        print(f"📋 TEMPLATES: Listing templates for user {user_id}")
+        
+        # Get all active templates from database
+        response = supabase.table("templates")\
+            .select("id, name, slug, schema, preview_url, is_active, created_at, updated_at")\
+            .eq("is_active", True)\
+            .execute()
+        
+        if not response.data:
+            print(f"📋 TEMPLATES: No templates found")
+            return []
+        
+        # Format templates for frontend
+        templates = []
+        for template in response.data:
+            schema = template.get("schema", {})
+            if isinstance(schema, str):
+                try:
+                    schema = json.loads(schema)
+                except:
+                    schema = {}
+            
+            # Extract metadata from schema if available
+            metadata = schema.get("metadata", {}) if isinstance(schema, dict) else {}
+            
+            templates.append({
+                "id": template.get("id"),
+                "slug": template.get("slug"),
+                "name": template.get("name") or metadata.get("name", "Untitled Template"),
+                "description": metadata.get("description", ""),
+                "category": metadata.get("category", "professional"),
+                "badge": metadata.get("badge"),
+                "preview_url": template.get("preview_url"),
+                "colors": metadata.get("colors", []),
+                "is_active": template.get("is_active", True),
+            })
+        
+        print(f"📋 TEMPLATES: Found {len(templates)} template(s)")
+        return templates
+        
+    except Exception as e:
+        print(f"❌ TEMPLATES: Error listing templates: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to list templates: {str(e)}")
+
+@router.get("/api/templates/{template_id}")
+async def get_template(template_id: str, user_id: str = Depends(get_current_user)):
+    """Get template details by slug or ID"""
+    try:
+        print(f"📋 TEMPLATES: Getting template {template_id} for user {user_id}")
+        
+        # Try to find template by slug first (most common case)
+        response = supabase.table("templates")\
+            .select("id, name, slug, schema, preview_url, is_active, created_at, updated_at")\
+            .eq("slug", template_id)\
+            .eq("is_active", True)\
+            .maybe_single()\
+            .execute()
+        
+        # If not found by slug, try by ID (UUID)
+        if not response.data:
+            try:
+                # Check if template_id is a valid UUID
+                UUID(template_id)
+                response = supabase.table("templates")\
+                    .select("id, name, slug, schema, preview_url, is_active, created_at, updated_at")\
+                    .eq("id", template_id)\
+                    .eq("is_active", True)\
+                    .maybe_single()\
+                    .execute()
+            except ValueError:
+                # Not a valid UUID, continue with slug search result (which is None)
+                pass
+        
+        if not response.data:
+            print(f"❌ TEMPLATES: Template {template_id} not found")
+            raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
+        
+        template = response.data
+        
+        # Parse schema if it's a string
+        schema = template.get("schema", {})
+        if isinstance(schema, str):
+            try:
+                schema = json.loads(schema)
+            except:
+                schema = {}
+        
+        # Return template with schema
+        result = {
+            "id": template.get("id"),
+            "slug": template.get("slug"),
+            "name": template.get("name"),
+            "schema": schema,
+            "preview_url": template.get("preview_url"),
+            "is_active": template.get("is_active", True),
+        }
+        
+        print(f"📋 TEMPLATES: Template {template_id} found successfully")
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ TEMPLATES: Error getting template {template_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get template: {str(e)}")

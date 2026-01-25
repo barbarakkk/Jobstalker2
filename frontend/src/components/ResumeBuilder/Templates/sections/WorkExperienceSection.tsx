@@ -56,7 +56,7 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
         ...containerStyle,
         fontFamily: bodyFont,
         fontSize: fontSize,
-        marginBottom: '0.75rem', // Reduced spacing between sections
+        marginBottom: '0.4rem', // Reduced spacing between sections
       }} 
       className={config?.className}
     >
@@ -96,9 +96,20 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
               </div>
             )}
             {work.description && (
-              <p className="text-sm text-gray-700 leading-normal whitespace-pre-line mt-1">
-                {work.description}
-              </p>
+              <div className="text-sm text-gray-700 leading-normal mt-1">
+                {work.description.split('\n').filter(line => line.trim()).map((line, index) => {
+                  // Remove all asterisks, bullet symbols, and dashes from the line
+                  let cleanedLine = line.replace(/^[\*\u2022\u2023\u25E6\u2043\u2219•\-]\s*/, '').trim();
+                  cleanedLine = cleanedLine.replace(/[\*\u2022\u2023\u25E6\u2043\u2219•]/g, '').trim();
+                  if (!cleanedLine) return null;
+                  return (
+                    <div key={index} className="flex items-start mb-0.5">
+                      <span className="mr-2 text-gray-700" style={{ color: String(primaryColor) }}>•</span>
+                      <span>{cleanedLine}</span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         ))}

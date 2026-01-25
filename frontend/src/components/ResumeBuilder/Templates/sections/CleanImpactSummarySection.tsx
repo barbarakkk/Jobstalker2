@@ -44,7 +44,7 @@ export function CleanImpactSummarySection({ data, config, style }: CleanImpactSu
           lineHeight: '1.5'
         }}
       >
-        {data.summary}
+        {data.summary.replace(/[\*\u2022\u2023\u25E6\u2043\u2219•]/g, '').replace(/^\s*[-]\s*/gm, '')}
       </p>
     </section>
   );

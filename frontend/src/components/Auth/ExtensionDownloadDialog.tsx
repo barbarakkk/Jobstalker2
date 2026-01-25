@@ -119,16 +119,16 @@ export function ExtensionDownloadDialog({ open, onClose }: ExtensionDownloadDial
                   Great! Your Chrome extension is installed and ready to use.
                 </p>
                 <p className="text-sm text-slate-500">
-                  The extension will help you automatically fill out job application forms using the information from your profile.
+                  You can now save jobs directly from any job board to your JobStalker dashboard with a single click.
                 </p>
               </div>
             ) : (
               <div className="space-y-3 py-2">
                 <p className="text-base">
-                  Download our Chrome extension to automatically fill out job application forms!
+                  Save jobs instantly from any job board with our powerful Chrome extension!
                 </p>
                 <p className="text-sm text-slate-500">
-                  The extension uses your profile information to pre-populate application fields, saving you time and ensuring accuracy.
+                  One-click job saving from LinkedIn, Indeed, Glassdoor, and more. Track all your opportunities in one place and never lose a promising position again.
                 </p>
               </div>
             )}

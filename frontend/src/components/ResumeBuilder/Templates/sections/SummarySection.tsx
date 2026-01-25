@@ -56,7 +56,7 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
           marginBottom: '0'
         }}
       >
-        {data.summary}
+        {data.summary.replace(/[\*\u2022\u2023\u25E6\u2043\u2219•]/g, '').replace(/^\s*[-]\s*/gm, '')}
       </p>
     </section>
   );

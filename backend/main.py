@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from supabase_client import supabase
-from models import Job, CreateJob, UpdateJob, Profile, CreateProfile, UpdateProfile, ProfileStats, Skill, CreateSkill, UpdateSkill, WorkExperience, CreateExperience, UpdateExperience, Education, CreateEducation, UpdateEducation, Language, CreateLanguage, UpdateLanguage, FileUploadResponse, ProfilePictureResponse, ProfileResponse
+from models import Job, CreateJob, UpdateJob, Profile, CreateProfile, UpdateProfile, ProfileStats, Skill, CreateSkill, UpdateSkill, WorkExperience, CreateExperience, UpdateExperience, Education, CreateEducation, UpdateEducation, Language, CreateLanguage, UpdateLanguage, FileUploadResponse, ProfilePictureResponse, ProfileResponse, CreateJobMatchingPreferencesTemp
 from uuid import UUID
 from typing import List, Optional
 from fastapi.encoders import jsonable_encoder
@@ -20,7 +20,6 @@ import json
 import hashlib
 from pathlib import Path
 from routes.ai_resume import router as ai_resume_router
-from routes.wizard import router as wizard_router
 from routes.profile import router as profile_router
 from routes.skills import router as skills_router
 from routes.experience import router as experience_router
@@ -29,6 +28,8 @@ from routes.languages import router as languages_router
 from routes.jobs import router as jobs_router
 from routes.ai_extraction import router as ai_extraction_router
 from routes.ai_match import router as ai_match_router
+from routes.subscriptions import router as subscriptions_router
+from routes.job_matcher import router as job_matcher_router
 import logging
 import threading
 
@@ -164,7 +165,6 @@ app.add_middleware(
 
 # Include AI resume routes - AFTER CORS middleware
 app.include_router(ai_resume_router)
-app.include_router(wizard_router)
 app.include_router(profile_router)
 app.include_router(skills_router)
 app.include_router(experience_router)
@@ -173,6 +173,8 @@ app.include_router(languages_router)
 app.include_router(jobs_router)
 app.include_router(ai_extraction_router)
 app.include_router(ai_match_router)
+app.include_router(subscriptions_router)
+app.include_router(job_matcher_router)
 
 # Rely on CORSMiddleware for preflight handling and headers
 
@@ -391,6 +393,61 @@ async def debug_openai():
             }
         else:
             return {"status": "error", "message": "OpenAI API key not found", "diagnostics": diagnostics}
+    except Exception as e:
+        return {"status": "error", "message": f"Error checking API key: {str(e)}"}
+
+@app.get("/api/debug/theirstack")
+async def debug_theirstack():
+    """Debug endpoint to check Theirstack API key status"""
+    try:
+        # Collect diagnostics about environment loading
+        cwd = os.getcwd()
+        backend_dir = os.path.dirname(__file__)
+        project_root = os.path.abspath(os.path.join(backend_dir, ".."))
+        backend_env_path = os.path.join(backend_dir, '.env')
+        root_env_path = os.path.join(project_root, '.env')
+        
+        diagnostics = {
+            "cwd": cwd,
+            "backend_dir": backend_dir,
+            "project_root": project_root,
+            "backend_env_exists": os.path.exists(backend_env_path),
+            "root_env_exists": os.path.exists(root_env_path),
+            "env_sample": {
+                "THEIRSTACK_API_KEY_len": len(os.getenv("THEIRSTACK_API_KEY") or "")
+            }
+        }
+
+        api_key = os.getenv("THEIRSTACK_API_KEY")
+        if not api_key:
+            # Try to load from .env file directly
+            try:
+                from dotenv import load_dotenv, dotenv_values
+                load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+                api_key = os.getenv("THEIRSTACK_API_KEY")
+                
+                # Also try reading directly
+                if not api_key:
+                    values = dotenv_values(backend_env_path)
+                    api_key = values.get("THEIRSTACK_API_KEY") if values else None
+                    if api_key:
+                        os.environ["THEIRSTACK_API_KEY"] = api_key
+            except Exception as e:
+                return {"status": "error", "message": f"Failed to load .env: {str(e)}", "diagnostics": diagnostics}
+        
+        if api_key:
+            return {
+                "status": "success", 
+                "message": "Theirstack API key is configured",
+                "key_preview": api_key[:10] + "..." if len(api_key) > 10 else api_key,
+                "diagnostics": diagnostics
+            }
+        else:
+            return {
+                "status": "error", 
+                "message": "Theirstack API key not found. Please add THEIRSTACK_API_KEY to backend/.env and restart the server.",
+                "diagnostics": diagnostics
+            }
     except Exception as e:
         return {"status": "error", "message": f"Error checking API key: {str(e)}"}
 

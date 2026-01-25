@@ -12,9 +12,10 @@ import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuild
 import { Plus, Trash2, Loader2, ChevronRight, ChevronLeft, CheckCircle2, AlertCircle, Sparkles, X, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { wizardApi } from '@/lib/api';
 import { supabase } from '@/lib/supabaseClient';
 import { z } from 'zod';
+import { profileApi, skillsApi, experienceApi, educationApi } from '@/lib/api';
+import type { Profile, Skill as ProfileSkill, WorkExperience as ProfileWorkExperience, Education as ProfileEducation } from '@/types/resume';
 
 interface WorkExperience {
   id: string;
@@ -53,12 +54,9 @@ export function AIGeneratePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const templateId = searchParams.get('template') || 'modern-professional';
-  const { setSelectedTemplate } = useResumeBuilder();
-  const [wizardSessionId, setWizardSessionId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [savingError, setSavingError] = useState<string | null>(null);
-  const [sessionError, setSessionError] = useState<string | null>(null);
-  const [isCreatingSession, setIsCreatingSession] = useState(true);
+  const targetRoleParam = searchParams.get('targetRole');
+  const jobDescriptionParam = searchParams.get('jobDescription');
+  const { setSelectedTemplate, generateWithAI } = useResumeBuilder();
 
   // Form state
   const [personalInfo, setPersonalInfo] = useState({
@@ -80,7 +78,8 @@ export function AIGeneratePage() {
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [languages, setLanguages] = useState<Language[]>([]);
-  const [targetRole, setTargetRole] = useState('');
+  const [targetRole, setTargetRole] = useState(targetRoleParam || '');
+  const [jobDescription, setJobDescription] = useState(jobDescriptionParam || '');
 
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -102,8 +101,21 @@ export function AIGeneratePage() {
 
   useEffect(() => {
     setSelectedTemplate(templateId as any);
-    createWizardSession();
   }, [templateId, setSelectedTemplate]);
+
+  // Set targetRole from URL parameter if provided
+  useEffect(() => {
+    if (targetRoleParam) {
+      setTargetRole(targetRoleParam);
+    }
+  }, [targetRoleParam]);
+
+  // Set jobDescription from URL parameter if provided
+  useEffect(() => {
+    if (jobDescriptionParam) {
+      setJobDescription(jobDescriptionParam);
+    }
+  }, [jobDescriptionParam]);
 
   const steps = [
     { id: 1, name: 'Personal Info', description: 'Basic information' },
@@ -219,56 +231,6 @@ export function AIGeneratePage() {
     }
   };
 
-  // Debounced autosave of draft to wizard session
-  useEffect(() => {
-    if (!wizardSessionId) return;
-    setSaving(true);
-    setSavingError(null);
-    const handle = setTimeout(async () => {
-      try {
-        const draftPatch: any = {
-          profile: {
-            fullName: `${personalInfo.firstName} ${personalInfo.lastName}`.trim(),
-            headline: personalInfo.jobTitle,
-            summary: summary || personalInfo.professionalSummary,
-            professionalSummary: personalInfo.professionalSummary,
-            location: personalInfo.location,
-            email: personalInfo.email,
-            phone: personalInfo.phone,
-            socialLinks: socialLinks.filter(link => link.url.trim() !== ''),
-          },
-          experience: workExperience.map(e => ({
-            id: e.id,
-            title: e.title,
-            company: e.company,
-            location: e.location,
-            startDate: e.startDate,
-            endDate: e.endDate,
-            isCurrent: e.isCurrent,
-            jobType: e.jobType,
-            description: e.description,
-          })),
-          education: education.map(e => ({
-            id: e.id,
-            school: e.school,
-            degree: e.degree,
-            startDate: e.startDate,
-            endDate: e.endDate,
-          })),
-          skills: skills.filter(s => s.name.trim().length > 0).map(s => s.name),
-          languages: languages.filter(l => l.name.trim().length > 0),
-          targetRole,
-        };
-        await wizardApi.patchSession(wizardSessionId, draftPatch, { [`step${currentStep}`]: true }, currentStep);
-        setSaving(false);
-      } catch (err: any) {
-        console.error('Autosave failed', err);
-        setSaving(false);
-        setSavingError(err?.message || 'Failed to save');
-      }
-    }, 600);
-    return () => clearTimeout(handle);
-  }, [wizardSessionId, personalInfo, summary, workExperience, education, skills, languages, targetRole, currentStep]);
 
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
@@ -413,8 +375,6 @@ export function AIGeneratePage() {
     setLanguages(languages.filter((_, i) => i !== index));
   };
 
-  const { generateWithAI } = useResumeBuilder();
-
   // Helper function to get auth token
   const getAuthToken = async (): Promise<string | null> => {
     try {
@@ -494,135 +454,26 @@ export function AIGeneratePage() {
     }
   };
 
-  const createWizardSession = async () => {
-    setSessionError(null);
-    setIsCreatingSession(true);
-    
-    // Optimistically load user email from auth immediately (fast, no API call needed)
-    let userEmail = '';
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      userEmail = user?.email || '';
-      
-      // Prefill basic info immediately with email while session loads
-      if (userEmail) {
-        setPersonalInfo(prev => ({
-          ...prev,
-          email: userEmail
-        }));
-      }
-    } catch (e) {
-      console.warn('Could not fetch user email:', e);
-    }
-    
-    try {
-      console.log('Creating wizard session with templateId:', templateId);
-      const res = await wizardApi.createSession(templateId, true);
-      console.log('Wizard session created successfully:', res);
-      setWizardSessionId(res.id);
-      setSessionError(null);
-      setIsCreatingSession(false);
-      
-      // Optionally hydrate local state from draftJson if present
-      const draft = res.draftJson || {} as any;
-      const profile = draft.profile || {};
-      
-      if (profile.summary && typeof profile.summary === 'string') {
-        setSummary(profile.summary);
-      }
-      
-      // Prefill personal info from profile (now with all data from backend)
-      setPersonalInfo({
-        firstName: profile.firstName || profile.fullName?.split(' ')[0] || '',
-        lastName: profile.lastName || profile.fullName?.split(' ').slice(1).join(' ') || '',
-        email: profile.email || userEmail,
-        phone: profile.phone || '',
-        location: profile.location || '',
-        jobTitle: profile.headline || '',
-        professionalSummary: profile.professionalSummary || profile.summary || ''
-      });
-      // Load social links if available
-      if (profile.socialLinks && Array.isArray(profile.socialLinks)) {
-        setSocialLinks(profile.socialLinks.length > 0 ? profile.socialLinks : [{ platform: 'LinkedIn', url: '' }]);
-      }
-      if (Array.isArray(draft.experience) && draft.experience.length > 0) {
-        // Convert date strings to YYYY-MM format for month inputs
-        const formatDateForMonth = (dateStr: string) => {
-          if (!dateStr) return '';
-          if (dateStr.length === 10 && dateStr.includes('-')) {
-            return dateStr.substring(0, 7); // Extract YYYY-MM from YYYY-MM-DD
-          }
-          return dateStr;
-        };
+  // Load user data on mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userEmail = user?.email || '';
         
-        setWorkExperience(draft.experience.map((e: any, idx: number) => ({
-          id: e.id || `exp-${Date.now()}-${idx}`,
-          title: e.title || '',
-          company: e.company || '',
-          location: e.location || '',
-          startDate: formatDateForMonth(e.startDate || ''),
-          endDate: formatDateForMonth(e.endDate || ''),
-          isCurrent: !!e.isCurrent,
-          jobType: e.jobType || '',
-          description: e.description || ''
-        })));
-      }
-      if (Array.isArray(draft.education) && draft.education.length > 0) {
-        // Convert date strings to YYYY-MM format for month inputs
-        const formatDateForMonth = (dateStr: string) => {
-          if (!dateStr) return '';
-          if (dateStr.length === 10 && dateStr.includes('-')) {
-            return dateStr.substring(0, 7); // Extract YYYY-MM from YYYY-MM-DD
-          }
-          return dateStr;
-        };
-        
-        setEducation(draft.education.map((e: any, idx: number) => ({
-          id: e.id || `edu-${Date.now()}-${idx}`,
-          school: e.school || '',
-          degree: e.degree || '',
-          startDate: formatDateForMonth(e.startDate || ''),
-          endDate: formatDateForMonth(e.endDate || '')
-        })));
-      }
-      if (Array.isArray(draft.skills) && draft.skills.length > 0) {
-        setSkills(draft.skills.map((s: any, idx: number) => ({
-          id: s.id || `skill-${Date.now()}-${idx}`,
-          name: typeof s === 'string' ? s : (s.name || ''),
-          category: (s.category || 'Technical')
-        })));
-      }
-      if (Array.isArray(draft.languages) && draft.languages.length > 0) {
-        setLanguages(draft.languages.map((l: any) => ({
-          name: l.name || '',
-          proficiency: l.proficiency || 'Native'
-        })));
-      }
-      if (typeof draft.targetRole === 'string') {
-        setTargetRole(draft.targetRole);
-      }
-    } catch (e: any) {
-      console.error('Failed to create wizard session', e);
-      let errorMessage = 'Failed to create wizard session. Please refresh the page.';
-      
-      if (e instanceof Error) {
-        errorMessage = e.message;
-        // If template not found, provide more helpful message
-        if (e.message.includes('Template not found') || e.message.includes('Not Found')) {
-          errorMessage = `Template "${templateId}" not found. Please select a template from the template selection page.`;
+        if (userEmail) {
+          setPersonalInfo(prev => ({
+            ...prev,
+            email: userEmail
+          }));
         }
+      } catch (e) {
+        console.warn('Could not fetch user email:', e);
       }
-      
-      setSessionError(errorMessage);
-      setIsCreatingSession(false);
-      console.error('Session creation error details:', {
-        error: e,
-        message: errorMessage,
-        templateId: templateId,
-        stack: e instanceof Error ? e.stack : 'No stack trace'
-      });
-    }
-  };
+    };
+    
+    loadUserData();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -664,27 +515,23 @@ export function AIGeneratePage() {
     }
 
     try {
-      if (!wizardSessionId) {
-        console.error('❌ No wizard session ID found');
-        throw new Error('Session not ready. Please refresh the page and try again.');
-      }
+      console.log('Generating resume with AI...');
       
-      console.log('✅ Wizard session ID:', wizardSessionId);
-      
-      // Save final step data before completing
-      console.log('Saving final step data before completion...');
-      const draftPatch: any = {
-        profile: {
-          fullName: `${personalInfo.firstName} ${personalInfo.lastName}`.trim(),
-          headline: personalInfo.jobTitle,
-          summary: summary || personalInfo.professionalSummary,
-          professionalSummary: personalInfo.professionalSummary,
-          location: personalInfo.location,
+      // Prepare form data for AI generation
+      const formData = {
+        templateId,
+        personalInfo: {
+          firstName: personalInfo.firstName,
+          lastName: personalInfo.lastName,
           email: personalInfo.email,
           phone: personalInfo.phone,
-          socialLinks: socialLinks.filter(link => link.url.trim() !== ''),
+          location: personalInfo.location,
+          jobTitle: personalInfo.jobTitle,
+          linkedin: socialLinks.find(l => l.platform === 'LinkedIn')?.url || '',
+          website: socialLinks.find(l => l.platform === 'Website')?.url || '',
         },
-        experience: workExperience.map(e => ({
+        summary: summary || personalInfo.professionalSummary,
+        workExperience: workExperience.map(e => ({
           id: e.id,
           title: e.title,
           company: e.company,
@@ -692,41 +539,33 @@ export function AIGeneratePage() {
           startDate: e.startDate,
           endDate: e.endDate,
           isCurrent: e.isCurrent,
-          jobType: e.jobType,
           description: e.description,
         })),
         education: education.map(e => ({
           id: e.id,
           school: e.school,
           degree: e.degree,
+          field: e.field,
           startDate: e.startDate,
           endDate: e.endDate,
         })),
-        skills: skills.filter(s => s.name.trim().length > 0).map(s => s.name),
+        skills: skills.filter(s => s.name.trim().length > 0).map(s => ({
+          id: s.id,
+          name: s.name,
+          category: s.category,
+        })),
         languages: languages.filter(l => l.name.trim().length > 0),
-        targetRole,
+        targetRole: targetRole || undefined,
+        jobDescription: jobDescription || undefined,
       };
       
-      await wizardApi.patchSession(wizardSessionId, draftPatch, { step8: true }, 8);
-      console.log('Final step data saved');
-      
-      console.log('Completing wizard session:', wizardSessionId);
-      const res = await wizardApi.completeSession(wizardSessionId);
-      console.log('Session completed, response:', res);
-      // Ensure the chosen template is active in context and URL
-      try {
-        setSelectedTemplate(templateId as any);
-      } catch (_) {}
-      
-      // Prefer resumeBuilderId as it's compatible with the editor
-      // Fall back to generatedResumeId if resumeBuilderId is not available
-      const savedResumeId = res.resumeBuilderId || res.generatedResumeId;
+      const savedResumeId = await generateWithAI(formData);
       
       if (!savedResumeId) {
-        throw new Error('Failed to get resume ID from server response');
+        throw new Error('Failed to generate resume');
       }
       
-      console.log('✅ Navigating to edit page with resume ID:', savedResumeId, 'Type:', res.resumeBuilderId ? 'resume-builder' : 'generated-resume');
+      console.log('✅ Navigating to edit page with resume ID:', savedResumeId);
       const editUrl = `/resume-builder/edit?resume=${savedResumeId}&template=${encodeURIComponent(templateId)}`;
       console.log('📍 Navigation URL:', editUrl);
       navigate(editUrl);
@@ -790,38 +629,6 @@ export function AIGeneratePage() {
         </DialogContent>
       </Dialog>
       <div className="container mx-auto p-6 max-w-4xl">
-        <div className="mb-8">
-          {/* Wizard flow: Personal Info → Experience → Education → Skills → Summary → Target Role */}
-            <div className="flex items-center gap-2">
-              {wizardSessionId ? (
-                <span className="text-sm text-green-600">Session ready • {saving ? 'Saving…' : 'Saved'}{savingError ? ` • ${savingError}` : ''}</span>
-              ) : isCreatingSession ? (
-                <span className="text-sm text-gray-500">Starting session…</span>
-              ) : sessionError ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-red-600">Session error: {sessionError}</span>
-                  <button
-                    type="button"
-                    onClick={createWizardSession}
-                    className="px-3 py-1 text-xs bg-[#295acf] text-white rounded hover:bg-[#1f4ab8]"
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-yellow-600">Session not ready</span>
-                  <button
-                    type="button"
-                    onClick={createWizardSession}
-                    className="px-3 py-1 text-xs bg-[#295acf] text-white rounded hover:bg-[#1f4ab8]"
-                  >
-                    Create Session
-                  </button>
-                </div>
-              )}
-            </div>
-        </div>
 
         {/* Wizard Steps Indicator */}
         <div className="mb-8">
@@ -1460,20 +1267,37 @@ export function AIGeneratePage() {
           {currentStep === 7 && (
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">Target Role & Review</h2>
+              <h2 className="text-2xl font-semibold text-gray-900">Target Role & Job Description</h2>
               <p className="text-gray-600 mt-1">Optional information to help AI tailor your resume</p>
             </div>
-            <div>
-              <Label htmlFor="targetRole">What position are you applying for?</Label>
-              <Input
-                id="targetRole"
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
-                placeholder="e.g., Software Engineer, Product Manager, Marketing Specialist..."
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                This helps AI tailor your resume for specific roles.
-              </p>
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="targetRole">What position are you applying for?</Label>
+                <Input
+                  id="targetRole"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  placeholder="e.g., Software Engineer, Product Manager, Marketing Specialist..."
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  This helps AI tailor your resume for specific roles.
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="jobDescription">Job Description (Optional)</Label>
+                <Textarea
+                  id="jobDescription"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="Paste the full job description here to help AI tailor your resume structure, skills emphasis, and terminology to match the job requirements..."
+                  className="min-h-[200px]"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Providing the job description helps AI better tailor your resume structure, highlight relevant skills, and use industry-specific terminology.
+                </p>
+              </div>
+              
               {/* Blockers list (computed) */}
               {errors.length > 0 && (
                 <div className="mt-4 p-3 rounded-md bg-yellow-50 text-yellow-800 text-sm">
@@ -1530,91 +1354,6 @@ export function AIGeneratePage() {
               {errors.some(e => e.includes('Summary')) && (
                 <p className="text-red-500 text-sm mt-1">Professional Summary is required</p>
               )}
-              <div className="mt-3 flex items-center gap-3">
-                <Button
-                  type="button"
-                  disabled={!wizardSessionId || isGeneratingSummary}
-                  onClick={async () => {
-                    if (!wizardSessionId) {
-                      alert('Session not ready. Please wait a moment and try again.');
-                      return;
-                    }
-                    setIsGeneratingSummary(true);
-                    try {
-                      // Save current form data to draft first so backend has latest skills/experience
-                      const draftPatch: any = {
-                        profile: {
-                          fullName: `${personalInfo.firstName} ${personalInfo.lastName}`.trim(),
-                          headline: personalInfo.jobTitle,
-                          summary: summary || personalInfo.professionalSummary,
-                          professionalSummary: personalInfo.professionalSummary,
-                          location: personalInfo.location,
-                          email: personalInfo.email,
-                          phone: personalInfo.phone,
-                          socialLinks: socialLinks.filter(link => link.url.trim() !== ''),
-                        },
-                        experience: workExperience.map(e => ({
-                          id: e.id,
-                          title: e.title,
-                          company: e.company,
-                          location: e.location,
-                          startDate: e.startDate,
-                          endDate: e.endDate,
-                          isCurrent: e.isCurrent,
-                          jobType: e.jobType,
-                          description: e.description,
-                        })),
-                        education: education.map(e => ({
-                          id: e.id,
-                          school: e.school,
-                          degree: e.degree,
-                          startDate: e.startDate,
-                          endDate: e.endDate,
-                        })),
-                        skills: skills.filter(s => s.name.trim().length > 0).map(s => s.name),
-                        languages: languages.filter(l => l.name.trim().length > 0),
-                        targetRole,
-                      };
-                      await wizardApi.patchSession(wizardSessionId, draftPatch, {}, currentStep);
-                      
-                      // Now generate summary with latest data
-                      const r = await wizardApi.generateSummary(wizardSessionId, targetRole || undefined);
-                      setSummary(r.summary);
-                    } catch (e: any) {
-                      console.error('Generate summary failed', e);
-                      let errorMessage = e?.message || e?.detail || 'Failed to generate summary. Please try again.';
-                      
-                      // Improve rate limit error message
-                      if (errorMessage.includes('Too many requests') || errorMessage.includes('429') || errorMessage.includes('rate limit')) {
-                        // Use the error message from backend which includes the actual limit
-                        if (!errorMessage.includes('per minute')) {
-                          errorMessage = 'Rate limit exceeded. You can make up to 30 AI requests per minute. Please wait a minute before trying again.';
-                        }
-                      }
-                      
-                      // Improve network error messages
-                      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Unable to connect')) {
-                        errorMessage = 'Unable to connect to the server. Please check your internet connection and ensure the backend is running.';
-                      }
-                      
-                      alert(`Error: ${errorMessage}`);
-                    } finally {
-                      setIsGeneratingSummary(false);
-                    }
-                  }}
-                  className="bg-[#295acf] hover:bg-[#1f4ab8] disabled:opacity-50 text-white"
-                >
-                  {isGeneratingSummary ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    'Generate Summary with AI'
-                  )}
-                </Button>
-                <span className="text-sm text-gray-500">Uses your skills/experience and Target Role as hints.</span>
-              </div>
             </div>
           </Card>
           )}
@@ -1739,15 +1478,10 @@ export function AIGeneratePage() {
               ) : (
                 <Button
                   type="button"
-                  disabled={isGenerating || !wizardSessionId}
+                  disabled={isGenerating}
                   onClick={(e) => {
                     e.preventDefault();
                     console.log('🔘 Generate button clicked');
-                    if (!wizardSessionId) {
-                      console.error('❌ Button clicked but no wizard session ID');
-                      setErrors(['Session not ready. Please refresh the page.']);
-                      return;
-                    }
                     // Call handleSubmit directly
                     handleSubmit(e as any);
                   }}

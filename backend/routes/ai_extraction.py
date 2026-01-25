@@ -20,7 +20,12 @@ router = APIRouter()
 class JobIngestionRequest(BaseModel):
     html: str
     source_url: str
-    metadata: Optional[dict] = None
+    url: Optional[str] = None  # For compatibility with extension
+    canonical_url: Optional[str] = None
+    stage: Optional[str] = "Bookmarked"
+    excitement: Optional[int] = 0
+    fallback_data: Optional[dict] = None
+    metadata: Optional[dict] = None  # Keep for backward compatibility
 
 class JobIngestionResponse(BaseModel):
     job_id: str
@@ -50,9 +55,19 @@ def save_html_content(html_content: str, user_id: str, job_url: str, stage: str 
     return None
 
 @router.post("/api/jobs/save-job", response_model=JobIngestionResponse)
-def save_job_direct(request: LinkedInScrapeRequest, user_id: str = Depends(get_current_user)):
+async def save_job_direct(request: LinkedInScrapeRequest, user_id: str = Depends(get_current_user)):
     """Save job data directly from extension without scraping"""
     try:
+        # Check job limit for extension (free tier: 100 jobs max)
+        from utils.subscription import check_job_limit_from_extension
+        can_save, current_count, max_allowed = await check_job_limit_from_extension(user_id)
+        
+        if not can_save:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Job limit reached. Free tier allows {max_allowed} jobs saved from extension. You currently have {current_count}. Upgrade to Pro for unlimited jobs from extension."
+            )
+        
         # Check for duplicates
         if check_duplicate_job(user_id, request.url):
             return JobIngestionResponse(
@@ -100,9 +115,19 @@ def save_job_direct(request: LinkedInScrapeRequest, user_id: str = Depends(get_c
         )
 
 @router.post("/api/jobs/scrape-linkedin", response_model=JobIngestionResponse)
-def scrape_linkedin_job(request: LinkedInScrapeRequest, background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):
+async def scrape_linkedin_job(request: LinkedInScrapeRequest, background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):
     """Scrape LinkedIn job URL using GPT to extract job data"""
     try:
+        # Check job limit for extension (free tier: 100 jobs max)
+        from utils.subscription import check_job_limit_from_extension
+        can_save, current_count, max_allowed = await check_job_limit_from_extension(user_id)
+        
+        if not can_save:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Job limit reached. Free tier allows {max_allowed} jobs saved from extension. You currently have {current_count}. Upgrade to Pro for unlimited jobs from extension."
+            )
+        
         # Process LinkedIn job scrape request
         
         # Compute effective URL (prefer canonical or derive from currentJobId)
@@ -200,15 +225,31 @@ def scrape_linkedin_job(request: LinkedInScrapeRequest, background_tasks: Backgr
                 for el in soup(["script","style","nav","footer","header","aside","noscript"]):
                     el.decompose()
                 text = soup.get_text(separator='\n', strip=True)
-                if len(text) > 20000:
-                    text = text[:20000]
+                # Increased limit to 50000 to capture full descriptions
+                if len(text) > 50000:
+                    text = text[:50000]
                 data = extract_job_data_with_ai(text, eff_url)
+                
+                # Use extension's extracted description if it's longer than AI extraction
+                extension_description = (req.fallback_data or {}).get("description")
+                ai_description = data.get("description")
+                
+                # Prefer longer description, or extension's if AI didn't get much
+                final_description = None
+                if extension_description and ai_description:
+                    # Use the longer one
+                    final_description = extension_description if len(extension_description) > len(ai_description) else ai_description
+                elif extension_description:
+                    final_description = extension_description
+                elif ai_description:
+                    final_description = ai_description
+                
                 update = {
                     "job_title": data.get("job_title") or placeholder_job["job_title"],
                     "company": data.get("company") or placeholder_job["company"],
                     "location": data.get("location"),
                     "salary": data.get("salary"),
-                    "description": data.get("description"),
+                    "description": final_description,
                     "updated_at": datetime.utcnow().isoformat()
                 }
                 supabase.table("jobs").update(update).eq("id", str(job_id_local)).eq("user_id", uid).execute()
@@ -252,11 +293,24 @@ def scrape_linkedin_job(request: LinkedInScrapeRequest, background_tasks: Backgr
         raise HTTPException(status_code=500, detail=f"LinkedIn scraping failed: {str(e)}")
 
 @router.post("/api/jobs/ingest-html", response_model=JobIngestionResponse)
-def ingest_job_html(request: JobIngestionRequest, user_id: str = Depends(get_current_user)):
-    """Ingest job from HTML content using AI extraction"""
+async def ingest_job_html(request: JobIngestionRequest, background_tasks: BackgroundTasks, user_id: str = Depends(get_current_user)):
+    """Universal job ingestion endpoint - works with any job site including Glassdoor"""
     try:
+        # Check job limit for extension (free tier: 100 jobs max)
+        from utils.subscription import check_job_limit_from_extension
+        can_save, current_count, max_allowed = await check_job_limit_from_extension(user_id)
+        
+        if not can_save:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Job limit reached. Free tier allows {max_allowed} jobs saved from extension. You currently have {current_count}. Upgrade to Pro for unlimited jobs from extension."
+            )
+        
+        # Use url if provided, otherwise source_url
+        effective_url = request.url or request.source_url
+        
         # Check for duplicates
-        if check_duplicate_job(user_id, request.source_url):
+        if check_duplicate_job(user_id, effective_url):
             return JobIngestionResponse(
                 job_id="",
                 status="duplicate",
@@ -264,34 +318,64 @@ def ingest_job_html(request: JobIngestionRequest, user_id: str = Depends(get_cur
                 is_duplicate=True
             )
         
-        # Extract job data using AI
-        extracted_data = extract_job_data_with_ai(request.html, request.source_url)
+        # Extract fallback data
+        fallback_data = request.fallback_data or {}
+        if request.metadata and isinstance(request.metadata, dict):
+            fallback_data = request.metadata.get('fallback_data', fallback_data)
         
-        # Create job from extracted data
-        job_data = {
+        # Create placeholder job immediately (like LinkedIn endpoint)
+        placeholder_job = {
             "user_id": user_id,
-            "job_title": extracted_data.get("job_title", "Unknown Job Title"),
-            "company": extracted_data.get("company", "Unknown Company"),
-            "location": extracted_data.get("location"),
-            "salary": extracted_data.get("salary"),
-            "job_url": request.source_url,
-            "status": "Bookmarked",
-            "description": extracted_data.get("description")
+            "job_title": fallback_data.get("job_title") or "Unknown Job Title",
+            "company": fallback_data.get("company") or "Unknown Company",
+            "location": fallback_data.get("location"),
+            "salary": fallback_data.get("salary"),
+            "job_url": effective_url,
+            "status": request.stage or "Bookmarked",
+            "excitement_level": request.excitement or 0,
+            "description": fallback_data.get("description"),
+            "created_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.utcnow().isoformat()
         }
+        insert_resp = supabase.table("jobs").insert(placeholder_job).execute()
+        if not insert_resp.data:
+            raise HTTPException(status_code=500, detail="Failed to insert placeholder job")
+        job_id = insert_resp.data[0]["id"]
         
-        # Save to database
-        response = supabase.table("jobs").insert(job_data).execute()
+        # Background task to enrich job with AI extraction
+        def enrich_job_background(job_id_local: str, html_content: str, eff_url: str, uid: str, placeholder: dict):
+            try:
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(html_content, 'html.parser')
+                for el in soup(["script","style","nav","footer","header","aside","noscript"]):
+                    el.decompose()
+                text = soup.get_text(separator='\n', strip=True)
+                # Increased limit to 50000 to capture full descriptions
+                if len(text) > 50000:
+                    text = text[:50000]
+                data = extract_job_data_with_ai(text, eff_url)
+                update = {
+                    "job_title": data.get("job_title") or placeholder["job_title"],
+                    "company": data.get("company") or placeholder["company"],
+                    "location": data.get("location"),
+                    "salary": data.get("salary"),
+                    "description": data.get("description"),
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                supabase.table("jobs").update(update).eq("id", str(job_id_local)).eq("user_id", uid).execute()
+            except Exception as e:
+                print(f"Background enrichment failed for job {job_id_local}: {e}")
         
-        if response.data:
-            job_id = response.data[0]["id"]
-            return JobIngestionResponse(
-                job_id=job_id,
-                status="success",
-                message="Job ingested successfully",
-                extracted_data=extracted_data
-            )
-        else:
-            raise HTTPException(status_code=500, detail="Failed to save job to database")
+        # Process in background
+        background_tasks.add_task(enrich_job_background, str(job_id), request.html, effective_url, user_id, placeholder_job)
+        
+        return JobIngestionResponse(
+            job_id=str(job_id),
+            status="success",
+            message="Job saved. Enrichment in progress.",
+            extracted_data=None,
+            is_duplicate=False
+        )
             
     except Exception as e:
         print(f"Error ingesting job HTML: {str(e)}")
