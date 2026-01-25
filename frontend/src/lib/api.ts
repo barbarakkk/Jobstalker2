@@ -62,7 +62,7 @@ export function invalidateCache(endpoint?: string) {
 }
 
 // Helper function to make authenticated API calls
-const apiCall = async <T>(
+export const apiCall = async <T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> => {
@@ -521,28 +521,20 @@ export const templatesApi = {
   },
 };
 
-export const wizardApi = {
-  createSession: async (templateId: string, prefill = true, seed?: any): Promise<{ id: string; draftJson: any; progress: any }> => {
-    return apiCall('/api/wizard/sessions', {
+// Subscription API
+export const subscriptionApi = {
+  getStatus: async (): Promise<{ tier: string; status: string; limits: any; usage: any; subscription?: any }> => {
+    return apiCall('/api/subscription/status');
+  },
+  createCheckoutSession: async (priceId?: string): Promise<{ session_id: string; url: string }> => {
+    return apiCall('/api/subscription/create-checkout-session', {
       method: 'POST',
-      body: JSON.stringify({ templateId, prefill, seed }),
+      body: JSON.stringify({ price_id: priceId }),
     });
   },
-  patchSession: async (id: string, draftPatch?: any, progressPatch?: any, lastStep?: number): Promise<{ draftJson: any; progress: any }> => {
-    return apiCall(`/api/wizard/sessions/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ draftPatch, progressPatch, lastStep }),
-    });
-  },
-  completeSession: async (id: string): Promise<{ generatedResumeId: string; version: number; resumeBuilderId?: string }> => {
-    return apiCall(`/api/wizard/sessions/${id}/complete`, {
+  createPortalSession: async (): Promise<{ url: string }> => {
+    return apiCall('/api/subscription/create-portal-session', {
       method: 'POST',
-    });
-  },
-  generateSummary: async (wizardSessionId: string, promptHints?: string): Promise<{ summary: string }> => {
-    return apiCall('/api/ai/profile-summary', {
-      method: 'POST',
-      body: JSON.stringify({ wizardSessionId, promptHints }),
     });
   },
 };
