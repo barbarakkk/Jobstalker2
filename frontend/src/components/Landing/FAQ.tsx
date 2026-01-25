@@ -8,7 +8,7 @@ const faqs = [
   },
   {
     question: "How does Jobstalker work?",
-    answer: "Think of Jobstalker as your personal job-search assistant. Here's how it helps you land interviews faster:\n\n• Create Your Profile: Start by building a dynamic profile where you can list and assess your skills.\n• Get Smart Insights: Our platform analyzes your profile and the market to give you personalized insights and guidance.\n• Track & Manage Everything: Use our full suite of tools—like the Job Tracker, Application Autofiller, and Saved Postings—to organize your entire search in one place.\n• Move Faster to Interviews: By streamlining the process, we help you apply more effectively and get in front of hiring managers sooner.\n\nReady to stop jobstalking and start job landing? Click the Login button to get started."
+    answer: "JobStalker is your personal job-search assistant that helps you land interviews faster. Create your profile to list and assess your skills, get smart insights from our AI-powered analysis, and use our full suite of tools—Job Tracker, Application Autofiller, and Saved Postings—to organize your entire search in one place. By streamlining the process, we help you apply more effectively and get in front of hiring managers sooner. Ready to stop jobstalking and start job landing? Click the Login button to get started."
   },
   {
     question: "How do I get started?",
@@ -96,9 +96,9 @@ export function FAQ() {
                   openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className="px-8 pb-6 pt-2">
+                <div className="px-8 pb-4 pt-1">
                   <div className="pl-14 border-l-2 border-[#4169E1]/30">
-                    <p className="text-gray-700 leading-snug text-base lg:text-lg whitespace-pre-line">
+                    <p className="text-gray-700 leading-relaxed text-base lg:text-lg">
                       {faq.answer}
                     </p>
                   </div>

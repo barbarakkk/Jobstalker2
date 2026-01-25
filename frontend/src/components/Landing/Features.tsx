@@ -1,68 +1,10 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Target, BarChart2, Search, Calendar, FileText, Sparkles, Zap, Shield, Clock, TrendingUp, Award, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { FileText, Search, Check, User, Sparkles, FileSearch } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { HoverEffect } from '@/components/ui/aceternity/CardHoverEffect';
 import ATSFriendlyResume from '@/assets/ATSfriendlyresume.png';
 import Jobmatcher from '@/assets/Jobmatcher.png';
-
-const features = [
-  {
-    title: 'Smart Application Tracking',
-    description: 'Keep track of all your job applications with intelligent status updates, progress insights, and detailed job information.',
-    icon: <Target className="w-8 h-8 text-white" />,
-    gradient: 'from-[#4169E1] to-[#3A5BCE]',
-    bgGradient: 'from-[#4169E1]/10 to-[#4169E1]/20',
-    highlight: 'Track all applications'
-  },
-  {
-    title: 'AI Resume Builder',
-    description: 'Create professional resumes in minutes with our AI-powered builder. Choose from multiple templates, use AI to generate summaries, and export as PDF.',
-    icon: <FileText className="w-8 h-8 text-white" />,
-    gradient: 'from-[#4169E1] to-[#3A5BCE]',
-    bgGradient: 'from-[#4169E1]/10 to-[#4169E1]/20',
-    highlight: 'AI-powered templates'
-  },
-  {
-    title: 'Advanced Analytics',
-    description: 'Track your job search performance with detailed analytics, success metrics, conversion rates, and visual insights.',
-    icon: <BarChart2 className="w-8 h-8 text-white" />,
-    gradient: 'from-[#3A5BCE] to-[#2E4AB8]',
-    bgGradient: 'from-[#4169E1]/10 to-[#4169E1]/20',
-    highlight: 'Performance insights'
-  },
-  {
-    title: 'Chrome Extension',
-    description: 'Save jobs directly from LinkedIn with one click. Our AI automatically extracts job details and syncs them to your dashboard.',
-    icon: <Zap className="w-8 h-8 text-white" />,
-    gradient: 'from-[#4169E1] to-[#3A5BCE]',
-    bgGradient: 'from-[#4169E1]/10 to-[#4169E1]/20',
-    highlight: 'One-click save'
-  },
-  {
-    title: 'AI Job Matching',
-    description: 'Our AI algorithms match you with relevant opportunities based on your skills, experience, and career goals.',
-    icon: <Search className="w-8 h-8 text-white" />,
-    gradient: 'from-[#4169E1] to-[#3A5BCE]',
-    bgGradient: 'from-[#4169E1]/10 to-[#4169E1]/20',
-    highlight: 'Smart matching',
-    comingSoon: true
-  },
-  {
-    title: 'Schedule Management',
-    description: 'Organize interviews, follow-ups, and deadlines with integrated calendar management and smart notifications.',
-    icon: <Calendar className="w-8 h-8 text-white" />,
-    gradient: 'from-[#3A5BCE] to-[#2E4AB8]',
-    bgGradient: 'from-[#4169E1]/10 to-[#4169E1]/20',
-    highlight: 'Smart scheduling',
-    comingSoon: true
-  },
-];
-
-const stats = [
-  { icon: <Sparkles className="w-6 h-6" />, value: '85%', label: 'Success Rate' },
-  { icon: <Zap className="w-6 h-6" />, value: '30%', label: 'Faster Placement' },
-  { icon: <Shield className="w-6 h-6" />, value: '1k+', label: 'Professionals' },
-  { icon: <Clock className="w-6 h-6" />, value: '24/7', label: 'AI Support' },
-];
+import JobDescription from '@/assets/Job description.png';
 
 const featureSections = [
   {
@@ -70,159 +12,191 @@ const featureSections = [
     badgeIcon: FileText,
     title: 'Create ATS-Friendly Resumes',
     titleHighlight: 'in Minutes',
-    description: 'Our AI-powered resume builder helps you create professional, ATS-friendly resumes that get past applicant tracking systems and into the hands of recruiters. Choose from multiple templates, use AI to generate compelling summaries, and optimize your content for maximum impact.',
+    description:
+      'Our AI-powered resume builder helps you create professional, ATS-friendly resumes that get past applicant tracking systems and into the hands of recruiters.',
     features: [
       'ATS-optimized formatting that passes screening systems',
       'AI-generated professional summaries and bullet points',
       'Multiple professional templates to choose from',
-      'Export as PDF ready for job applications'
+      'Export as PDF ready for job applications',
     ],
     image: ATSFriendlyResume,
-    imageAlt: 'ATS-Friendly Resume Example'
+    imageAlt: 'ATS-Friendly Resume Example',
+    layout: 'image-left', // Image on left, text on right
   },
   {
-    badge: 'AI Job Matching',
-    badgeIcon: Search,
-    title: 'See Job Matching',
-    titleHighlight: 'in Action',
-    description: 'Our advanced AI-powered job matcher analyzes your profile data and automatically finds the best matching opportunities tailored to your skills, experience, and career goals. Get personalized job recommendations with match scores, salary ranges, and detailed insights to help you find your perfect role faster. That\'s why it\'s important to fill out all information in your profile page—complete profiles ensure we can match jobs perfectly to your qualifications.',
+    badge: 'Job Analysis',
+    badgeIcon: FileSearch,
+    title: 'Detailed Job Descriptions',
+    titleHighlight: 'Made Easy',
+    description:
+      'Our intelligent job description analyzer breaks down complex job postings into clear, actionable insights. This helps job seekers quickly understand key requirements, responsibilities, and qualifications, making it easier to tailor applications and prepare for interviews.',
     features: [
-      'AI-powered profile data analysis and skill matching',
-      'Intelligent job matching with percentage scores based on your profile',
-      'Real-time job recommendations personalized to your experience and goals',
-      'Detailed match insights including salary, location, and requirements',
-      'Better matches when your profile is fully completed'
+      'AI-powered job description analysis and breakdown',
+      'Key requirements and qualifications extraction',
+      'Clear visualization of job responsibilities',
+      'Easy-to-understand format for quick review',
     ],
-    image: Jobmatcher,
-    imageAlt: 'AI Job Matching Dashboard'
-  }
+    image: JobDescription,
+    imageAlt: 'Job Description Analysis',
+    layout: 'image-left', // Image on left, text on right
+  },
+];
+
+const steps = [
+  {
+    title: 'Fill out your profile info',
+    description: 'Complete your profile with your skills, work experience, and education details to get started.',
+    icon: <User className="w-8 h-8 text-blue-800" />,
+  },
+  {
+    title: 'Paste the job descriptions',
+    description: 'Provide the job description for the position you want to apply for.',
+    icon: <FileText className="w-8 h-8 text-blue-800" />,
+  },
+  {
+    title: 'Create tailored resumes',
+    description: 'Generate AI-powered resumes perfectly matched to each job description.',
+    icon: <Sparkles className="w-8 h-8 text-blue-800" />,
+  },
 ];
 
 export function Features() {
-  const [currentSection, setCurrentSection] = useState(0);
-
-  const nextSection = () => {
-    setCurrentSection((prev) => (prev + 1) % featureSections.length);
-  };
-
-  const prevSection = () => {
-    setCurrentSection((prev) => (prev - 1 + featureSections.length) % featureSections.length);
-  };
-
-  const currentFeatureSection = featureSections[currentSection];
-  const BadgeIcon = currentFeatureSection.badgeIcon;
-
   return (
-    <section id="features" className="w-full py-24 lg:py-36 bg-gradient-to-b from-white via-[#4169E1]/10 to-white relative overflow-hidden">
-      {/* Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#4169E1]/20 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-sky-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20"></div>
-      </div>
-      
-      <div className="relative container mx-auto px-4 lg:px-8">
+    <section id="features" className="w-full py-24 lg:py-40 bg-white">
+      <div className="container mx-auto px-4 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-20 relative z-10">
-          <div className="inline-flex items-center gap-2 mb-6 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#4169E1]/20 via-[#4169E1]/10 to-[#4169E1]/20 border border-[#4169E1]/30 text-[#4169E1] font-semibold text-sm shadow-sm animate-fadeInUp">
-            <Sparkles className="w-4 h-4 animate-pulse-slow" />
-            Powerful Features
-          </div>
-          <h2 className="text-4xl lg:text-6xl font-extrabold text-gray-900 mb-6 leading-[1.1] tracking-tight animate-fadeInUp animation-delay-100">
-            Everything you need to{' '}
-            <span className="bg-gradient-to-r from-[#4169E1] via-[#3A5BCE] to-[#2E4AB8] bg-clip-text text-transparent">
-              land your dream job
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-24 max-w-4xl mx-auto"
+        >
+          <h2 className="text-5xl lg:text-6xl font-bold text-blue-900 mb-6 leading-tight">
+            Everything You Need to{' '}
+            <span className="text-blue-900">
+              Land Your Dream Job
             </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium animate-fadeInUp animation-delay-200">
-            Powerful features designed specifically for experienced professionals and tech workers. 
-            Get the tools you need to accelerate your career.
+          <p className="text-xl lg:text-2xl text-blue-800/90 leading-relaxed">
+            Powerful features designed specifically for professionals and tech workers
           </p>
-        </div>
+        </motion.div>
 
-        {/* Feature Section Carousel */}
-        <div className="mb-20 lg:mb-24 relative">
-          {/* Tab Navigation */}
-          <div className="flex justify-center gap-3 mb-10 flex-wrap">
-            {featureSections.map((section, index) => {
-              const SectionIcon = section.badgeIcon;
-              return (
-                <button
-                  key={index}
-                  onClick={() => setCurrentSection(index)}
-                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm transition-all duration-300 ${
-                    currentSection === index
-                      ? 'bg-gradient-to-r from-[#4169E1] to-[#3A5BCE] text-white shadow-lg shadow-[#4169E1]/30 scale-105'
-                      : 'bg-white/80 backdrop-blur-sm text-gray-700 border border-gray-200/60 hover:border-[#4169E1]/50 hover:bg-[#4169E1]/10 hover:shadow-md'
-                  }`}
-                  aria-label={`Switch to ${section.badge}`}
-                >
-                  <SectionIcon className="w-4 h-4" />
-                  {section.badge}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Navigation Buttons */}
-          <button
-            onClick={prevSection}
-            className="absolute -left-4 lg:-left-12 top-1/2 -translate-y-1/2 z-20 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:-translate-x-1 border border-gray-200 group"
-            aria-label="Previous section"
-          >
-            <ChevronLeft className="w-6 h-6 text-gray-700 group-hover:text-[#4169E1] transition-colors duration-300" />
-          </button>
-          
-          <button
-            onClick={nextSection}
-            className="absolute -right-4 lg:-right-12 top-1/2 -translate-y-1/2 z-20 bg-white rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-125 hover:translate-x-1 border border-gray-200 group"
-            aria-label="Next section"
-          >
-            <ChevronRight className="w-6 h-6 text-gray-700 group-hover:text-[#4169E1] transition-colors duration-300" />
-          </button>
-
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center relative z-10">
-            {/* Left: Description */}
-            <div className="space-y-7 animate-fadeInUp animation-delay-300">
-              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#4169E1]/20 via-[#4169E1]/10 to-[#4169E1]/20 border border-[#4169E1]/30 text-[#4169E1] font-semibold text-sm shadow-sm">
-                <BadgeIcon className="w-4 h-4" />
-                {currentFeatureSection.badge}
-              </div>
-              <h3 className="text-3xl lg:text-4xl font-extrabold text-gray-900 leading-[1.1] tracking-tight">
-                {currentFeatureSection.title}{' '}
-                <span className="bg-gradient-to-r from-[#4169E1] via-[#3A5BCE] to-[#2E4AB8] bg-clip-text text-transparent">
-                  {currentFeatureSection.titleHighlight}
-                </span>
-              </h3>
-              <p className="text-lg text-gray-600 leading-relaxed font-medium">
-                {currentFeatureSection.description}
-              </p>
-              <div className="space-y-4">
-                {currentFeatureSection.features.map((feature, index) => (
-                  <div key={index} className="flex items-start gap-4">
-                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#4169E1]/20 to-[#4169E1]/30 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
-                      <div className="w-2.5 h-2.5 rounded-full bg-[#4169E1]"></div>
+        {/* Feature Sections - Modern Alternating Layout */}
+        <div className="space-y-40 max-w-[1400px] mx-auto">
+          {featureSections.map((section, index) => {
+            const BadgeIcon = section.badgeIcon;
+            const isImageLeft = section.layout === 'image-left';
+            
+            return (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-150px" }}
+                transition={{ duration: 0.8 }}
+                className="relative"
+              >
+                <div className={`grid lg:grid-cols-12 gap-8 lg:gap-12 items-center ${
+                  !isImageLeft ? 'lg:grid-flow-dense' : ''
+                }`}>
+                  {/* Image Section - Takes 7 columns, bigger */}
+                  <motion.div
+                    initial={{ opacity: 0, x: isImageLeft ? -50 : 50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    className={`lg:col-span-7 ${!isImageLeft ? 'lg:col-start-6 lg:col-end-13' : 'lg:col-start-1 lg:col-end-8'}`}
+                  >
+                    <div className="relative group">
+                      <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-3xl blur-2xl opacity-0 group-hover:opacity-50 transition-opacity duration-500"></div>
+                      <Card className="relative overflow-hidden border-2 border-gray-200 shadow-2xl bg-white rounded-2xl">
+                        <img 
+                          src={section.image} 
+                          alt={section.imageAlt} 
+                          className="w-full h-auto object-cover"
+                        />
+                      </Card>
                     </div>
-                    <p className="text-gray-700 leading-relaxed">{feature}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  </motion.div>
 
-            {/* Right: Image */}
-            <div className="relative animate-fadeInUp animation-delay-400">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-gray-200/60 bg-white/90 backdrop-blur-sm p-5 hover:shadow-3xl transition-all duration-500">
-                <img 
-                  src={currentFeatureSection.image} 
-                  alt={currentFeatureSection.imageAlt} 
-                  className="w-full h-auto rounded-xl transition-opacity duration-500"
-                />
-              </div>
-              <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-gradient-to-r from-[#4169E1]/40 to-[#4169E1]/50 rounded-full opacity-15 blur-3xl"></div>
-              <div className="absolute -top-6 -left-6 w-40 h-40 bg-gradient-to-r from-sky-300 to-[#4169E1]/40 rounded-full opacity-10 blur-3xl"></div>
-            </div>
-          </div>
+                  {/* Content Section - Takes 5 columns */}
+                  <motion.div
+                    initial={{ opacity: 0, x: isImageLeft ? 50 : -50 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                    className={`lg:col-span-5 space-y-8 ${!isImageLeft ? 'lg:col-start-1 lg:col-end-6' : 'lg:col-start-8 lg:col-end-13'}`}
+                  >
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200 text-sm font-semibold text-blue-800">
+                      <BadgeIcon className="w-4 h-4" />
+                      {section.badge}
+                    </div>
+                    
+                    <h3 className="text-4xl lg:text-5xl font-bold text-blue-900 leading-tight">
+                      {section.title}{' '}
+                      <span className="text-blue-600">
+                        {section.titleHighlight}
+                      </span>
+                    </h3>
+                    
+                    <p className="text-xl text-blue-800/90 leading-relaxed">
+                      {section.description}
+                    </p>
+                    
+                    <div className="space-y-5 pt-4">
+                      {section.features.map((feature, featureIndex) => (
+                        <motion.div
+                          key={featureIndex}
+                          initial={{ opacity: 0, x: -20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: featureIndex * 0.1 + 0.4 }}
+                          className="flex items-start gap-4"
+                        >
+                          <div className="w-6 h-6 rounded-full bg-blue-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Check className="w-4 h-4 text-white" />
+                          </div>
+                          <p className="text-lg text-blue-800/90 leading-relaxed pt-0.5">{feature}</p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          {/* How It Works Section - Centered Layout */}
+          <motion.div
+            initial={{ opacity: 0, y: 60 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-150px" }}
+            transition={{ duration: 0.8 }}
+            className="pt-24"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="text-center mb-20 max-w-4xl mx-auto"
+            >
+              <h2 className="text-5xl lg:text-6xl font-bold text-blue-900 mb-6 leading-tight">
+                How It Works
+              </h2>
+              <p className="text-xl lg:text-2xl text-blue-800/90 leading-relaxed">
+                Create perfectly tailored resumes in three simple steps
+              </p>
+            </motion.div>
+
+            {/* Steps with Hover Effect */}
+            <HoverEffect items={steps} className="max-w-6xl mx-auto" />
+          </motion.div>
         </div>
       </div>
     </section>
   );
-} 
+}

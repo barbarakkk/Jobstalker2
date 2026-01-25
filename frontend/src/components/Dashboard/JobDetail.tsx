@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { AppHeader } from '@/components/Layout/AppHeader';
-import { jobApi, aiApi } from '@/lib/api';
+import { jobApi, aiApi, subscriptionApi } from '@/lib/api';
 import { Job } from '@/lib/types';
+import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
+import { UpgradeModal } from '@/components/Subscription';
 import { 
   ExternalLink, 
   MapPin, 
@@ -23,7 +26,16 @@ import {
   Zap,
   Briefcase,
   GraduationCap,
-  Code
+  Code,
+  Edit,
+  Save,
+  X,
+  FileCheck,
+  Crown,
+  Check,
+  Loader2 as Loader2Icon,
+  Lock,
+  ArrowLeft
 } from 'lucide-react';
 
 interface MatchAnalysis {
@@ -218,6 +230,28 @@ export default function JobDetail() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editedDescription, setEditedDescription] = useState('');
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [processingUpgrade, setProcessingUpgrade] = useState(false);
+  const [checkingResume, setCheckingResume] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState<'free' | 'pro'>('free');
+  const { listResumes, saveResume } = useResumeBuilder();
+
+  // Load subscription status on mount
+  useEffect(() => {
+    const loadSubscriptionInfo = async () => {
+      try {
+        const subscriptionInfo = await subscriptionApi.getStatus();
+        setSubscriptionTier(subscriptionInfo.tier as 'free' | 'pro');
+      } catch (error) {
+        console.error('Failed to load subscription info:', error);
+        // Default to free tier on error
+        setSubscriptionTier('free');
+      }
+    };
+    loadSubscriptionInfo();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -239,6 +273,12 @@ export default function JobDetail() {
   const handleAnalyzeMatch = useCallback(async () => {
     if (!job || !id) return;
     
+    // Check if user has pro tier
+    if (subscriptionTier === 'free') {
+      setUpgradeModalOpen(true);
+      return;
+    }
+    
     setAnalyzing(true);
     setAnalysisError(null);
     
@@ -251,7 +291,89 @@ export default function JobDetail() {
     } finally {
       setAnalyzing(false);
     }
-  }, [job, id]);
+  }, [job, id, subscriptionTier]);
+
+  // Handle Tailor Resume button click
+  const handleTailorResume = useCallback(async () => {
+    if (!job) return;
+    
+    setCheckingResume(true);
+    try {
+      // Check subscription status
+      const subscriptionInfo = await subscriptionApi.getStatus();
+      const maxResumes = subscriptionInfo.limits.max_resumes;
+      const tier = subscriptionInfo.tier;
+      
+      // Get existing resumes
+      const resumes = await listResumes();
+      const resumeCount = resumes?.length || 0;
+      
+      // Check if user has reached limit
+      if (resumeCount >= maxResumes && tier === 'free') {
+        setUpgradeModalOpen(true);
+        setCheckingResume(false);
+        return;
+      }
+      
+      // Use existing resume if available, otherwise create new one
+      let resumeId: string;
+      if (resumes && resumes.length > 0) {
+        // Use the first resume
+        resumeId = resumes[0].id;
+      } else {
+        // Create a new resume with basic data
+        const defaultResumeData = {
+          personalInfo: {
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: '',
+            location: '',
+            jobTitle: '',
+            linkedin: '',
+            website: '',
+          },
+          summary: '',
+          workExperience: [],
+          education: [],
+          skills: [],
+          languages: [],
+        };
+        resumeId = await saveResume('My Resume', 'modern-professional', defaultResumeData);
+        if (!resumeId) {
+          throw new Error('Failed to create resume');
+        }
+      }
+      
+      // Navigate to edit page with job context
+      const editUrl = `/resume-builder/edit?resume=${resumeId}&template=modern-professional&targetRole=${encodeURIComponent(job.job_title || '')}&jobDescription=${encodeURIComponent(job.description || '')}`;
+      navigate(editUrl);
+    } catch (error) {
+      console.error('Failed to tailor resume:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to tailor resume';
+      if (errorMessage.includes('Resume limit reached') || errorMessage.includes('403')) {
+        setUpgradeModalOpen(true);
+      } else {
+        alert(errorMessage);
+      }
+    } finally {
+      setCheckingResume(false);
+    }
+  }, [job, listResumes, saveResume, navigate]);
+
+  // Handle upgrade to Pro
+  const handleActivatePro = async () => {
+    try {
+      setProcessingUpgrade(true);
+      const session = await subscriptionApi.createCheckoutSession();
+      // Redirect to Stripe checkout
+      window.location.href = session.url;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
+      alert('Failed to start checkout. Please try again.');
+      setProcessingUpgrade(false);
+    }
+  };
 
   // Memoize parsedInfo - only recalculate when job or job.description changes
   const parsedInfo = useMemo(() => {
@@ -265,6 +387,13 @@ export default function JobDetail() {
     }
     return parseJobDescription(job.description, job);
   }, [job?.description, job?.salary]);
+
+  // Initialize edited values when job changes
+  useEffect(() => {
+    if (job) {
+      setEditedDescription(job.description || '');
+    }
+  }, [job]);
 
   // Memoize renderStars function
   const renderStars = useCallback((level: number) => {
@@ -302,6 +431,16 @@ export default function JobDetail() {
       <AppHeader active="jobs" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 space-y-6">
+        {/* Go Back Button */}
+        <Button
+          onClick={() => navigate('/dashboard')}
+          variant="ghost"
+          className="mb-4 text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Go Back to Dashboard
+        </Button>
+        
         {/* Hero Header Card */}
         <Card className="border-0 shadow-xl bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800 text-white overflow-hidden">
           <CardContent className="p-6 lg:p-8">
@@ -360,7 +499,7 @@ export default function JobDetail() {
                     <Button 
                       asChild 
                       size="lg" 
-                      className="bg-white text-blue-600 hover:bg-gray-100 font-semibold shadow-lg w-full lg:w-auto"
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg w-full lg:w-auto"
                     >
                       <a href={job.job_url} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-5 w-5 mr-2" /> Apply Now
@@ -382,6 +521,9 @@ export default function JobDetail() {
             <TabsTrigger value="match" className="rounded-md">
               <Sparkles className="h-4 w-4 mr-2" />
               AI Match Analysis
+              {subscriptionTier === 'free' && (
+                <Lock className="h-3 w-3 ml-1" />
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -389,78 +531,72 @@ export default function JobDetail() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Job Details - Structured Sections */}
               <div className="lg:col-span-2 space-y-6">
-                {/* Salary Section */}
-                {parsedInfo.salary && (
-                  <Card className="border border-gray-200 shadow-lg">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-lg lg:text-xl">
-                        <DollarSign className="h-5 w-5 text-blue-600" />
-                        Salary Information
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p className="text-lg lg:text-xl font-semibold text-blue-900">{parsedInfo.salary}</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Skills Section */}
-                {parsedInfo.skills.length > 0 && (
-                  <Card className="border border-gray-200 shadow-lg">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-lg lg:text-xl">
-                        <Code className="h-5 w-5 text-blue-600" />
-                        Required Skills
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2 lg:gap-3">
-                        {parsedInfo.skills.map((skill, idx) => (
-                          <Badge key={idx} className="bg-blue-100 text-blue-700 border border-blue-200 px-3 py-1.5 text-sm lg:text-base">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Requirements Section */}
-                {parsedInfo.requirements.length > 0 && (
-                  <Card className="border border-gray-200 shadow-lg">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-lg lg:text-xl">
-                        <GraduationCap className="h-5 w-5 text-blue-600" />
-                        Requirements & Qualifications
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {parsedInfo.requirements.map((req, idx) => (
-                          <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <Briefcase className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <p className="text-sm lg:text-base text-gray-700 flex-1 leading-relaxed">{req}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Notes/Description Section */}
+                {/* Job Description Section */}
                 <Card className="border border-gray-200 shadow-lg">
                   <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-xl lg:text-2xl">
-                      <FileText className="h-6 w-6 text-blue-600" />
-                      Job Description & Notes
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-xl lg:text-2xl">
+                        <FileText className="h-6 w-6 text-blue-600" />
+                        Job Description
+                      </CardTitle>
+                      {!isEditingDescription && (
+                        <Button
+                          onClick={() => {
+                            setIsEditingDescription(true);
+                            setEditedDescription(job.description || '');
+                          }}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+                      )}
+                      {isEditingDescription && (
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={async () => {
+                              try {
+                                await jobApi.updateJob(job.id, { description: editedDescription });
+                                setJob({ ...job, description: editedDescription });
+                                setIsEditingDescription(false);
+                              } catch (error) {
+                                console.error('Failed to save description:', error);
+                                alert('Failed to save description');
+                              }
+                            }}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            Save
+                          </Button>
+                          <Button
+                            onClick={() => {
+                              setIsEditingDescription(false);
+                              setEditedDescription(job.description || '');
+                            }}
+                            size="sm"
+                            variant="outline"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    {parsedInfo.notes ? (
+                    {isEditingDescription ? (
+                      <Textarea
+                        value={editedDescription}
+                        onChange={(e) => setEditedDescription(e.target.value)}
+                        className="min-h-[300px] text-base lg:text-lg leading-relaxed"
+                        placeholder="Enter job description..."
+                      />
+                    ) : job.description ? (
                       <div className="prose prose-lg max-w-none whitespace-pre-wrap text-gray-800 text-base lg:text-lg leading-relaxed bg-gray-50 border border-gray-200 rounded-lg p-6 lg:p-8 min-h-[300px] max-h-[calc(100vh-400px)] overflow-y-auto">
-                        {parsedInfo.notes}
+                        {job.description}
                       </div>
                     ) : (
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 lg:p-12 bg-gray-50 text-center min-h-[300px] flex flex-col items-center justify-center">
@@ -471,6 +607,7 @@ export default function JobDetail() {
                     )}
                   </CardContent>
                 </Card>
+
               </div>
 
               {/* Quick Actions */}
@@ -482,7 +619,7 @@ export default function JobDetail() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {job.job_url && (
-                      <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-base py-6">
+                      <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white text-base py-6">
                         <a href={job.job_url} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-5 w-5 mr-2" /> Apply Now
                         </a>
@@ -491,6 +628,10 @@ export default function JobDetail() {
                     
                     <Button 
                       onClick={() => {
+                        if (subscriptionTier === 'free') {
+                          setUpgradeModalOpen(true);
+                          return;
+                        }
                         setActiveTab('match');
                         setTimeout(() => handleAnalyzeMatch(), 100);
                       }}
@@ -499,19 +640,43 @@ export default function JobDetail() {
                     >
                       <Sparkles className="h-5 w-5 mr-2" />
                       Analyze Job Match
+                      {subscriptionTier === 'free' && (
+                        <Lock className="h-4 w-4 ml-2" />
+                      )}
                     </Button>
 
-                    {/* Keywords from Job Description */}
+                    {/* Job Specific Keywords - Premium Feature */}
                     <Card className="border border-gray-200 shadow-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
                           <Code className="h-5 w-5 text-blue-600" />
-                          Key Keywords
+                          Job Specific Keywords
+                          {subscriptionTier === 'free' && (
+                            <Badge className="ml-auto bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Pro
+                            </Badge>
+                          )}
                         </CardTitle>
                         <p className="text-xs text-gray-500 mt-1">Important terms from job description</p>
                       </CardHeader>
                       <CardContent>
-                        {parsedInfo.skills.length > 0 ? (
+                        {subscriptionTier === 'free' ? (
+                          <div className="text-center py-6">
+                            <Lock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                            <p className="text-sm font-semibold text-gray-700 mb-2">Premium Feature</p>
+                            <p className="text-xs text-gray-500 mb-4">
+                              Unlock Job Specific Keywords with Pro to see important terms extracted from job descriptions.
+                            </p>
+                            <Button
+                              onClick={() => setUpgradeModalOpen(true)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-4"
+                            >
+                              <Crown className="h-4 w-4 mr-2" />
+                              Upgrade to Pro
+                            </Button>
+                          </div>
+                        ) : parsedInfo.skills.length > 0 ? (
                           <div className="flex flex-wrap gap-2 lg:gap-2.5">
                             {parsedInfo.skills.map((skill, idx) => (
                               <Badge 
@@ -536,6 +701,29 @@ export default function JobDetail() {
                         )}
                       </CardContent>
                     </Card>
+
+                    {/* Tailor Resume Card */}
+                    <Card className="border border-gray-200 shadow-sm">
+                      <CardContent className="pt-6">
+                        <Button 
+                          onClick={handleTailorResume}
+                          disabled={checkingResume}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-base py-6"
+                        >
+                          {checkingResume ? (
+                            <>
+                              <Loader2Icon className="h-5 w-5 mr-2 animate-spin" />
+                              Checking...
+                            </>
+                          ) : (
+                            <>
+                              <FileCheck className="h-5 w-5 mr-2" />
+                              Tailor Resume
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
                   </CardContent>
                 </Card>
               </div>
@@ -552,7 +740,15 @@ export default function JobDetail() {
                       <Sparkles className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-xl lg:text-2xl text-gray-900">AI Job Match Analyzer</CardTitle>
+                      <CardTitle className="text-xl lg:text-2xl text-gray-900 flex items-center gap-2">
+                        AI Job Match Analyzer
+                        {subscriptionTier === 'free' && (
+                          <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
+                            <Lock className="h-3 w-3 mr-1" />
+                            Pro
+                          </Badge>
+                        )}
+                      </CardTitle>
                       <p className="text-sm lg:text-base text-gray-600 mt-1">
                         See how well your profile matches this job opportunity
                       </p>
@@ -561,7 +757,27 @@ export default function JobDetail() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {!matchAnalysis ? (
+                {subscriptionTier === 'free' ? (
+                  <div className="text-center py-8 lg:py-12">
+                    <div className="inline-flex items-center justify-center w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-blue-100 mb-4">
+                      <Lock className="h-10 w-10 lg:h-12 lg:w-12 text-blue-600" />
+                    </div>
+                    <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 mb-2">
+                      Premium Feature
+                    </h3>
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto text-base lg:text-lg">
+                      AI Job Match Analyzer is a Pro feature. Upgrade to see how well your profile matches this job opportunity with personalized insights and recommendations.
+                    </p>
+                    <Button
+                      onClick={() => setUpgradeModalOpen(true)}
+                      size="lg"
+                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg text-base lg:text-lg px-8 py-6"
+                    >
+                      <Crown className="h-5 w-5 mr-2" />
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                ) : !matchAnalysis ? (
                   <div className="text-center py-8 lg:py-12">
                     <div className="inline-flex items-center justify-center w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-blue-100 mb-4">
                       <Zap className="h-10 w-10 lg:h-12 lg:w-12 text-blue-600" />
@@ -587,7 +803,7 @@ export default function JobDetail() {
                       </div>
                     )}
                     <Button 
-                      onClick={handleAnalyzeMatch} 
+                      onClick={handleAnalyzeMatch}
                       disabled={analyzing}
                       size="lg"
                       className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg text-base lg:text-lg px-8 py-6"
@@ -737,6 +953,14 @@ export default function JobDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Upgrade to Pro Modal */}
+      <UpgradeModal
+        open={upgradeModalOpen}
+        onOpenChange={setUpgradeModalOpen}
+        onActivate={handleActivatePro}
+        processing={processingUpgrade}
+      />
     </div>
   );
 }

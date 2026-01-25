@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Star, MoreHorizontal, Plus, Edit, Trash2, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Grid, Maximize2, FileText } from 'lucide-react';
+import { Star, MoreHorizontal, Plus, Edit, Trash2, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Grid, Maximize2, FileText, Building2, DollarSign, MapPin } from 'lucide-react';
 import { Job, CreateJobData } from '@/lib/types';
 import { jobApi, profileApi } from '@/lib/api';
 import { JobModal } from '@/components/Jobs/AddJobModal';
@@ -25,7 +25,7 @@ export function Dashboard({ }: DashboardProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedJobs, setSelectedJobs] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'card'>('list');
   const [isFullScreenKanban, setIsFullScreenKanban] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
@@ -514,13 +514,48 @@ export function Dashboard({ }: DashboardProps) {
   // Status color helpers matching the screenshot design
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Bookmarked': return 'bg-white border-gray-200 text-gray-900';
+      case 'Bookmarked': return 'bg-amber-50 border-amber-200 text-amber-900';
       case 'Applying': return 'bg-yellow-100 border-yellow-200 text-yellow-900';
       case 'Applied': return 'bg-blue-100 border-blue-200 text-blue-900';
       case 'Interviewing': return 'bg-purple-100 border-purple-200 text-purple-900';
       case 'Accepted': return 'bg-green-100 border-green-200 text-green-900';
       default: return 'bg-gray-100 border-gray-200 text-gray-900';
     }
+  };
+
+  // Generate consistent color gradient based on company name
+  const getCompanyColor = (company: string) => {
+    if (!company) return 'from-gray-400 to-gray-500';
+    
+    // Color palettes for gradients
+    const colorPalettes = [
+      { from: 'from-blue-500', to: 'to-indigo-600' },
+      { from: 'from-purple-500', to: 'to-pink-600' },
+      { from: 'from-emerald-500', to: 'to-teal-600' },
+      { from: 'from-orange-500', to: 'to-red-600' },
+      { from: 'from-cyan-500', to: 'to-blue-600' },
+      { from: 'from-violet-500', to: 'to-purple-600' },
+      { from: 'from-rose-500', to: 'to-pink-600' },
+      { from: 'from-amber-500', to: 'to-orange-600' },
+      { from: 'from-lime-500', to: 'to-green-600' },
+      { from: 'from-sky-500', to: 'to-cyan-600' },
+    ];
+    
+    // Simple hash function to get consistent color for same company
+    let hash = 0;
+    for (let i = 0; i < company.length; i++) {
+      hash = company.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colorPalettes.length;
+    return `${colorPalettes[index].from} ${colorPalettes[index].to}`;
+  };
+
+  // Get company initials
+  const getCompanyInitials = (company: string) => {
+    if (!company) return 'JS';
+    const words = company.trim().split(/\s+/);
+    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+    return (words[0][0] + words[words.length - 1][0]).toUpperCase();
   };
 
   const renderStars = (count: number) => {
@@ -640,10 +675,13 @@ export function Dashboard({ }: DashboardProps) {
                 className="h-8 w-auto"
               />
             </div>
-            <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-8">
-              <a href="#" className="text-blue-600 font-semibold px-4 py-2 rounded-full bg-blue-50">Jobs</a>
+            <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-4">
+              <a href="#" className="text-blue-600 font-semibold px-4 py-2 rounded-full bg-blue-50">JobTracker</a>
               <a href="/resume-builder" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/resume-builder'); }}>
                 Resume Builder
+              </a>
+              <a href="/job-matcher" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/job-matcher'); }}>
+                Job Matcher
               </a>
               <a href="/profile" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>
                 Profile
@@ -659,8 +697,9 @@ export function Dashboard({ }: DashboardProps) {
         {/* Mobile nav */}
         <div className="md:hidden px-4 pb-4 -mt-4">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">Jobs</button>
+            <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">JobTracker</button>
             <button onClick={() => navigate('/resume-builder')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Resume Builder</button>
+            <button onClick={() => navigate('/job-matcher')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Job Matcher</button>
             <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Profile</button>
           </div>
         </div>
@@ -792,20 +831,28 @@ export function Dashboard({ }: DashboardProps) {
               </div>
               <div className="flex items-center justify-center space-x-1 bg-gray-100 rounded-full p-1 shadow-sm">
                 <Button 
-                  variant={viewMode === 'list' ? 'default' : 'ghost'} 
+                  variant="ghost" 
                   size="sm" 
                   onClick={() => setViewMode('list')} 
-                  className={`${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'} font-medium`}
+                  className={`${viewMode === 'list' ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'} font-medium transition-all duration-200`}
                 >
                   List
                 </Button>
                 <Button 
-                  variant={viewMode === 'kanban' ? 'default' : 'ghost'} 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setViewMode('card')} 
+                  className={`${viewMode === 'card' ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'} font-medium transition-all duration-200`}
+                >
+                  Card
+                </Button>
+                <Button 
+                  variant="ghost" 
                   size="sm" 
                   onClick={() => setViewMode('kanban')} 
-                  className={`${viewMode === 'kanban' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'} font-medium`}
+                  className={`${viewMode === 'kanban' ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'} font-medium transition-all duration-200`}
                 >
-                  <Grid className="w-4 h-4 sm:mr-2" />
+                  <Grid className={`w-4 h-4 sm:mr-2 ${viewMode === 'kanban' ? 'text-white' : 'text-gray-600'}`} />
                   <span className="hidden sm:inline">Kanban</span>
                 </Button>
               </div>
@@ -961,6 +1008,142 @@ export function Dashboard({ }: DashboardProps) {
                 </tbody>
               </table>
             </div>
+          </div>
+        ) : viewMode === 'card' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {getFilteredAndSortedJobs().length === 0 ? (
+              <div className="col-span-full px-8 py-16 text-center">
+                <div className="space-y-6">
+                  <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto shadow-lg">
+                    <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.815-9-2.145M21 13.255A23.931 23.931 0 0012 15c-3.183 0-6.22-.815-9-2.145M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.815-9-2.145" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">No jobs yet</h3>
+                    <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">Start tracking your job applications by adding your first job</p>
+                    <Button onClick={handleAddJob} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl px-8 py-4 text-lg transition-all duration-200">
+                      <Plus className="w-5 h-5 mr-2" />
+                      Add Your First Job
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              getFilteredAndSortedJobs().map((job) => (
+                <Card 
+                  key={job.id} 
+                  className="relative bg-white border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden rounded-2xl cursor-pointer"
+                  onClick={() => navigate(`/jobs/${job.id}`)}
+                >
+                  <CardContent className="p-5">
+                    {/* Top Section: Status Badge and Stars - Better Alignment with Color Backgrounds */}
+                    <div className="flex items-center justify-between mb-4">
+                      <Select 
+                        value={job.status} 
+                        onValueChange={(value) => {
+                          handleStatusUpdate(job.id, value as 'Bookmarked' | 'Applying' | 'Applied' | 'Interviewing' | 'Accepted');
+                        }} 
+                        disabled={updatingJobId === job.id}
+                      >
+                        <SelectTrigger 
+                          className={`w-auto border-0 p-0 h-auto ${getStatusColor(job.status)} rounded-lg px-3 py-1.5 text-xs font-semibold hover:opacity-80 transition-opacity shadow-sm`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border border-gray-200 shadow-xl rounded-xl" onClick={(e) => e.stopPropagation()}>
+                          <SelectItem value="Bookmarked" className="rounded-lg">Bookmarked</SelectItem>
+                          <SelectItem value="Applying" className="rounded-lg">Applying</SelectItem>
+                          <SelectItem value="Applied" className="rounded-lg">Applied</SelectItem>
+                          <SelectItem value="Interviewing" className="rounded-lg">Interviewing</SelectItem>
+                          <SelectItem value="Accepted" className="rounded-lg">Accepted</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <div className="flex items-center gap-0.5 bg-yellow-50 px-2.5 py-1.5 rounded-lg border border-yellow-100">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStarRatingUpdate(job.id, star);
+                            }}
+                            disabled={updatingJobId === job.id}
+                            className={`p-0.5 rounded transition-all duration-200 ${
+                              star <= (job.excitement_level || 0)
+                                ? 'text-yellow-400 hover:text-yellow-500'
+                                : 'text-gray-300 hover:text-gray-400'
+                            } ${updatingJobId === job.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            title={`Set rating to ${star} star${star > 1 ? 's' : ''}`}
+                          >
+                            <Star className={`h-4 w-4 ${star <= (job.excitement_level || 0) ? 'fill-current' : ''}`} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Job Title */}
+                    <h3 
+                      className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 leading-snug cursor-pointer hover:text-blue-600 transition-colors"
+                      onClick={() => navigate(`/jobs/${job.id}`)}
+                    >
+                      {job.job_title}
+                    </h3>
+
+                    {/* Company Name with Icon */}
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-7 h-7 rounded-md bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-sm flex-shrink-0">
+                        {job.company.charAt(0).toUpperCase()}
+                      </div>
+                      <p className="text-sm font-semibold text-gray-700 truncate">
+                        {job.company}
+                      </p>
+                    </div>
+
+                    {/* Info Section: Location and Salary - Better Alignment */}
+                    <div className="space-y-2 mb-4">
+                      {job.location && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                          <span className="text-sm font-medium truncate">{job.location}</span>
+                        </div>
+                      )}
+                      {job.salary && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <DollarSign className="h-4 w-4 text-green-600 flex-shrink-0" />
+                          <span className="text-sm font-medium truncate">{job.salary}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bottom Section: Action Buttons */}
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/jobs/${job.id}`)}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-2 py-1 h-auto"
+                      >
+                        View Details
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJobDelete(job);
+                        }}
+                        className="text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 h-auto"
+                        title="Delete job"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-1" />
+                        Delete
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         ) : (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/50 overflow-hidden shadow-lg">

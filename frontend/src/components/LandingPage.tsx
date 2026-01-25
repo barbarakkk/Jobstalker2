@@ -5,7 +5,9 @@ import { Header } from './Layout/Header';
 import { Footer } from './Layout/Footer';
 import { Hero } from './Landing/Hero';
 import { Features } from './Landing/Features';
+import { HowItWorks } from './Landing/HowItWorks';
 import { StatsSection } from './Landing/StatsSection';
+import { Pricing } from './Landing/Pricing';
 import { FAQ } from './Landing/FAQ';
 import { ChromeExtension } from './Landing/ChromeExtension';
 
@@ -50,14 +52,15 @@ export function LandingPage() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-white via-[#4169E1]/10 to-white font-sans">
+    <div className="min-h-screen flex flex-col bg-white font-sans">
       <Header />
       <Hero />
       <Features />
       <ChromeExtension />
       <StatsSection />
+      <Pricing />
       <FAQ />
       <Footer />
     </div>
   );
-} 
+}
