@@ -100,6 +100,7 @@ export interface WorkExperience {
   id?: string;
   title: string;
   company: string;
+  location?: string;
   start_date: string;
   end_date?: string;
   description: string;
@@ -111,6 +112,7 @@ export interface Education {
   id?: string;
   school: string;
   degree: string;
+  field?: string;
   start_date: string;
   end_date?: string;
   added_at: string;
@@ -189,4 +191,59 @@ export interface CreateLanguageData {
 }
 
 export interface UpdateLanguageData extends Partial<CreateLanguageData> {
+}
+
+// Subscription-related interfaces
+export type SubscriptionTier = 'free' | 'pro';
+export type SubscriptionStatus = 'free' | 'active' | 'canceled' | 'past_due' | 'trialing';
+
+export interface SubscriptionLimits {
+  max_resumes: number | null; // null means unlimited
+  max_jobs_from_extension: number | null; // null means unlimited
+  job_matcher_enabled: boolean;
+}
+
+export interface SubscriptionUsage {
+  resumes: number;
+  jobs: number;
+}
+
+export interface Subscription {
+  id?: string;
+  user_id: string;
+  stripe_customer_id?: string;
+  stripe_subscription_id?: string;
+  stripe_price_id?: string;
+  status: SubscriptionStatus;
+  tier: SubscriptionTier;
+  current_period_start?: string;
+  current_period_end?: string;
+  cancel_at_period_end?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface SubscriptionInfo {
+  tier: SubscriptionTier;
+  status: SubscriptionStatus;
+  limits: SubscriptionLimits;
+  usage: SubscriptionUsage;
+  subscription: Subscription | null;
+}
+
+export interface CheckoutSessionResponse {
+  session_id: string;
+  url: string;
+}
+
+export interface PortalSessionResponse {
+  url: string;
+}
+
+// Job Matching Preferences
+export interface JobMatchingPreferences {
+  skills: Skill[]; // Skills from user profile (can be edited in modal)
+  preferredLocations: string[];
+  minSalary: number | null;
+  salaryCurrency: string;
 } 
