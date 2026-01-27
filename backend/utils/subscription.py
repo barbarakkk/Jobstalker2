@@ -6,15 +6,15 @@ from datetime import datetime
 
 SubscriptionTier = Literal['free', 'pro']
 
-# Feature limits
+# Feature limits - All features are now unlimited
 FREE_TIER_LIMITS = {
-    'max_resumes': 1,
-    'max_jobs_from_extension': 100,
-    'job_matcher_enabled': False,
+    'max_resumes': None,  # Unlimited
+    'max_jobs_from_extension': None,  # Unlimited
+    'job_matcher_enabled': True,
 }
 
 PRO_TIER_LIMITS = {
-    'max_resumes': 20,
+    'max_resumes': None,  # Unlimited
     'max_jobs_from_extension': None,  # Unlimited
     'job_matcher_enabled': True,
 }
@@ -47,21 +47,20 @@ async def get_user_subscription_tier(user_id: str) -> SubscriptionTier:
         return "free"
 
 def get_subscription_limits(tier: SubscriptionTier) -> dict:
-    """Get feature limits for a subscription tier"""
-    if tier == "pro":
-        return PRO_TIER_LIMITS
-    return FREE_TIER_LIMITS
+    """Get feature limits for a subscription tier - All features are unlimited"""
+    # Always return unlimited limits regardless of tier
+    return {
+        'max_resumes': None,  # Unlimited
+        'max_jobs_from_extension': None,  # Unlimited
+        'job_matcher_enabled': True,
+    }
 
-async def check_resume_limit(user_id: str) -> tuple[bool, int, int]:
+async def check_resume_limit(user_id: str) -> tuple[bool, int, Optional[int]]:
     """
     Check if user can create more resumes
     Returns: (can_create, current_count, max_allowed)
     """
-    tier = await get_user_subscription_tier(user_id)
-    limits = get_subscription_limits(tier)
-    max_resumes = limits['max_resumes']
-    
-    # Count existing resumes
+    # Always return unlimited
     try:
         response = supabase.table("resume_builder_data").select("id", count="exact").eq("user_id", user_id).execute()
         current_count = response.count if hasattr(response, 'count') else len(response.data) if response.data else 0
@@ -69,48 +68,34 @@ async def check_resume_limit(user_id: str) -> tuple[bool, int, int]:
         print(f"Error counting resumes: {str(e)}")
         current_count = 0
     
-    can_create = current_count < max_resumes
-    return (can_create, current_count, max_resumes)
+    # Always allow unlimited resumes
+    return (True, current_count, None)
 
 async def check_job_limit_from_extension(user_id: str) -> tuple[bool, int, Optional[int]]:
     """
     Check if user can save more jobs from extension
     Returns: (can_save, current_count, max_allowed or None for unlimited)
     """
-    tier = await get_user_subscription_tier(user_id)
-    limits = get_subscription_limits(tier)
-    max_jobs = limits['max_jobs_from_extension']
-    
-    # If unlimited (pro tier), return True
-    if max_jobs is None:
-        return (True, 0, None)
-    
-    # Count jobs saved from extension (jobs with job_url containing linkedin.com or from extension)
+    # Always return unlimited
     try:
-        # We'll count all jobs for now, but in the future we could add a source field
         response = supabase.table("jobs").select("id", count="exact").eq("user_id", user_id).execute()
         current_count = response.count if hasattr(response, 'count') else len(response.data) if response.data else 0
     except Exception as e:
         print(f"Error counting jobs: {str(e)}")
         current_count = 0
     
-    can_save = current_count < max_jobs
-    return (can_save, current_count, max_jobs)
+    # Always allow unlimited jobs
+    return (True, current_count, None)
 
 async def check_job_matcher_access(user_id: str) -> bool:
-    """Check if user has access to job matcher feature (pro only)"""
-    tier = await get_user_subscription_tier(user_id)
-    limits = get_subscription_limits(tier)
-    return limits['job_matcher_enabled']
+    """Check if user has access to job matcher feature - Always enabled"""
+    # Always return True - job matcher is enabled for everyone
+    return True
 
 async def require_pro_tier(user_id: str, feature_name: str = "This feature") -> None:
-    """Raise HTTPException if user is not on pro tier"""
-    tier = await get_user_subscription_tier(user_id)
-    if tier != "pro":
-        raise HTTPException(
-            status_code=403,
-            detail=f"{feature_name} is only available for Pro subscribers. Please upgrade to access this feature."
-        )
+    """No longer requires pro tier - all features are free"""
+    # Do nothing - all features are free
+    pass
 
 async def get_subscription_info(user_id: str) -> dict:
     """Get full subscription information for a user"""
@@ -121,17 +106,17 @@ async def get_subscription_info(user_id: str) -> dict:
             subscription = sub_response.data
             tier = subscription.get("tier", "free")
             status = subscription.get("status", "free")
-            
-            # Only return pro if status is active
-            if status == "active" and tier == "pro":
-                tier = "pro"
-            else:
-                tier = "free"
         else:
             tier = "free"
+            status = "free"
             subscription = None
         
-        limits = get_subscription_limits(tier)
+        # Always return unlimited limits
+        limits = {
+            'max_resumes': None,  # Unlimited
+            'max_jobs_from_extension': None,  # Unlimited
+            'job_matcher_enabled': True,
+        }
         
         # Get current usage
         resume_count = 0
@@ -161,24 +146,18 @@ async def get_subscription_info(user_id: str) -> dict:
         }
     except Exception as e:
         print(f"Error getting subscription info: {str(e)}")
-        # Return free tier info on error
+        # Return unlimited limits on error
         return {
             "tier": "free",
             "status": "free",
-            "limits": FREE_TIER_LIMITS,
+            "limits": {
+                'max_resumes': None,
+                'max_jobs_from_extension': None,
+                'job_matcher_enabled': True,
+            },
             "usage": {
                 "resumes": 0,
                 "jobs": 0
             },
             "subscription": None
         }
-
-
-
-
-
-
-
-
-
-
