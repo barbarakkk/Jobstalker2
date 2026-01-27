@@ -187,8 +187,7 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
     try {
       const edu = await educationApi.addEducation({
         school: newEducation.school.trim(),
-        degree: newEducation.degree?.trim() || undefined,
-        field: newEducation.field?.trim() || undefined,
+        degree: newEducation.degree?.trim() || '',
         start_date: newEducation.start_date || undefined,
         end_date: newEducation.end_date || undefined
       });
