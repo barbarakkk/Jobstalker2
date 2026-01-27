@@ -680,9 +680,10 @@ export function Dashboard({ }: DashboardProps) {
               <a href="/resume-builder" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/resume-builder'); }}>
                 Resume Builder
               </a>
-              <a href="/job-matcher" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/job-matcher'); }}>
+              {/* Job Matcher disabled for production */}
+              {/* <a href="/job-matcher" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/job-matcher'); }}>
                 Job Matcher
-              </a>
+              </a> */}
               <a href="/profile" className="text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200 font-medium px-4 py-2 rounded-full" onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>
                 Profile
               </a>
@@ -699,7 +700,8 @@ export function Dashboard({ }: DashboardProps) {
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button className="px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap">JobTracker</button>
             <button onClick={() => navigate('/resume-builder')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Resume Builder</button>
-            <button onClick={() => navigate('/job-matcher')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Job Matcher</button>
+            {/* Job Matcher disabled for production */}
+            {/* <button onClick={() => navigate('/job-matcher')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Job Matcher</button> */}
             <button onClick={() => navigate('/profile')} className="px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">Profile</button>
           </div>
         </div>

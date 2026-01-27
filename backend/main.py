@@ -28,8 +28,9 @@ from routes.languages import router as languages_router
 from routes.jobs import router as jobs_router
 from routes.ai_extraction import router as ai_extraction_router
 from routes.ai_match import router as ai_match_router
-from routes.subscriptions import router as subscriptions_router
-from routes.job_matcher import router as job_matcher_router
+# Payment system and job matcher disabled for production - will be integrated later
+# from routes.subscriptions import router as subscriptions_router
+# from routes.job_matcher import router as job_matcher_router
 import logging
 import threading
 
@@ -173,8 +174,9 @@ app.include_router(languages_router)
 app.include_router(jobs_router)
 app.include_router(ai_extraction_router)
 app.include_router(ai_match_router)
-app.include_router(subscriptions_router)
-app.include_router(job_matcher_router)
+# Payment system and job matcher disabled for production - will be integrated later
+# app.include_router(subscriptions_router)
+# app.include_router(job_matcher_router)
 
 # Rely on CORSMiddleware for preflight handling and headers
 

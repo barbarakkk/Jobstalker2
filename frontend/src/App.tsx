@@ -13,10 +13,11 @@ const ResumeBuilderHome = lazy(() => import('./components/ResumeBuilder/ResumeBu
 const ResumeEditPage = lazy(() => import('./components/ResumeBuilder/Edit').then(module => ({ default: module.ResumeEditPage })));
 const ResumeFinalizePage = lazy(() => import('./components/ResumeBuilder/Finalize').then(module => ({ default: module.ResumeFinalizePage })));
 const AIGeneratePage = lazy(() => import('./components/ResumeBuilder/AIGenerate').then(module => ({ default: module.AIGeneratePage })));
-const SubscriptionPage = lazy(() => import('./components/Subscription/SubscriptionPage').then(module => ({ default: module.SubscriptionPage })));
-const CheckoutSuccess = lazy(() => import('./components/Subscription/CheckoutSuccess').then(module => ({ default: module.CheckoutSuccess })));
-const CheckoutCancel = lazy(() => import('./components/Subscription/CheckoutCancel').then(module => ({ default: module.CheckoutCancel })));
-const JobMatcherPage = lazy(() => import('./components/JobMatcher/JobMatcherPage').then(module => ({ default: module.JobMatcherPage })));
+// Payment system and job matcher disabled for production - will be integrated later
+// const SubscriptionPage = lazy(() => import('./components/Subscription/SubscriptionPage').then(module => ({ default: module.SubscriptionPage })));
+// const CheckoutSuccess = lazy(() => import('./components/Subscription/CheckoutSuccess').then(module => ({ default: module.CheckoutSuccess })));
+// const CheckoutCancel = lazy(() => import('./components/Subscription/CheckoutCancel').then(module => ({ default: module.CheckoutCancel })));
+// const JobMatcherPage = lazy(() => import('./components/JobMatcher/JobMatcherPage').then(module => ({ default: module.JobMatcherPage })));
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -75,7 +76,8 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          <Route 
+          {/* Job Matcher route - disabled for production */}
+          {/* <Route 
             path="/job-matcher" 
             element={
               <ProtectedRoute>
@@ -84,7 +86,7 @@ function App() {
                 </Suspense>
               </ProtectedRoute>
             } 
-          />
+          /> */}
           {/* Resume Builder routes */}
           {/* Main resume builder home with "Craft New" and "My Resumes" options */}
           <Route 
@@ -127,8 +129,8 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          {/* Subscription routes */}
-          <Route 
+          {/* Subscription routes - disabled for production */}
+          {/* <Route 
             path="/subscription" 
             element={
               <ProtectedRoute>
@@ -157,7 +159,7 @@ function App() {
                 </Suspense>
               </ProtectedRoute>
             } 
-          />
+          /> */}
         </Routes>
       </Suspense>
     </BrowserRouter>

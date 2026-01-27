@@ -3,40 +3,24 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabaseClient';
-import { subscriptionApi } from '@/lib/api';
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+// Payment system disabled for production - will be integrated later
+// import { supabase } from '@/lib/supabaseClient';
+// import { subscriptionApi } from '@/lib/api';
+// import { useState } from 'react';
+// import { Loader2 } from 'lucide-react';
 
 export function Pricing() {
   const navigate = useNavigate();
-  const [processing, setProcessing] = useState(false);
+  // Payment system disabled for production - will be integrated later
+  // const [processing, setProcessing] = useState(false);
 
   const handleGetStarted = () => {
     navigate('/login');
   };
 
-  const handleUpgrade = async () => {
-    try {
-      // Check if user is logged in
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        // Not logged in, redirect to login
-        navigate('/login');
-        return;
-      }
-
-      // User is logged in, create checkout session
-      setProcessing(true);
-      const checkoutSession = await subscriptionApi.createCheckoutSession();
-      // Redirect to Stripe checkout
-      window.location.href = checkoutSession.url;
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      alert('Failed to start checkout. Please try again.');
-      setProcessing(false);
-    }
+  const handleUpgrade = () => {
+    // Payment system disabled for production - redirect to login instead
+    navigate('/login');
   };
 
   return (
@@ -184,17 +168,9 @@ export function Pricing() {
               </ul>
               <Button
                 onClick={handleUpgrade}
-                disabled={processing}
                 className="w-full bg-gradient-to-r from-[#4169E1] to-[#3A5BCE] hover:from-[#3A5BCE] hover:to-[#2E4AB8] text-white font-semibold h-12 shadow-lg hover:shadow-xl transition-all"
               >
-                {processing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Upgrade to Pro'
-                )}
+                Get Started
               </Button>
             </CardContent>
           </Card>
