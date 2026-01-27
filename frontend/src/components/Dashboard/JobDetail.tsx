@@ -273,12 +273,6 @@ export default function JobDetail() {
   const handleAnalyzeMatch = useCallback(async () => {
     if (!job || !id) return;
     
-    // Check if user has pro tier
-    if (subscriptionTier === 'free') {
-      setUpgradeModalOpen(true);
-      return;
-    }
-    
     setAnalyzing(true);
     setAnalysisError(null);
     
@@ -291,7 +285,7 @@ export default function JobDetail() {
     } finally {
       setAnalyzing(false);
     }
-  }, [job, id, subscriptionTier]);
+  }, [job, id]);
 
   // Handle Tailor Resume button click
   const handleTailorResume = useCallback(async () => {
@@ -299,21 +293,8 @@ export default function JobDetail() {
     
     setCheckingResume(true);
     try {
-      // Check subscription status
-      const subscriptionInfo = await subscriptionApi.getStatus();
-      const maxResumes = subscriptionInfo.limits.max_resumes ?? 1; // Default to 1 if null
-      const tier = subscriptionInfo.tier;
-      
       // Get existing resumes
       const resumes = await listResumes();
-      const resumeCount = resumes?.length || 0;
-      
-      // Check if user has reached limit
-      if (maxResumes && resumeCount >= maxResumes && tier === 'free') {
-        setUpgradeModalOpen(true);
-        setCheckingResume(false);
-        return;
-      }
       
       // Use existing resume if available, otherwise create new one
       let resumeId: string;
@@ -628,10 +609,6 @@ export default function JobDetail() {
                     
                     <Button 
                       onClick={() => {
-                        if (subscriptionTier === 'free') {
-                          setUpgradeModalOpen(true);
-                          return;
-                        }
                         setActiveTab('match');
                         setTimeout(() => handleAnalyzeMatch(), 100);
                       }}
@@ -640,43 +617,19 @@ export default function JobDetail() {
                     >
                       <Sparkles className="h-5 w-5 mr-2" />
                       Analyze Job Match
-                      {subscriptionTier === 'free' && (
-                        <Lock className="h-4 w-4 ml-2" />
-                      )}
                     </Button>
 
-                    {/* Job Specific Keywords - Premium Feature */}
+                    {/* Job Specific Keywords */}
                     <Card className="border border-gray-200 shadow-sm">
                       <CardHeader className="pb-3">
                         <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
                           <Code className="h-5 w-5 text-blue-600" />
                           Job Specific Keywords
-                          {subscriptionTier === 'free' && (
-                            <Badge className="ml-auto bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
-                              <Lock className="h-3 w-3 mr-1" />
-                              Pro
-                            </Badge>
-                          )}
                         </CardTitle>
                         <p className="text-xs text-gray-500 mt-1">Important terms from job description</p>
                       </CardHeader>
                       <CardContent>
-                        {subscriptionTier === 'free' ? (
-                          <div className="text-center py-6">
-                            <Lock className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                            <p className="text-sm font-semibold text-gray-700 mb-2">Premium Feature</p>
-                            <p className="text-xs text-gray-500 mb-4">
-                              Unlock Job Specific Keywords with Pro to see important terms extracted from job descriptions.
-                            </p>
-                            <Button
-                              onClick={() => setUpgradeModalOpen(true)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 px-4"
-                            >
-                              <Crown className="h-4 w-4 mr-2" />
-                              Upgrade to Pro
-                            </Button>
-                          </div>
-                        ) : parsedInfo.skills.length > 0 ? (
+                        {parsedInfo.skills.length > 0 ? (
                           <div className="flex flex-wrap gap-2 lg:gap-2.5">
                             {parsedInfo.skills.map((skill, idx) => (
                               <Badge 
@@ -742,12 +695,6 @@ export default function JobDetail() {
                     <div>
                       <CardTitle className="text-xl lg:text-2xl text-gray-900 flex items-center gap-2">
                         AI Job Match Analyzer
-                        {subscriptionTier === 'free' && (
-                          <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-200 text-xs">
-                            <Lock className="h-3 w-3 mr-1" />
-                            Pro
-                          </Badge>
-                        )}
                       </CardTitle>
                       <p className="text-sm lg:text-base text-gray-600 mt-1">
                         See how well your profile matches this job opportunity
@@ -757,27 +704,7 @@ export default function JobDetail() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {subscriptionTier === 'free' ? (
-                  <div className="text-center py-8 lg:py-12">
-                    <div className="inline-flex items-center justify-center w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-blue-100 mb-4">
-                      <Lock className="h-10 w-10 lg:h-12 lg:w-12 text-blue-600" />
-                    </div>
-                    <h3 className="text-xl lg:text-2xl font-semibold text-gray-900 mb-2">
-                      Premium Feature
-                    </h3>
-                    <p className="text-gray-600 mb-6 max-w-md mx-auto text-base lg:text-lg">
-                      AI Job Match Analyzer is a Pro feature. Upgrade to see how well your profile matches this job opportunity with personalized insights and recommendations.
-                    </p>
-                    <Button
-                      onClick={() => setUpgradeModalOpen(true)}
-                      size="lg"
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg text-base lg:text-lg px-8 py-6"
-                    >
-                      <Crown className="h-5 w-5 mr-2" />
-                      Upgrade to Pro
-                    </Button>
-                  </div>
-                ) : !matchAnalysis ? (
+                {!matchAnalysis ? (
                   <div className="text-center py-8 lg:py-12">
                     <div className="inline-flex items-center justify-center w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-blue-100 mb-4">
                       <Zap className="h-10 w-10 lg:h-12 lg:w-12 text-blue-600" />

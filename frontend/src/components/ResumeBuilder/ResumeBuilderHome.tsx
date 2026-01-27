@@ -99,16 +99,6 @@ export function ResumeBuilderHome() {
   };
 
   const handleCreateNew = async () => {
-    if (resumes.length >= maxResumes) {
-      // Show upgrade modal for free tier users
-      if (subscriptionTier === 'free') {
-        setUpgradeModalOpen(true);
-        return;
-      }
-      // For pro users who hit limit, show alert
-      alert(`You've reached your resume limit of ${maxResumes} resume(s).`);
-      return;
-    }
     setIsCreating(true);
     setError(null);
     try {
@@ -229,18 +219,7 @@ export function ResumeBuilderHome() {
     } catch (err: any) {
       console.error('Failed to create resume:', err);
       
-      // Check if it's a limit error
-      const errorMessage = err?.message || '';
-      if (errorMessage.includes('Resume limit reached') || errorMessage.includes('403')) {
-        const limitMessage = subscriptionTier === 'free'
-          ? `Resume limit reached. Free tier allows ${maxResumes} resume(s). You currently have ${resumes.length}. Upgrade to Pro for up to 20 professional resumes.`
-          : `Resume limit reached. You currently have ${resumes.length} of ${maxResumes} resumes.`;
-        setError(limitMessage);
-        // Reload subscription info in case it changed
-        await loadSubscriptionInfo();
-      } else {
-        setError('Failed to create resume. Please try again.');
-      }
+      setError('Failed to create resume. Please try again.');
     } finally {
       setIsCreating(false);
     }
@@ -293,7 +272,7 @@ export function ResumeBuilderHome() {
     });
   };
 
-  const canCreateNew = resumes.length < maxResumes;
+  const canCreateNew = true; // Always allow creating new resumes
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -311,11 +290,7 @@ export function ResumeBuilderHome() {
           onClick={!isCreating ? handleCreateNew : undefined}
         >
           {/* Gradient Background */}
-          <div className={`absolute inset-0 ${
-            canCreateNew 
-              ? 'bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 group-hover:from-blue-500 group-hover:via-blue-400 group-hover:to-indigo-500' 
-              : 'bg-gradient-to-br from-slate-700 via-slate-600 to-slate-800'
-          } transition-all duration-500`} />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-600 group-hover:from-blue-500 group-hover:via-blue-400 group-hover:to-indigo-500 transition-all duration-500" />
           
           {/* Animated Pattern Overlay */}
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wOCI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-40 group-hover:opacity-60 transition-opacity duration-500" />
@@ -325,17 +300,11 @@ export function ResumeBuilderHome() {
           
           <div className="relative p-8 md:p-10 flex flex-col md:flex-row items-center gap-6">
             {/* Icon Container */}
-            <div className={`w-20 h-20 md:w-24 md:h-24 rounded-3xl flex items-center justify-center transition-all duration-300 ${
-              canCreateNew 
-                ? 'bg-white/20 backdrop-blur-sm group-hover:bg-white/30 group-hover:scale-110 shadow-lg' 
-                : 'bg-white/10'
-            }`}>
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl flex items-center justify-center transition-all duration-300 bg-white/20 backdrop-blur-sm group-hover:bg-white/30 group-hover:scale-110 shadow-lg">
               {isCreating ? (
                 <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-white animate-spin" />
-              ) : canCreateNew ? (
-                <Plus className="w-10 h-10 md:w-12 md:h-12 text-white group-hover:rotate-90 transition-transform duration-300" />
               ) : (
-                <Lock className="w-9 h-9 md:w-11 md:h-11 text-white/80" />
+                <Plus className="w-10 h-10 md:w-12 md:h-12 text-white group-hover:rotate-90 transition-transform duration-300" />
               )}
             </div>
             
@@ -347,11 +316,7 @@ export function ResumeBuilderHome() {
               <p className="text-white/90 text-base md:text-lg leading-relaxed">
                 {isCreating 
                   ? 'Creating your resume...'
-                  : canCreateNew 
-                    ? 'Start fresh with our AI-powered wizard to create a professional resume that stands out'
-                    : subscriptionTier === 'free'
-                      ? `You've reached the free tier limit. Click to upgrade to Pro and create up to 20 professional resumes.`
-                      : `You've reached your resume limit. Delete one to create more.`
+                  : 'Start fresh with our AI-powered wizard to create a professional resume that stands out'
                 }
               </p>
             </div>
@@ -364,25 +329,17 @@ export function ResumeBuilderHome() {
                 handleCreateNew();
               }}
               disabled={isCreating}
-              className={`font-bold px-8 py-6 text-base md:text-lg shadow-2xl transition-all duration-300 ${
-                canCreateNew
-                  ? 'bg-white text-blue-600 hover:bg-white/95 hover:scale-105 active:scale-95'
-                  : 'bg-white/20 text-white border-2 border-white/30 hover:bg-white/30'
-              }`}
+              className="font-bold px-8 py-6 text-base md:text-lg shadow-2xl transition-all duration-300 bg-white text-blue-600 hover:bg-white/95 hover:scale-105 active:scale-95"
             >
               {isCreating ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Creating...
                 </>
-              ) : canCreateNew ? (
+              ) : (
                 <>
                   <Plus className="w-5 h-5 mr-2" />
                   Get Started
-                </>
-              ) : (
-                <>
-                  Upgrade to Pro
                 </>
               )}
             </Button>
@@ -399,26 +356,9 @@ export function ResumeBuilderHome() {
               <div>
                 <h2 className="text-xl font-semibold text-gray-900">My Resumes</h2>
                 <p className="text-sm text-gray-500">
-                  {resumes.length} of {maxResumes} resume{maxResumes !== 1 ? 's' : ''} used
-                  {subscriptionTier === 'free' && maxResumes === 1 && (
-                    <span className="ml-2 text-blue-600 font-medium">(Free tier)</span>
-                  )}
+                  {resumes.length} resume{resumes.length !== 1 ? 's' : ''} created
                 </p>
               </div>
-            </div>
-            {/* Progress indicator */}
-            <div className="flex items-center gap-2">
-              {[...Array(Math.min(maxResumes, 10))].map((_, i) => (
-                <div 
-                  key={i}
-                  className={`w-3 h-3 rounded-full transition-colors ${
-                    i < resumes.length ? 'bg-[#295acf]' : 'bg-gray-200'
-                  }`}
-                />
-              ))}
-              {maxResumes > 10 && (
-                <span className="text-xs text-gray-500 ml-1">+{maxResumes - 10}</span>
-              )}
             </div>
           </div>
 
