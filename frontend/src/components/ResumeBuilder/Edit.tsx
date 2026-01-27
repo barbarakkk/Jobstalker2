@@ -11,6 +11,7 @@ import { TemplateRenderer } from '@/components/ResumeBuilder/Templates/TemplateR
 import { supabase } from '@/lib/supabaseClient';
 import { profileApi, skillsApi, experienceApi, educationApi } from '@/lib/api';
 import type { Profile, Skill as ProfileSkill, WorkExperience as ProfileWorkExperience, Education as ProfileEducation } from '@/types/resume';
+import type { Education as ApiEducation, WorkExperience as ApiWorkExperience, Skill as ApiSkill } from '@/lib/types';
 import { 
   Loader2, 
   Download, 
@@ -204,7 +205,7 @@ export function ResumeEditPage() {
         // Update work experience if missing
         if (experienceResult.status === 'fulfilled' && !hasWorkExp) {
           const experience = experienceResult.value;
-          updates.workExperience = experience.map((exp: ProfileWorkExperience | any) => ({
+          updates.workExperience = experience.map((exp: ApiWorkExperience) => ({
             id: exp.id || `exp-${Date.now()}-${Math.random()}`,
             title: exp.title || '',
             company: exp.company || '',
@@ -219,7 +220,7 @@ export function ResumeEditPage() {
         // Update education if missing
         if (educationResult.status === 'fulfilled' && !hasEducation) {
           const educationData = educationResult.value;
-          updates.education = educationData.map((edu: ProfileEducation) => ({
+          updates.education = educationData.map((edu: ApiEducation) => ({
             id: edu.id || `edu-${Date.now()}-${Math.random()}`,
             school: edu.school || '',
             degree: edu.degree || '',
@@ -232,7 +233,7 @@ export function ResumeEditPage() {
         // Update skills if missing
         if (skillsResult.status === 'fulfilled' && !hasSkills) {
           const skillsData = skillsResult.value;
-          updates.skills = skillsData.map((skill: ProfileSkill) => ({
+          updates.skills = skillsData.map((skill: ApiSkill) => ({
             id: skill.id || `skill-${Date.now()}-${Math.random()}`,
             name: skill.name || '',
             category: 'Technical'

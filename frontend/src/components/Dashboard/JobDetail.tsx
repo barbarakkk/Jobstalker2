@@ -301,7 +301,7 @@ export default function JobDetail() {
     try {
       // Check subscription status
       const subscriptionInfo = await subscriptionApi.getStatus();
-      const maxResumes = subscriptionInfo.limits.max_resumes;
+      const maxResumes = subscriptionInfo.limits.max_resumes ?? 1; // Default to 1 if null
       const tier = subscriptionInfo.tier;
       
       // Get existing resumes
@@ -309,7 +309,7 @@ export default function JobDetail() {
       const resumeCount = resumes?.length || 0;
       
       // Check if user has reached limit
-      if (resumeCount >= maxResumes && tier === 'free') {
+      if (maxResumes && resumeCount >= maxResumes && tier === 'free') {
         setUpgradeModalOpen(true);
         setCheckingResume(false);
         return;

@@ -76,7 +76,7 @@ export function JobMatcherPage() {
 
   return (
     <div className="min-h-screen bg-[#f5f8ff]">
-      <AppHeader active="job-matcher" />
+      <AppHeader active="jobs" />
       
       <div className="container mx-auto px-4 lg:px-8 py-8 lg:py-12">
         {/* Header Section */}

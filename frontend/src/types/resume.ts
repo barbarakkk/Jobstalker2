@@ -50,3 +50,6 @@ export interface ResumeData {
   languages: Language[];
   summary: string;
 }
+
+// Alias for compatibility
+export type Profile = PersonalInfo;

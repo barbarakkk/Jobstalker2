@@ -187,8 +187,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
     try {
       const edu = await educationApi.addEducation({
         school: newEducation.school.trim(),
-        degree: newEducation.degree.trim() || undefined,
-        field: newEducation.field.trim() || undefined,
+        degree: newEducation.degree?.trim() || undefined,
+        field: newEducation.field?.trim() || undefined,
         start_date: newEducation.start_date || undefined,
         end_date: newEducation.end_date || undefined
       });
@@ -399,8 +399,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           <Label>Job Title</Label>
                           <Input
                             value={exp.title}
-                            onChange={(e) => setWorkExperience(workExperience.map(e => 
-                              e.id === exp.id ? { ...e, title: e.target.value } : e
+                            onChange={(event) => setWorkExperience(workExperience.map(expItem => 
+                              expItem.id === exp.id ? { ...expItem, title: event.target.value } : expItem
                             ))}
                           />
                         </div>
@@ -408,8 +408,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           <Label>Company</Label>
                           <Input
                             value={exp.company}
-                            onChange={(e) => setWorkExperience(workExperience.map(e => 
-                              e.id === exp.id ? { ...e, company: e.target.value } : e
+                            onChange={(event) => setWorkExperience(workExperience.map(expItem => 
+                              expItem.id === exp.id ? { ...expItem, company: event.target.value } : expItem
                             ))}
                           />
                         </div>
@@ -419,8 +419,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           <Label>Location</Label>
                           <Input
                             value={exp.location || ''}
-                            onChange={(e) => setWorkExperience(workExperience.map(e => 
-                              e.id === exp.id ? { ...e, location: e.target.value } : e
+                            onChange={(event) => setWorkExperience(workExperience.map(expItem => 
+                              expItem.id === exp.id ? { ...expItem, location: event.target.value } : expItem
                             ))}
                             placeholder="City, State/Country"
                           />
@@ -432,8 +432,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           <Input
                             type="date"
                             value={exp.start_date ? new Date(exp.start_date).toISOString().split('T')[0] : ''}
-                            onChange={(e) => setWorkExperience(workExperience.map(e => 
-                              e.id === exp.id ? { ...e, start_date: e.target.value } : e
+                            onChange={(event) => setWorkExperience(workExperience.map(expItem => 
+                              expItem.id === exp.id ? { ...expItem, start_date: event.target.value } : expItem
                             ))}
                           />
                         </div>
@@ -442,8 +442,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           <Input
                             type="date"
                             value={exp.end_date ? new Date(exp.end_date).toISOString().split('T')[0] : ''}
-                            onChange={(e) => setWorkExperience(workExperience.map(e => 
-                              e.id === exp.id ? { ...e, end_date: e.target.value } : e
+                            onChange={(event) => setWorkExperience(workExperience.map(expItem => 
+                              expItem.id === exp.id ? { ...expItem, end_date: event.target.value } : expItem
                             ))}
                             disabled={exp.is_current}
                           />
@@ -454,8 +454,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           type="checkbox"
                           id={`current-${exp.id}`}
                           checked={exp.is_current}
-                          onChange={(e) => setWorkExperience(workExperience.map(e => 
-                            e.id === exp.id ? { ...e, is_current: e.target.checked, end_date: e.target.checked ? undefined : e.end_date } : e
+                          onChange={(event) => setWorkExperience(workExperience.map(expItem => 
+                            expItem.id === exp.id ? { ...expItem, is_current: event.target.checked, end_date: event.target.checked ? undefined : expItem.end_date } : expItem
                           ))}
                           className="w-4 h-4"
                         />
@@ -465,8 +465,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                         <Label>Description</Label>
                         <Textarea
                           value={exp.description || ''}
-                          onChange={(e) => setWorkExperience(workExperience.map(e => 
-                            e.id === exp.id ? { ...e, description: e.target.value } : e
+                          onChange={(event) => setWorkExperience(workExperience.map(expItem => 
+                            expItem.id === exp.id ? { ...expItem, description: event.target.value } : expItem
                           ))}
                           rows={3}
                         />
@@ -612,23 +612,23 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                       <Input
                         placeholder="School"
                         value={edu.school}
-                        onChange={(e) => setEducation(education.map(e => 
-                          e.id === edu.id ? { ...e, school: e.target.value } : e
+                        onChange={(event) => setEducation(education.map(eduItem => 
+                          eduItem.id === edu.id ? { ...eduItem, school: event.target.value } : eduItem
                         ))}
                       />
                       <div className="grid grid-cols-2 gap-3">
                         <Input
                           placeholder="Degree"
                           value={edu.degree || ''}
-                          onChange={(e) => setEducation(education.map(e => 
-                            e.id === edu.id ? { ...e, degree: e.target.value } : e
+                          onChange={(event) => setEducation(education.map(eduItem => 
+                            eduItem.id === edu.id ? { ...eduItem, degree: event.target.value } : eduItem
                           ))}
                         />
                         <Input
                           placeholder="Field of Study"
                           value={edu.field || ''}
-                          onChange={(e) => setEducation(education.map(e => 
-                            e.id === edu.id ? { ...e, field: e.target.value } : e
+                          onChange={(event) => setEducation(education.map(eduItem => 
+                            eduItem.id === edu.id ? { ...eduItem, field: event.target.value } : eduItem
                           ))}
                         />
                       </div>
@@ -638,8 +638,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           <Input
                             type="date"
                             value={edu.start_date ? new Date(edu.start_date).toISOString().split('T')[0] : ''}
-                            onChange={(e) => setEducation(education.map(e => 
-                              e.id === edu.id ? { ...e, start_date: e.target.value } : e
+                            onChange={(event) => setEducation(education.map(eduItem => 
+                              eduItem.id === edu.id ? { ...eduItem, start_date: event.target.value } : eduItem
                             ))}
                           />
                         </div>
@@ -648,8 +648,8 @@ export function ProfileInfoModal({ isOpen, onClose, onConfirm }: ProfileInfoModa
                           <Input
                             type="date"
                             value={edu.end_date ? new Date(edu.end_date).toISOString().split('T')[0] : ''}
-                            onChange={(e) => setEducation(education.map(e => 
-                              e.id === edu.id ? { ...e, end_date: e.target.value } : e
+                            onChange={(event) => setEducation(education.map(eduItem => 
+                              eduItem.id === edu.id ? { ...eduItem, end_date: event.target.value } : eduItem
                             ))}
                           />
                         </div>
