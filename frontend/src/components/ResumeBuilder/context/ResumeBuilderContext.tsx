@@ -370,20 +370,36 @@ export function ResumeBuilderProvider({ children }: { children: React.ReactNode 
   }, [getAuthToken]);
 
   const listResumes = useCallback(async (): Promise<any[]> => {
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
+      (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
+
+    const doFetch = async (token: string | null) => {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const response = await fetch(`${API_BASE_URL}/api/resume-builder/list`, { headers });
+      return response;
+    };
+
     try {
-      const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      let token = await getAuthToken();
+      // If no session, return empty list instead of calling API (avoids 401 when session not ready)
+      if (!token) {
+        return [];
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/resume-builder/list`, {
-        headers,
-      });
+      let response = await doFetch(token);
+      if (response.status === 401) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.refresh_token) {
+            await supabase.auth.refreshSession({ refresh_token: session.refresh_token });
+            token = await getAuthToken();
+            if (token) response = await doFetch(token);
+          }
+        } catch (_) {
+          // ignore refresh errors
+        }
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
