@@ -54,7 +54,10 @@ export function AuthCallback() {
               const isProfileComplete = profile.profile_completed === true;
               
               if (!isProfileComplete) {
-                navigate('/profile');
+                // Only show welcome popup after registration (new account), not after login
+                const createdAt = data.session?.user?.created_at;
+                const isNewUser = createdAt && (Date.now() - new Date(createdAt).getTime()) < 120000; // 2 minutes
+                navigate('/profile', { state: { fromRegistration: !!isNewUser } });
                 return;
               }
             }

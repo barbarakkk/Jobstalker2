@@ -46,7 +46,7 @@ import {
   educationApi,
   languagesApi
 } from '@/lib/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 
 interface ProfilePageProps {
@@ -55,6 +55,10 @@ interface ProfilePageProps {
 
 const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Welcome modal shown only after registration (not after login)
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   
   // State management
   // Default to the Experience tab and sync with URL hash for reload/deeplink support
@@ -198,6 +202,14 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   }, []);
 
   // Removed resume loading effects
+
+  // Show welcome modal when arriving from registration (incomplete profile after sign up)
+  useEffect(() => {
+    if (location.state?.fromRegistration) {
+      setShowWelcomeModal(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.fromRegistration, location.pathname, navigate]);
 
   // Keep tab in sync with URL hash so refresh/direct link opens correct tab
   useEffect(() => {
@@ -706,6 +718,24 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
       <AppHeader active="profile" />
+
+      {/* Welcome modal after registration: ask to fill essential fields */}
+      <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-blue-600" />
+              Welcome to JobStalker
+            </DialogTitle>
+            <DialogDescription>
+              Please fill out all essential fields in your profile to make your job search easier. You can add your skills, work experience, education, and more.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setShowWelcomeModal(false)}>Got it</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Success/Error Messages */}
       {successMessage && (
