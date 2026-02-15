@@ -1,32 +1,28 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, startTransition } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login, ProtectedRoute, AuthCallback } from './components/Auth';
 import { ExtensionAuth } from './components/Auth/ExtensionAuth';
 import { LandingPage } from './components/LandingPage';
 import { RegistrationComplete } from './components/Auth/RegistrationComplete';
 
-// Lazy load components for better performance - only load when needed
-const Dashboard = lazy(() => import('./components/Dashboard').then(module => ({ default: module.Dashboard })));
+// Eager load frequently used pages for instant navigation
+import { Dashboard } from './components/Dashboard';
+import ProfilePage from './components/Profile/ProfilePage';
+import { ResumeBuilderHome } from './components/ResumeBuilder/ResumeBuilderHome';
+
+// Lazy load less frequently used components
 const JobDetail = lazy(() => import('./components/Dashboard/JobDetail'));
-const ProfilePage = lazy(() => import('./components/Profile/ProfilePage'));
-const ResumeBuilderHome = lazy(() => import('./components/ResumeBuilder/ResumeBuilderHome').then(module => ({ default: module.ResumeBuilderHome })));
 const ResumeEditPage = lazy(() => import('./components/ResumeBuilder/Edit').then(module => ({ default: module.ResumeEditPage })));
 const ResumeFinalizePage = lazy(() => import('./components/ResumeBuilder/Finalize').then(module => ({ default: module.ResumeFinalizePage })));
 const AIGeneratePage = lazy(() => import('./components/ResumeBuilder/AIGenerate').then(module => ({ default: module.AIGeneratePage })));
-// Payment system and job matcher disabled for production - will be integrated later
+// Payment system disabled for production - will be integrated later
 // const SubscriptionPage = lazy(() => import('./components/Subscription/SubscriptionPage').then(module => ({ default: module.SubscriptionPage })));
 // const CheckoutSuccess = lazy(() => import('./components/Subscription/CheckoutSuccess').then(module => ({ default: module.CheckoutSuccess })));
 // const CheckoutCancel = lazy(() => import('./components/Subscription/CheckoutCancel').then(module => ({ default: module.CheckoutCancel })));
-// const JobMatcherPage = lazy(() => import('./components/JobMatcher/JobMatcherPage').then(module => ({ default: module.JobMatcherPage })));
 
-// Loading fallback component
+// Minimal loading fallback for instant feel
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-[#f5f8ff]">
-    <div className="text-center space-y-4">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto"></div>
-      <p className="text-slate-600 font-semibold">Loading...</p>
-    </div>
-  </div>
+  <div className="min-h-screen bg-[#f5f8ff]"></div>
 );
 
 function App() {
@@ -50,9 +46,7 @@ function App() {
             path="/dashboard" 
             element={
               <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Dashboard />
-                </Suspense>
+                <Dashboard />
               </ProtectedRoute>
             } 
           />
@@ -70,32 +64,17 @@ function App() {
             path="/profile" 
             element={
               <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <ProfilePage />
-                </Suspense>
+                <ProfilePage />
               </ProtectedRoute>
             } 
           />
-          {/* Job Matcher route - disabled for production */}
-          {/* <Route 
-            path="/job-matcher" 
-            element={
-              <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <JobMatcherPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          /> */}
           {/* Resume Builder routes */}
           {/* Main resume builder home with "Craft New" and "My Resumes" options */}
           <Route 
             path="/resume-builder" 
             element={
               <ProtectedRoute>
-                <Suspense fallback={<LoadingFallback />}>
-                  <ResumeBuilderHome />
-                </Suspense>
+                <ResumeBuilderHome />
               </ProtectedRoute>
             } 
           />

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -100,6 +100,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
     interviews: 0,
     offers: 0
   });
+  const [isEditingSidebarProfile, setIsEditingSidebarProfile] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -187,9 +188,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
 
   // Removed resume management state
 
-  // Load initial data - Load profile first, then other data
+  // Load initial data - non-blocking, page renders immediately
   useEffect(() => {
-    loadProfileData();
+    // Use requestIdleCallback or setTimeout to not block initial render
+    const timeoutId = setTimeout(() => {
+      loadProfileData();
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Removed resume loading effects
@@ -353,6 +358,46 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
       setIsEditingProfile(false);
       setSuccessMessage('Profile updated successfully!');
       
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Quick edit from sidebar profile card (first name, last name, email display)
+  const handleSidebarProfileSave = async () => {
+    if (!profile) return;
+
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      const backendData: UpdateProfileData = {
+        first_name: profileForm.first_name,
+        last_name: profileForm.last_name,
+        phone: profileForm.phone,
+        social_links: profileForm.social_links || [],
+      };
+
+      const updatedProfile = await profileApi.updateProfile(backendData);
+
+      setProfile(updatedProfile);
+      setProfileForm({
+        full_name: updatedProfile.full_name || '',
+        first_name: updatedProfile.first_name || '',
+        last_name: updatedProfile.last_name || '',
+        email: updatedProfile.email || '',
+        phone: updatedProfile.phone || '',
+        job_title: updatedProfile.job_title || '',
+        location: updatedProfile.location || '',
+        professional_summary: updatedProfile.professional_summary || '',
+        social_links: updatedProfile.social_links || [],
+      });
+
+      setIsEditingSidebarProfile(false);
+      setSuccessMessage('Profile updated successfully!');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to update profile');
@@ -695,19 +740,30 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
             <CardHeader className="pb-3 sm:pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base sm:text-lg text-gray-900">Profile</CardTitle>
-                <Button
-                  onClick={handleRefreshProfile}
-                  disabled={isLoading}
-                  variant="outline"
-                  size="sm"
-                  className="text-gray-600 hover:text-gray-800 text-xs sm:text-sm"
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                  ) : (
-                    <span className="hidden sm:inline">Refresh</span>
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={handleRefreshProfile}
+                    disabled={isLoading}
+                    variant="outline"
+                    size="sm"
+                    className="text-gray-600 hover:text-gray-800 text-xs sm:text-sm"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                    ) : (
+                      <span className="hidden sm:inline">Refresh</span>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => setIsEditingSidebarProfile(true)}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-100 text-xs sm:text-sm"
+                  >
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
@@ -1491,6 +1547,91 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onStatsClick }) => {
           </Tabs>
         </div>
       </div>
+
+      {/* Sidebar Profile Quick Edit Modal */}
+      <Dialog open={isEditingSidebarProfile} onOpenChange={setIsEditingSidebarProfile}>
+        <DialogContent className="sm:max-w-[500px] bg-white border border-gray-200 shadow-xl rounded-lg">
+          <DialogHeader className="space-y-3 pb-4 border-b border-gray-100">
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              Edit Profile
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600">
+              Update your personal information. Changes will be saved to your profile.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-6">
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="first-name" className="text-sm font-medium text-gray-900">
+                  First Name
+                </Label>
+                <Input
+                  id="first-name"
+                  value={profileForm.first_name}
+                  onChange={(e) => setProfileForm({ ...profileForm, first_name: e.target.value })}
+                  placeholder="Enter your first name"
+                  className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last-name" className="text-sm font-medium text-gray-900">
+                  Last Name
+                </Label>
+                <Input
+                  id="last-name"
+                  value={profileForm.last_name}
+                  onChange={(e) => setProfileForm({ ...profileForm, last_name: e.target.value })}
+                  placeholder="Enter your last name"
+                  className="h-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500 transition-colors"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-900">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={profileForm.email || ''}
+                  disabled
+                  className="h-10 bg-gray-50 border-gray-200 text-gray-600 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Email is managed by your account settings and cannot be changed here.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditingSidebarProfile(false)}
+              disabled={isSaving}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition-colors"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSidebarProfileSave}
+              disabled={isSaving}
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Experience Modal */}
       <Dialog open={showExperienceModal} onOpenChange={setShowExperienceModal}>

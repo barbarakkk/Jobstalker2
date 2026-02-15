@@ -54,8 +54,6 @@ export function AIGeneratePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const templateId = searchParams.get('template') || 'modern-professional';
-  const targetRoleParam = searchParams.get('targetRole');
-  const jobDescriptionParam = searchParams.get('jobDescription');
   const { setSelectedTemplate, generateWithAI } = useResumeBuilder();
 
   // Form state
@@ -78,8 +76,6 @@ export function AIGeneratePage() {
   const [education, setEducation] = useState<Education[]>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
   const [languages, setLanguages] = useState<Language[]>([]);
-  const [targetRole, setTargetRole] = useState(targetRoleParam || '');
-  const [jobDescription, setJobDescription] = useState(jobDescriptionParam || '');
 
   // Loading state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -87,35 +83,18 @@ export function AIGeneratePage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
 
-  // Questionnaire state for work experience description
-  const [showQuestionnaireDialog, setShowQuestionnaireDialog] = useState<string | null>(null); // Store exp.id when dialog is open
-  const [questionnaireAnswers, setQuestionnaireAnswers] = useState({
-    whatDidYouDo: '',
-    impactResults: '',
-  });
+  // Single-field state for AI work description
+  const [showQuestionnaireDialog, setShowQuestionnaireDialog] = useState<string | null>(null);
+  const [jobDescriptionInput, setJobDescriptionInput] = useState('');
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   // Wizard steps state
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 8;
+  const totalSteps = 7;
 
   useEffect(() => {
     setSelectedTemplate(templateId as any);
   }, [templateId, setSelectedTemplate]);
-
-  // Set targetRole from URL parameter if provided
-  useEffect(() => {
-    if (targetRoleParam) {
-      setTargetRole(targetRoleParam);
-    }
-  }, [targetRoleParam]);
-
-  // Set jobDescription from URL parameter if provided
-  useEffect(() => {
-    if (jobDescriptionParam) {
-      setJobDescription(jobDescriptionParam);
-    }
-  }, [jobDescriptionParam]);
 
   const steps = [
     { id: 1, name: 'Personal Info', description: 'Basic information' },
@@ -206,14 +185,14 @@ export function AIGeneratePage() {
         if (filledLanguages.length > 0) {
           languagesSchema.parse(filledLanguages);
         }
-      } else if (step === 8) {
-        console.log('🔍 Validating Step 8 - Professional Summary:', {
+      } else if (step === 7) {
+        console.log('🔍 Validating Step 7 - Professional Summary:', {
           summary: summary,
           summaryLength: summary?.trim().length
         });
         if (!summary || !summary.trim()) {
           setErrors(['Professional Summary is required. Please tell us about yourself.']);
-          console.log('❌ Step 8 validation failed: Summary is empty');
+          console.log('❌ Step 7 validation failed: Summary is empty');
           return false;
         }
         console.log('✅ Step 8 validation passed');
@@ -394,8 +373,8 @@ export function AIGeneratePage() {
       return;
     }
 
-    if (!questionnaireAnswers.whatDidYouDo.trim()) {
-      alert('Please answer "What did you do in this role?" - it is required');
+    if (!jobDescriptionInput.trim()) {
+      alert('Please describe your role and achievements');
       return;
     }
 
@@ -417,9 +396,8 @@ export function AIGeneratePage() {
         body: JSON.stringify({
           job_title: exp.title,
           company: exp.company,
-          what_did_you_do: questionnaireAnswers.whatDidYouDo,
-          impact_results: questionnaireAnswers.impactResults || undefined,
-          target_role: targetRole || undefined,
+          what_did_you_do: jobDescriptionInput.trim(),
+          impact_results: undefined,
         }),
       });
 
@@ -441,10 +419,7 @@ export function AIGeneratePage() {
       const result = await response.json();
       updateWorkExperience(expId, 'description', result.description);
       setShowQuestionnaireDialog(null);
-      setQuestionnaireAnswers({
-        whatDidYouDo: '',
-        impactResults: '',
-      });
+      setJobDescriptionInput('');
     } catch (error) {
       console.error('Error generating description:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate description. Please try again.';
@@ -555,8 +530,6 @@ export function AIGeneratePage() {
           category: s.category,
         })),
         languages: languages.filter(l => l.name.trim().length > 0),
-        targetRole: targetRole || undefined,
-        jobDescription: jobDescription || undefined,
       };
       
       const savedResumeId = await generateWithAI(formData);
@@ -1263,56 +1236,8 @@ export function AIGeneratePage() {
           </Card>
           )}
 
-          {/* Step 7: Target Role */}
+          {/* Step 7: Professional Summary */}
           {currentStep === 7 && (
-          <Card className="p-6 shadow-lg">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">Target Role & Job Description</h2>
-              <p className="text-gray-600 mt-1">Optional information to help AI tailor your resume</p>
-            </div>
-            <div className="space-y-6">
-              <div>
-                <Label htmlFor="targetRole">What position are you applying for?</Label>
-                <Input
-                  id="targetRole"
-                  value={targetRole}
-                  onChange={(e) => setTargetRole(e.target.value)}
-                  placeholder="e.g., Software Engineer, Product Manager, Marketing Specialist..."
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  This helps AI tailor your resume for specific roles.
-                </p>
-              </div>
-              
-              <div>
-                <Label htmlFor="jobDescription">Job Description (Optional)</Label>
-                <Textarea
-                  id="jobDescription"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  placeholder="Paste the full job description here to help AI tailor your resume structure, skills emphasis, and terminology to match the job requirements..."
-                  className="min-h-[200px]"
-                />
-                <p className="text-sm text-gray-500 mt-1">
-                  Providing the job description helps AI better tailor your resume structure, highlight relevant skills, and use industry-specific terminology.
-                </p>
-              </div>
-              
-              {/* Blockers list (computed) */}
-              {errors.length > 0 && (
-                <div className="mt-4 p-3 rounded-md bg-yellow-50 text-yellow-800 text-sm">
-                  <div className="font-medium mb-1">Please resolve the following before finalizing:</div>
-                  {errors.map((err, idx) => (
-                    <div key={idx}>• {err}</div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Card>
-          )}
-
-          {/* Step 8: Professional Summary */}
-          {currentStep === 8 && (
           <Card className="p-6 shadow-lg">
             <div className="mb-6">
               <h2 className="text-2xl font-semibold text-gray-900">Professional Summary</h2>
@@ -1362,49 +1287,30 @@ export function AIGeneratePage() {
           <Dialog open={showQuestionnaireDialog !== null} onOpenChange={(open) => {
             if (!open) {
               setShowQuestionnaireDialog(null);
-              setQuestionnaireAnswers({
-                whatDidYouDo: '',
-                impactResults: '',
-              });
+              setJobDescriptionInput('');
             }
           }}>
             <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto bg-white">
               <DialogHeader>
                 <DialogTitle>Help AI Generate Your Job Description</DialogTitle>
                 <DialogDescription>
-                  Answer these 2 questions to help AI create a professional description.
+                  Describe your role and achievements. Include responsibilities and impact or metrics if you have them.
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="whatDidYouDo">
-                    What did you do in this role? <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    id="whatDidYouDo"
-                    value={questionnaireAnswers.whatDidYouDo}
-                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, whatDidYouDo: e.target.value})}
-                    placeholder="Describe your main responsibilities and daily tasks..."
-                    rows={3}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="impactResults">
-                    What was the impact or results? (Include numbers if possible)
-                  </Label>
-                  <Textarea
-                    id="impactResults"
-                    value={questionnaireAnswers.impactResults}
-                    onChange={(e) => setQuestionnaireAnswers({...questionnaireAnswers, impactResults: e.target.value})}
-                    placeholder="e.g., Increased sales by 30%, Reduced processing time by 50%, Managed team of 5..."
-                    rows={2}
-                    className="mt-1"
-                  />
-                </div>
+              <div className="py-4">
+                <Label htmlFor="jobDescriptionInput">
+                  Your role & achievements <span className="text-red-500">*</span>
+                </Label>
+                <Textarea
+                  id="jobDescriptionInput"
+                  value={jobDescriptionInput}
+                  onChange={(e) => setJobDescriptionInput(e.target.value)}
+                  placeholder="e.g., Led the backend team, built APIs with Python and PostgreSQL. Reduced deployment time by 40%. Managed 3 engineers."
+                  rows={5}
+                  required
+                  className="mt-1"
+                />
               </div>
 
               <DialogFooter>
@@ -1413,10 +1319,7 @@ export function AIGeneratePage() {
                   variant="outline"
                   onClick={() => {
                     setShowQuestionnaireDialog(null);
-                    setQuestionnaireAnswers({
-                      whatDidYouDo: '',
-                      impactResults: '',
-                    });
+                    setJobDescriptionInput('');
                   }}
                 >
                   Cancel
@@ -1424,7 +1327,7 @@ export function AIGeneratePage() {
                 <Button
                   type="button"
                   onClick={() => showQuestionnaireDialog && generateDescriptionFromQuestionnaire(showQuestionnaireDialog)}
-                  disabled={!questionnaireAnswers.whatDidYouDo.trim() || isGeneratingDescription}
+                  disabled={!jobDescriptionInput.trim() || isGeneratingDescription}
                   className="bg-[#295acf] hover:bg-[#1f4ab8]"
                 >
                   {isGeneratingDescription ? (

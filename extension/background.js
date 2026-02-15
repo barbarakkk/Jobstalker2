@@ -74,6 +74,7 @@ async function handleCheckAuth(sendResponse) {
     
     console.log('Stored token exists:', !!token);
     console.log('Token expiry:', expiry);
+    console.log('Current time:', Date.now());
     
     if (!token) {
       console.log('No token found');
@@ -84,19 +85,28 @@ async function handleCheckAuth(sendResponse) {
       return;
     }
     
-    // Check if token is expired
-    if (expiry && Date.now() > expiry) {
-      console.log('Token expired, removing...');
+    // ALWAYS check expiry FIRST before attempting backend verification
+    // This prevents trying to use expired tokens
+    const now = Date.now();
+    const isExpired = expiry ? (now > expiry) : false;
+    
+    if (isExpired) {
+      console.log('Token expired (local check), removing immediately...');
+      console.log('Token expiry was:', new Date(expiry).toISOString());
+      console.log('Current time is:', new Date(now).toISOString());
       await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
       sendResponse({ 
         authenticated: false, 
-        error: 'Authentication token has expired' 
+        error: 'Authentication token has expired. Please sign in again.' 
       });
       return;
     }
     
+    // If no expiry is set, we should still verify with backend
+    // But if expiry exists and is valid, proceed to verification
+    console.log('Token exists and not expired locally, verifying with backend...');
+    
     // Verify token with backend
-    console.log('Verifying token with backend...');
     try {
       const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/verify`, {
         headers: {
@@ -117,7 +127,7 @@ async function handleCheckAuth(sendResponse) {
             }
           });
         } else {
-          console.log('Token invalid, removing...');
+          console.log('Token invalid (backend check), removing...');
           await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
           sendResponse({ 
             authenticated: false, 
@@ -125,12 +135,35 @@ async function handleCheckAuth(sendResponse) {
           });
         }
       } else {
-        console.log('Token verification failed, removing...');
-        await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
-        sendResponse({ 
-          authenticated: false, 
-          error: 'Token verification failed' 
-        });
+        // Check if it's an expired token error from backend
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          errorData = { detail: errorText };
+        }
+        
+        // Check for expired token errors
+        const isExpiredError = errorData.detail?.includes('expired') || 
+                              errorData.detail?.includes('token is expired') ||
+                              errorData.error?.includes('expired');
+        
+        if (isExpiredError || response.status === 401) {
+          console.log('Token expired or invalid (backend verification), removing...');
+          await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
+          sendResponse({ 
+            authenticated: false, 
+            error: 'Token verification failed: invalid JWT: unable to parse or verify signature, token has invalid claims: token is expired' 
+          });
+        } else {
+          console.log('Token verification failed (other error), removing...');
+          await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
+          sendResponse({ 
+            authenticated: false, 
+            error: errorData.detail || 'Token verification failed' 
+          });
+        }
       }
     } catch (error) {
       console.log('Backend not accessible, checking token locally...');
@@ -144,6 +177,7 @@ async function handleCheckAuth(sendResponse) {
         });
       } else {
         console.log('No valid token found');
+        await chrome.storage.local.remove([CONFIG.TOKEN_KEY, CONFIG.TOKEN_EXPIRY_KEY]);
         sendResponse({ 
           authenticated: false, 
           error: 'No valid authentication token found' 
@@ -190,13 +224,18 @@ async function handleSignOut(sendResponse) {
   }
 }
 
-// Handle opening dashboard
+// Handle opening dashboard (pass token so web app shows same user's jobs)
 async function handleOpenDashboard(sendResponse) {
   try {
     console.log('Opening JobStalker AI dashboard...');
     
-    // Open dashboard in new tab
-    await chrome.tabs.create({ url: CONFIG.WEB_APP_URL });
+    const result = await chrome.storage.local.get([CONFIG.TOKEN_KEY]);
+    const token = result[CONFIG.TOKEN_KEY];
+    const dashboardUrl = token
+      ? `${CONFIG.WEB_APP_URL}/dashboard#extension_token=${encodeURIComponent(token)}`
+      : CONFIG.WEB_APP_URL + '/dashboard';
+    
+    await chrome.tabs.create({ url: dashboardUrl });
     
     sendResponse({ success: true });
   } catch (error) {
@@ -359,6 +398,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (result[CONFIG.TOKEN_KEY]) {
         console.log('Token found in storage after auth completion');
         sendResponse({ success: true, hasToken: true });
+        // Notify side panel to refresh so it shows signed-in on first try
+        chrome.runtime.sendMessage({ action: 'tokenUpdated' }).catch(() => {});
       } else {
         console.log('No token found after auth completion');
         sendResponse({ success: true, hasToken: false });

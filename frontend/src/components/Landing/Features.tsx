@@ -3,7 +3,6 @@ import { FileText, Search, Check, User, Sparkles, FileSearch } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { HoverEffect } from '@/components/ui/aceternity/CardHoverEffect';
 import ATSFriendlyResume from '@/assets/ATSfriendlyresume.png';
-import Jobmatcher from '@/assets/Jobmatcher.png';
 import JobDescription from '@/assets/Job description.png';
 
 const featureSections = [

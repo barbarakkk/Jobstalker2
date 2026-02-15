@@ -25,7 +25,7 @@ export function SubscriptionPage() {
   const [processing, setProcessing] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const feature = searchParams.get('feature'); // 'resume', 'job-matcher', etc.
+  const feature = searchParams.get('feature'); // 'resume', etc.
 
   useEffect(() => {
     loadSubscriptionInfo();
@@ -109,13 +109,6 @@ export function SubscriptionPage() {
         title: 'Unlock More Resumes',
         description: 'Activate Pro to craft up to 10 professional resumes and showcase your versatility to different employers.',
         icon: FileText
-      };
-    }
-    if (feature === 'job-matcher') {
-      return {
-        title: 'Unlock Job Matcher',
-        description: 'Activate Pro to analyze job matches and get personalized insights to improve your applications.',
-        icon: Sparkles
       };
     }
     return null;
@@ -311,10 +304,6 @@ export function SubscriptionPage() {
                   <Check className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                   <span>Unlimited jobs from web app</span>
                 </li>
-                <li className="flex items-start">
-                  <X className="h-5 w-5 text-slate-400 mr-2 mt-0.5 flex-shrink-0" />
-                  <span className="text-slate-500">Job Matcher</span>
-                </li>
               </ul>
               {!isPro && (
                 <Button className="w-full" variant="outline" disabled>
@@ -354,10 +343,6 @@ export function SubscriptionPage() {
                 <li className="flex items-start">
                   <Check className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                   <span>Unlimited jobs from web app</span>
-                </li>
-                <li className="flex items-start">
-                  <Sparkles className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                  <span className="font-semibold">Job Matcher <Badge variant="secondary" className="ml-2">Pro Only</Badge></span>
                 </li>
               </ul>
               {isPro ? (

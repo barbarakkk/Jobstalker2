@@ -25,20 +25,20 @@ export function CleanImpactEducationSection({ data, config, style }: CleanImpact
     <section style={containerStyle} className={`clean-impact-section ${config?.className || ''}`}>
       {showTitle && (
         <h2 
-          className="text-xs font-bold mb-2 uppercase tracking-wider"
+          className="text-xs font-bold uppercase tracking-wider"
           style={{ 
             color: accentColor,
             fontSize: '12px',
             letterSpacing: '1.2px',
             borderBottom: `2px solid ${accentColor}`,
-            paddingBottom: '4px',
-            marginBottom: '8px'
+            paddingBottom: '6px',
+            marginBottom: '12px'
           }}
         >
           {title}
         </h2>
       )}
-      <div className="space-y-4">
+      <div className="space-y-4" style={{ paddingTop: '2px' }}>
         {education.map((edu) => {
           return (
             <div key={edu.id} className="clean-impact-education-entry">

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { startTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
 import { supabase } from '@/lib/supabaseClient';
@@ -21,6 +22,23 @@ export function AppHeader({ active = 'jobs' }: AppHeaderProps) {
     }
   };
 
+  // Prefetch components on hover/focus for instant navigation
+  const prefetchComponent = (path: string) => {
+    if (path === '/dashboard') {
+      import('@/components/Dashboard').catch(() => {});
+    } else if (path === '/profile') {
+      import('@/components/Profile/ProfilePage').catch(() => {});
+    } else if (path === '/resume-builder') {
+      import('@/components/ResumeBuilder/ResumeBuilderHome').catch(() => {});
+    }
+  };
+
+  const handleNavigate = (path: string) => {
+    startTransition(() => {
+      navigate(path);
+    });
+  };
+
   const linkClass = (id: ActiveTab) => (
     id === active
       ? 'text-blue-600 font-semibold px-4 py-2 rounded-full bg-blue-50'
@@ -35,11 +53,33 @@ export function AppHeader({ active = 'jobs' }: AppHeaderProps) {
             <img src={ColoredLogoHorizontal} alt="JobStalker AI" className="h-8 w-auto" />
           </div>
           <nav className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center space-x-4">
-            <a href="#" className={linkClass('jobs')} onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>JobTracker</a>
-            <a href="#" className={linkClass('resume')} onClick={(e) => { e.preventDefault(); navigate('/resume-builder'); }}>Resume Builder</a>
-            {/* Job Matcher disabled for production */}
-            {/* <a href="#" className={linkClass('job-matcher')} onClick={(e) => { e.preventDefault(); navigate('/job-matcher'); }}>Job Matcher</a> */}
-            <a href="#" className={linkClass('profile')} onClick={(e) => { e.preventDefault(); navigate('/profile'); }}>Profile</a>
+            <a 
+              href="#" 
+              className={linkClass('jobs')} 
+              onMouseEnter={() => prefetchComponent('/dashboard')}
+              onFocus={() => prefetchComponent('/dashboard')}
+              onClick={(e) => { e.preventDefault(); handleNavigate('/dashboard'); }}
+            >
+              JobTracker
+            </a>
+            <a 
+              href="#" 
+              className={linkClass('resume')} 
+              onMouseEnter={() => prefetchComponent('/resume-builder')}
+              onFocus={() => prefetchComponent('/resume-builder')}
+              onClick={(e) => { e.preventDefault(); handleNavigate('/resume-builder'); }}
+            >
+              Resume Builder
+            </a>
+            <a 
+              href="#" 
+              className={linkClass('profile')} 
+              onMouseEnter={() => prefetchComponent('/profile')}
+              onFocus={() => prefetchComponent('/profile')}
+              onClick={(e) => { e.preventDefault(); handleNavigate('/profile'); }}
+            >
+              Profile
+            </a>
           </nav>
           <div className="ml-auto pr-2">
             <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200" onClick={handleSignOut}>
@@ -51,11 +91,30 @@ export function AppHeader({ active = 'jobs' }: AppHeaderProps) {
       {/* Mobile nav */}
       <div className="md:hidden px-4 pb-4 -mt-4">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-          <button className={active==='jobs' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/dashboard')}>JobTracker</button>
-          <button className={active==='resume' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/resume-builder')}>Resume Builder</button>
-          {/* Job Matcher disabled for production */}
-          {/* <button className={active==='job-matcher' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/job-matcher')}>Job Matcher</button> */}
-          <button className={active==='profile' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} onClick={() => navigate('/profile')}>Profile</button>
+          <button 
+            className={active==='jobs' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} 
+            onMouseEnter={() => prefetchComponent('/dashboard')}
+            onFocus={() => prefetchComponent('/dashboard')}
+            onClick={() => handleNavigate('/dashboard')}
+          >
+            JobTracker
+          </button>
+          <button 
+            className={active==='resume' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} 
+            onMouseEnter={() => prefetchComponent('/resume-builder')}
+            onFocus={() => prefetchComponent('/resume-builder')}
+            onClick={() => handleNavigate('/resume-builder')}
+          >
+            Resume Builder
+          </button>
+          <button 
+            className={active==='profile' ? 'px-3 py-1.5 text-sm rounded-full bg-blue-50 text-blue-600 font-semibold whitespace-nowrap' : 'px-3 py-1.5 text-sm rounded-full bg-gray-100 text-gray-700 whitespace-nowrap'} 
+            onMouseEnter={() => prefetchComponent('/profile')}
+            onFocus={() => prefetchComponent('/profile')}
+            onClick={() => handleNavigate('/profile')}
+          >
+            Profile
+          </button>
         </div>
       </div>
     </header>

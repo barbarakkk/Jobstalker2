@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import type { ResumeData } from '@/types/resume';
 import type { SectionConfig, StyleConfig } from '../config/templateConfigSchema';
 
@@ -10,6 +11,8 @@ interface HeaderSectionProps {
 export function HeaderSection({ data, config, style }: HeaderSectionProps) {
   const personalInfo = data?.personalInfo || {};
   const name = `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Your Name';
+  const locationValue = personalInfo.location?.trim();
+  const showLocation = locationValue && !/^your\s+location$/i.test(locationValue) && locationValue.toLowerCase() !== 'location';
   
   // Apply custom styles from config
   const containerStyle: React.CSSProperties = {
@@ -22,7 +25,10 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
   if (isCleanProfessional) {
     const accent = (style as any)?.primaryColor || (config?.style as any)?.primaryColor || '#1ca3b8';
     return (
-      <header style={containerStyle} className={`clean-impact-header ${config?.className || ''}`}>
+      <header
+        style={{ ...containerStyle, border: 'none', borderBottom: 'none', boxShadow: 'none' }}
+        className={`clean-impact-header ${config?.className || ''}`}
+      >
         <div className="flex items-start gap-4">
           {/* Photo placeholder box */}
           <div
@@ -30,38 +36,42 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
             style={{ width: '88px', height: '88px', borderRadius: '10px' }}
           />
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h1
-              className="font-extrabold mb-2"
+              className="font-extrabold mb-1"
               style={{ color: String(accent), fontSize: '28px', letterSpacing: '.3px' }}
             >
               {name.toUpperCase()}
             </h1>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs" style={{ color: '#5a6b7a' }}>
-              {personalInfo.location && (
-                <div>
-                  <span>Address:</span>{' '}
-                  <span style={{ color: '#1c1e21' }}>{personalInfo.location}</span>
+            {personalInfo.jobTitle && (
+              <div className="text-base font-semibold mb-2" style={{ color: '#374151', fontSize: '16px' }}>
+                {personalInfo.jobTitle}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs header-contact-grid" style={{ color: '#5a6b7a', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+              {showLocation && (
+                <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                  <span style={{ color: '#1c1e21' }}>{locationValue}</span>
                 </div>
               )}
               {personalInfo.phone && (
-                <div>
+                <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                   <span>Phone:</span>{' '}
                   <span style={{ color: '#1c1e21' }}>{personalInfo.phone}</span>
                 </div>
               )}
               {personalInfo.email && (
-                <div>
+                <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word', paddingRight: '0.25rem' }}>
                   <span>Email:</span>{' '}
                   <span style={{ color: '#1c1e21' }}>{personalInfo.email}</span>
                 </div>
               )}
               {personalInfo.linkedin && (
-                <div>
+                <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                   <span>LinkedIn:</span>{' '}
                   <a
-                    href={personalInfo.linkedin.startsWith('http://') || personalInfo.linkedin.startsWith('https://') 
-                      ? personalInfo.linkedin 
+                    href={personalInfo.linkedin.startsWith('http://') || personalInfo.linkedin.startsWith('https://')
+                      ? personalInfo.linkedin
                       : `https://${personalInfo.linkedin}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -73,7 +83,7 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
                 </div>
               )}
               {personalInfo.website && (
-                <div>
+                <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                   <span>Website:</span>{' '}
                   <span style={{ color: '#1c1e21' }}>{personalInfo.website}</span>
                 </div>
@@ -101,55 +111,94 @@ export function HeaderSection({ data, config, style }: HeaderSectionProps) {
   // Build contact items array with special handling for LinkedIn
   const contactItems: Array<{ type: 'text' | 'linkedin'; value: string }> = [];
   if (personalInfo.phone) contactItems.push({ type: 'text', value: personalInfo.phone });
-  if (personalInfo.location) contactItems.push({ type: 'text', value: personalInfo.location });
+  if (showLocation) contactItems.push({ type: 'text', value: locationValue });
   if (personalInfo.email) contactItems.push({ type: 'text', value: personalInfo.email });
   if (personalInfo.linkedin) contactItems.push({ type: 'linkedin', value: personalInfo.linkedin });
   if (personalInfo.website) contactItems.push({ type: 'text', value: personalInfo.website });
 
   return (
-    <header style={{...containerStyle, marginBottom: '0.15rem', paddingBottom: '0'}} className={config?.className}>
-      <div 
-        className="text-center border-b-2 border-black" 
-        style={{ 
-          paddingBottom: '0.5rem', 
-          marginBottom: '0.15rem',
-          textAlign: 'center'
+    <header
+      style={{
+        ...containerStyle,
+        marginBottom: '0',
+        paddingBottom: '0',
+        border: 'none',
+        borderBottom: 'none',
+        boxShadow: 'none',
+      }}
+      className={config?.className}
+    >
+      <div
+        className="text-center header-inner"
+        style={{
+          paddingBottom: '0.2rem',
+          marginBottom: '0.2rem',
+          textAlign: 'center',
+          border: 'none',
+          borderBottom: 'none',
+          boxShadow: 'none',
         }}
       >
-        <h1 
+        <h1
           className="text-3xl font-bold tracking-tight uppercase"
-          style={{ 
+          style={{
             color: style?.color || config?.style?.color || '#000000',
             fontFamily: headerFont,
             fontSize: fontSize,
-            letterSpacing: '0.05em'
+            letterSpacing: '0.05em',
           }}
         >
           {name}
         </h1>
         {personalInfo.jobTitle && (
-          <div className="text-sm text-black mt-1 uppercase tracking-widest">
+          <div
+            className="text-lg font-semibold text-gray-700 mt-2 tracking-wide"
+            style={{ fontFamily: headerFont, color: '#374151' }}
+          >
             {personalInfo.jobTitle}
           </div>
         )}
         {contactItems.length > 0 && (
-          <div className="flex items-center justify-center flex-wrap gap-x-2 mt-3 text-xs text-black">
+          <div
+            className="flex flex-wrap justify-center items-baseline gap-x-2 gap-y-1 mt-3 text-xs header-contact-line"
+            style={{
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              paddingRight: '0.5rem',
+              paddingBottom: '0.25rem',
+              overflow: 'visible',
+              lineHeight: 1.5,
+              color: '#000000',
+            }}
+          >
             {contactItems.map((item, index) => (
-              <span key={index} className="flex items-center">
-                {index > 0 && <span className="mx-2 text-black">|</span>}
+              <Fragment key={index}>
+                {index > 0 && (
+                  <span className="flex-shrink-0" style={{ color: '#000000' }} aria-hidden>|</span>
+                )}
                 {item.type === 'linkedin' ? (
                   <a
                     href={formatLinkedInUrl(item.value)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-black hover:underline cursor-pointer"
+                    className="hover:underline cursor-pointer"
+                    style={{ color: '#000000' }}
                   >
                     LinkedIn
                   </a>
                 ) : (
-                  <span>{item.value}</span>
+                  <span
+                    className="header-contact-value"
+                    style={{
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      color: '#000000',
+                    }}
+                  >
+                    {item.value}
+                  </span>
                 )}
-              </span>
+              </Fragment>
             ))}
           </div>
         )}

@@ -56,27 +56,28 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
         ...containerStyle,
         fontFamily: bodyFont,
         fontSize: fontSize,
-        marginBottom: '0.4rem', // Reduced spacing between sections
+        marginTop: '0.1rem',
+        marginBottom: '0.5rem',
       }} 
       className={config?.className}
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-1"
+          className="text-xl font-bold"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.25rem',
-            marginBottom: '0.25rem'
+            marginBottom: '0.35rem'
           }}
         >
           {title}
         </h2>
       )}
-      <div className="space-y-2">
+      <div className="space-y-4" style={{ paddingTop: '0.125rem' }}>
         {workExperience.map((work) => (
-          <div key={work.id} className="border-b border-gray-200 pb-2 last:border-b-0 last:pb-0">
-            <div className="flex items-start justify-between flex-wrap gap-2 mb-1">
+          <div key={work.id} className="pb-4 last:pb-0">
+            <div className="flex items-start justify-between flex-wrap gap-2 mb-2">
               <div className="flex-1">
               <div className="font-semibold text-gray-900" style={{ color: String(primaryColor) }}>{work.title}</div>
               {work.company && (
@@ -91,20 +92,20 @@ export function WorkExperienceSection({ data, config, style }: WorkExperienceSec
               </div>
             </div>
             {work.location && (
-              <div className="text-xs text-gray-600 mb-1">
+              <div className="text-xs text-gray-600 mb-2">
                 {work.location}
               </div>
             )}
             {work.description && (
-              <div className="text-sm text-gray-700 leading-normal mt-1">
+              <div className="text-sm text-gray-700 leading-relaxed mt-2" style={{ lineHeight: 1.55 }}>
                 {work.description.split('\n').filter(line => line.trim()).map((line, index) => {
                   // Remove all asterisks, bullet symbols, and dashes from the line
                   let cleanedLine = line.replace(/^[\*\u2022\u2023\u25E6\u2043\u2219•\-]\s*/, '').trim();
                   cleanedLine = cleanedLine.replace(/[\*\u2022\u2023\u25E6\u2043\u2219•]/g, '').trim();
                   if (!cleanedLine) return null;
                   return (
-                    <div key={index} className="flex items-start mb-0.5">
-                      <span className="mr-2 text-gray-700" style={{ color: String(primaryColor) }}>•</span>
+                    <div key={index} className="flex items-start mb-1">
+                      <span className="mr-2 text-gray-700 flex-shrink-0" style={{ color: String(primaryColor) }}>•</span>
                       <span>{cleanedLine}</span>
                     </div>
                   );

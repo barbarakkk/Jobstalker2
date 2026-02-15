@@ -161,14 +161,13 @@ async def scrape_linkedin_job(request: LinkedInScrapeRequest, background_tasks: 
         import requests
         from bs4 import BeautifulSoup
         
-        # Check for duplicates
-        # Check for duplicate jobs
-        if check_duplicate_job(user_id, request.url):
+        # Check for duplicates using effective_url so same job from different LinkedIn URL formats counts as one
+        if check_duplicate_job(user_id, effective_url):
             save_state_data("02_duplicate_found", {
                 "user_id": user_id,
-                "job_url": request.url,
+                "job_url": effective_url,
                 "is_duplicate": True
-            }, user_id, request.url)
+            }, user_id, effective_url)
             return JobIngestionResponse(
                 job_id="",
                 status="duplicate",
@@ -177,14 +176,14 @@ async def scrape_linkedin_job(request: LinkedInScrapeRequest, background_tasks: 
             )
         # No duplicate found, proceeding with job creation
 
-        # Insert placeholder row immediately
+        # Insert placeholder row immediately (store effective_url so dashboard has one canonical URL per job)
         placeholder_job = {
             "user_id": user_id,
             "job_title": (request.fallback_data or {}).get("job_title") or "Unknown Job Title",
             "company": (request.fallback_data or {}).get("company") or "Unknown Company",
             "location": (request.fallback_data or {}).get("location"),
             "salary": (request.fallback_data or {}).get("salary"),
-            "job_url": request.url,
+            "job_url": effective_url,
             "status": request.stage,
             "excitement_level": request.excitement,
             "description": (request.fallback_data or {}).get("description"),
@@ -258,11 +257,19 @@ async def scrape_linkedin_job(request: LinkedInScrapeRequest, background_tasks: 
 
         background_tasks.add_task(enrich_job_background, str(job_id), request, effective_url, user_id)
 
+        # Return placeholder so extension can show "Saved: Title at Company"
+        extracted_data = {
+            "job_title": placeholder_job["job_title"],
+            "company": placeholder_job["company"],
+            "location": placeholder_job.get("location"),
+            "salary": placeholder_job.get("salary"),
+            "job_url": effective_url,
+        }
         return JobIngestionResponse(
             job_id=str(job_id),
             status="success",
             message="Job saved. Enrichment in progress.",
-            extracted_data=None,
+            extracted_data=extracted_data,
             is_duplicate=False
         )
             

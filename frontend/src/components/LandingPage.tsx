@@ -7,7 +7,6 @@ import { Hero } from './Landing/Hero';
 import { Features } from './Landing/Features';
 import { HowItWorks } from './Landing/HowItWorks';
 import { StatsSection } from './Landing/StatsSection';
-import { Pricing } from './Landing/Pricing';
 import { FAQ } from './Landing/FAQ';
 import { ChromeExtension } from './Landing/ChromeExtension';
 
@@ -58,7 +57,6 @@ export function LandingPage() {
       <Features />
       <ChromeExtension />
       <StatsSection />
-      <Pricing />
       <FAQ />
       <Footer />
     </div>

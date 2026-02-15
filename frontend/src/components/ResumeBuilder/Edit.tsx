@@ -5,11 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useResumeBuilder } from '@/components/ResumeBuilder/context/ResumeBuilderContext';
 import { AppHeader } from '@/components/Layout/AppHeader';
 import { TemplateRenderer } from '@/components/ResumeBuilder/Templates/TemplateRenderer';
 import { supabase } from '@/lib/supabaseClient';
-import { profileApi, skillsApi, experienceApi, educationApi } from '@/lib/api';
+import { profileApi, skillsApi, experienceApi, educationApi, resumeAiApi } from '@/lib/api';
 import type { Profile, Skill as ProfileSkill, WorkExperience as ProfileWorkExperience, Education as ProfileEducation } from '@/types/resume';
 import type { Education as ApiEducation, WorkExperience as ApiWorkExperience, Skill as ApiSkill } from '@/lib/types';
 import { 
@@ -34,7 +35,8 @@ import {
   Info,
   XCircle,
   Sparkles,
-  Target
+  Wand2,
+  UserCircle
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -63,12 +65,17 @@ export function ResumeEditPage() {
   const [atsScore, setAtsScore] = useState<ATSScore | null>(null);
   const [showAtsDialog, setShowAtsDialog] = useState(false);
   
-  // AI generation state
+  // AI generation state (single field for job description)
   const [showQuestionnaireDialog, setShowQuestionnaireDialog] = useState<string | null>(null);
-  const [questionnaireAnswers, setQuestionnaireAnswers] = useState<{ whatDidYouDo: string; impactResults: string }>({ whatDidYouDo: '', impactResults: '' });
+  const [jobDescriptionInput, setJobDescriptionInput] = useState('');
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
-  const [isTailoringResume, setIsTailoringResume] = useState(false);
+  
+  // AI skills generation state
+  const [skillsInputMode, setSkillsInputMode] = useState<'manual' | 'ai'>('manual');
+  const [aiSkillsDescription, setAiSkillsDescription] = useState('');
+  const [isGeneratingSkills, setIsGeneratingSkills] = useState(false);
+  const [aiSkillsContext, setAiSkillsContext] = useState<'resume' | 'job'>('resume');
   
   // Wizard step state
   const [currentWizardStep, setCurrentWizardStep] = useState(0);
@@ -80,19 +87,24 @@ export function ResumeEditPage() {
   const templateIdFromUrl = searchParams.get('template');
   const templateId = templateIdFromUrl || selectedTemplate || 'modern-professional';
   const resumeIdFromUrl = searchParams.get('resume');
-  const targetRoleParam = searchParams.get('targetRole');
-  const jobDescriptionParam = searchParams.get('jobDescription');
-  
-  // Target role and job description state (for AI tailoring)
-  const [targetRole, setTargetRole] = useState(targetRoleParam || '');
-  const [jobDescription, setJobDescription] = useState(jobDescriptionParam || '');
+
+  // Placeholder patterns so "Your Location" / "Your Role" are treated as empty (gray placeholder in form)
+  const locationPlaceholderRe = /^your\s+location$|^location$/i;
+  const jobTitlePlaceholderRe = /^your\s+role$|^your\s+job\s+title$|^role$/i;
 
   // Sync local data when resumeData changes (e.g., on load)
   useEffect(() => {
-    // Always sync when resumeData changes, especially when we have a resume ID
     if (resumeIdFromUrl && resumeData) {
-      console.log('Edit page - Syncing resumeData to localData:', resumeData);
-      setLocalData(resumeData);
+      const loc = (resumeData.personalInfo?.location || '').trim();
+      const job = (resumeData.personalInfo?.jobTitle || '').trim();
+      setLocalData({
+        ...resumeData,
+        personalInfo: {
+          ...resumeData.personalInfo,
+          location: !loc || locationPlaceholderRe.test(loc) ? '' : (resumeData.personalInfo?.location ?? ''),
+          jobTitle: !job || jobTitlePlaceholderRe.test(job) ? '' : (resumeData.personalInfo?.jobTitle ?? ''),
+        },
+      });
     }
   }, [resumeData, resumeIdFromUrl]);
 
@@ -112,32 +124,38 @@ export function ResumeEditPage() {
 
   useEffect(() => {
     if (state?.injectedResumeData) {
-      replaceResumeData(state.injectedResumeData);
-      setLocalData(state.injectedResumeData);
+      const d = state.injectedResumeData;
+      const loc = (d.personalInfo?.location || '').trim();
+      const job = (d.personalInfo?.jobTitle || '').trim();
+      const locationPlaceholderRe = /^your\s+location$|^location$/i;
+      const jobTitlePlaceholderRe = /^your\s+role$|^your\s+job\s+title$|^role$/i;
+      const normalized = {
+        ...d,
+        personalInfo: {
+          ...d.personalInfo,
+          location: !loc || locationPlaceholderRe.test(loc) ? '' : (d.personalInfo?.location ?? ''),
+          jobTitle: !job || jobTitlePlaceholderRe.test(job) ? '' : (d.personalInfo?.jobTitle ?? ''),
+        },
+      };
+      replaceResumeData(normalized);
+      setLocalData(normalized);
       state.injectedResumeData = undefined;
     }
   }, [state?.injectedResumeData, replaceResumeData]);
 
-  // Set targetRole and jobDescription from URL parameters if provided
-  useEffect(() => {
-    if (targetRoleParam) {
-      setTargetRole(targetRoleParam);
-    }
-  }, [targetRoleParam]);
-
-  useEffect(() => {
-    if (jobDescriptionParam) {
-      setJobDescription(jobDescriptionParam);
-    }
-  }, [jobDescriptionParam]);
 
   // Auto-fill from profile data if resume is empty (only run once)
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
   useEffect(() => {
     const loadProfileData = async () => {
+      // When editing a saved resume (?resume=xxx), never overwrite with profile - only use data from loadResume
+      if (resumeIdFromUrl) {
+        setHasAutoFilled(true);
+        return;
+      }
       // Only auto-fill once and if resume data is empty or minimal
       if (hasAutoFilled || !localData) return;
-      
+
       const hasPersonalInfo = localData.personalInfo?.firstName || localData.personalInfo?.lastName || localData.personalInfo?.email;
       const hasWorkExp = localData.workExperience?.length > 0;
       const hasEducation = localData.education?.length > 0;
@@ -185,14 +203,16 @@ export function ResumeEditPage() {
             lastName = nameParts.slice(1).join(' ') || '';
           }
 
+          const rawLocation = (profile.location || updates.personalInfo?.location || '').trim();
+          const rawJobTitle = (profile.job_title || updates.personalInfo?.jobTitle || '').trim();
           updates.personalInfo = {
             ...updates.personalInfo,
             firstName: firstName || updates.personalInfo?.firstName || '',
             lastName: lastName || updates.personalInfo?.lastName || '',
             email: profile.email || updates.personalInfo?.email || '',
             phone: profile.phone || updates.personalInfo?.phone || '',
-            location: profile.location || updates.personalInfo?.location || '',
-            jobTitle: profile.job_title || updates.personalInfo?.jobTitle || '',
+            location: !rawLocation || /^your\s+location$|^location$/i.test(rawLocation) ? '' : (profile.location || updates.personalInfo?.location || ''),
+            jobTitle: !rawJobTitle || /^your\s+role$|^your\s+job\s+title$|^role$/i.test(rawJobTitle) ? '' : (profile.job_title || updates.personalInfo?.jobTitle || ''),
             linkedin: profile.social_links?.find((l: any) => l.url?.toLowerCase().includes('linkedin'))?.url || updates.personalInfo?.linkedin || '',
             website: profile.social_links?.find((l: any) => !l.url?.toLowerCase().includes('linkedin') && l.url?.includes('http'))?.url || updates.personalInfo?.website || ''
           };
@@ -250,11 +270,11 @@ export function ResumeEditPage() {
       }
     };
 
-    // Only run if we have localData and haven't auto-filled yet
-    if (localData && !hasAutoFilled) {
+    // Only run if we have localData, haven't auto-filled yet, and we're not editing a saved resume (resumeIdFromUrl)
+    if (localData && !hasAutoFilled && !resumeIdFromUrl) {
       loadProfileData();
     }
-  }, [localData, hasAutoFilled, replaceResumeData]);
+  }, [localData, hasAutoFilled, resumeIdFromUrl, replaceResumeData]);
 
   const goToStep = (step: number) => {
     if (step >= 0 && step < sectionConfig.length) {
@@ -400,6 +420,50 @@ export function ResumeEditPage() {
     replaceResumeData(updated);
   };
 
+  const generateSkillsWithAI = async () => {
+    if (!aiSkillsDescription.trim() || aiSkillsDescription.trim().length < 20) {
+      return;
+    }
+
+    try {
+      setIsGeneratingSkills(true);
+      const response = await resumeAiApi.generateSkills(aiSkillsDescription, aiSkillsContext);
+      
+      // Add generated skills to existing skills (avoid duplicates)
+      const existingSkillNames = (localData.skills || []).map((s: Skill) => s.name.toLowerCase().trim());
+      const newSkills: Skill[] = response.skills
+        .filter((skillName: string) => !existingSkillNames.includes(skillName.toLowerCase().trim()))
+        .map((skillName: string) => ({
+          id: `skill-${Date.now()}-${Math.random()}`,
+          name: skillName,
+          category: 'Technical'
+        }));
+
+      if (newSkills.length > 0) {
+        const updated = {
+          ...localData,
+          skills: [...(localData.skills || []), ...newSkills]
+        };
+        setLocalData(updated);
+        replaceResumeData(updated);
+        
+        // Show success message
+        console.log(`Successfully generated ${newSkills.length} skills`);
+      } else {
+        console.log('No new skills to add (all skills already exist)');
+      }
+      
+      // Clear the description after successful generation
+      setAiSkillsDescription('');
+    } catch (error: any) {
+      console.error('Error generating skills:', error);
+      const errorMessage = error?.message || 'Failed to generate skills. Please try again.';
+      alert(`Error: ${errorMessage}\n\nIf you see a 404 error, please restart the backend server.`);
+    } finally {
+      setIsGeneratingSkills(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!currentResumeId || !localData) return;
     setIsSaving(true);
@@ -433,6 +497,12 @@ export function ResumeEditPage() {
   const handleDownloadPDF = async () => {
     setIsDownloading(true);
     try {
+      // Wait for fonts to be ready so html2canvas captures text correctly
+      if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+      }
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       const container = document.querySelector('.resume-preview-container') as HTMLElement;
       if (!container) {
         alert('Resume content not found');
@@ -445,124 +515,254 @@ export function ResumeEditPage() {
         return;
       }
 
-      // Create a clone to avoid modifying the original
-      const clone = element.cloneNode(true) as HTMLElement;
-      clone.style.position = 'absolute';
-      clone.style.left = '-9999px';
-      clone.style.top = '0';
-      clone.style.transform = 'none';
-      clone.style.backgroundColor = '#ffffff';
-      clone.style.width = '816px'; // Fixed width for consistency (8.5 inches at 96 DPI)
-      clone.style.height = 'auto'; // Let it expand naturally
-      clone.style.overflow = 'visible'; // Ensure all content is visible
-      clone.style.maxHeight = 'none'; // Remove any max-height restrictions
-      document.body.appendChild(clone);
+      // Use a fixed-size off-screen wrapper so the clone lays out at exact PDF dimensions.
+      // Use left: -9999px instead of visibility: hidden so the clone stays visible for html2canvas.
+      const PDF_WIDTH_PX = 816; // 8.5" at 96 DPI
+      const wrapper = document.createElement('div');
+      wrapper.setAttribute('aria-hidden', 'true');
+      wrapper.style.cssText = `
+        position: fixed;
+        left: -9999px;
+        top: 0;
+        width: ${PDF_WIDTH_PX}px;
+        max-width: ${PDF_WIDTH_PX}px;
+        min-width: ${PDF_WIDTH_PX}px;
+        overflow: visible;
+        pointer-events: none;
+        z-index: -9999;
+      `;
+      document.body.appendChild(wrapper);
 
-      // Wait for clone to fully render and measure actual height
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Force reflow to ensure all content is rendered
-      clone.offsetHeight; // Trigger reflow
-      
-      // Find all section elements to detect section boundaries for intelligent page breaks
+      const clone = element.cloneNode(true) as HTMLElement;
+      clone.classList.add('pdf-export-clone');
+      clone.style.cssText = `
+        position: relative;
+        left: 0;
+        top: 0;
+        transform: none;
+        width: ${PDF_WIDTH_PX}px;
+        max-width: ${PDF_WIDTH_PX}px;
+        min-width: ${PDF_WIDTH_PX}px;
+        height: auto;
+        min-height: 0;
+        max-height: none;
+        overflow: visible;
+        background-color: #ffffff;
+        box-shadow: none;
+        visibility: visible;
+        opacity: 1;
+      `;
+      wrapper.appendChild(clone);
+
+      // Remove any transform from inner wrapper so layout is 1:1
+      const inner = clone.querySelector('div');
+      if (inner) {
+        (inner as HTMLElement).style.transform = 'none';
+      }
+
+      // Wait for layout to settle (two frames)
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => setTimeout(resolve, 350));
+
+      const scrollHeight = clone.scrollHeight;
+      const offsetHeight = clone.offsetHeight;
+      const actualHeight = Math.max(scrollHeight, offsetHeight, 1056);
+      clone.style.height = `${actualHeight}px`;
+      clone.style.minHeight = `${actualHeight}px`;
+      await new Promise(resolve => setTimeout(resolve, 150));
+
+      const finalHeight = Math.max(clone.scrollHeight, clone.offsetHeight, actualHeight);
+      clone.style.height = `${finalHeight}px`;
+      clone.style.minHeight = `${finalHeight}px`;
+
+      // Section positions for page-break logic (measure relative to clone)
       const sectionPositions: Array<{ top: number; bottom: number; element: HTMLElement }> = [];
-      
-      // Find wrapper divs that contain sections (these are the main containers)
-      const sectionWrappers = clone.querySelectorAll('div[class*="col-span"]');
-      sectionWrappers.forEach((wrapper) => {
-        const rect = wrapper.getBoundingClientRect();
-        const cloneRect = clone.getBoundingClientRect();
+      const cloneRect = clone.getBoundingClientRect();
+      clone.querySelectorAll('section').forEach((section) => {
+        const rect = (section as HTMLElement).getBoundingClientRect();
         const top = rect.top - cloneRect.top;
         const bottom = top + rect.height;
-        // Only add if it contains a section element or has significant content
-        const hasSection = wrapper.querySelector('section') !== null;
-        if (hasSection && rect.height > 30) {
-          sectionPositions.push({ top, bottom, element: wrapper as HTMLElement });
-        }
-      });
-      
-      // Also find direct section elements (in case they're not wrapped)
-      const sections = clone.querySelectorAll('section');
-      sections.forEach((section) => {
-        const rect = section.getBoundingClientRect();
-        const cloneRect = clone.getBoundingClientRect();
-        const top = rect.top - cloneRect.top;
-        const bottom = top + rect.height;
-        // Only add if not already covered by a wrapper
-        const isCovered = sectionPositions.some(sp => {
-          const spRect = sp.element.getBoundingClientRect();
-          return spRect.top <= rect.top && spRect.bottom >= rect.bottom;
-        });
-        if (!isCovered && rect.height > 30) {
+        if (rect.height > 20) {
           sectionPositions.push({ top, bottom, element: section as HTMLElement });
         }
       });
-      
-      // Sort sections by position
+      clone.querySelectorAll('div[class*="col-span"]').forEach((wrapper) => {
+        const rect = (wrapper as HTMLElement).getBoundingClientRect();
+        const top = rect.top - cloneRect.top;
+        const bottom = top + rect.height;
+        const hasSection = (wrapper as HTMLElement).querySelector('section') !== null;
+        if (hasSection && rect.height > 30 && !sectionPositions.some(sp => sp.element === wrapper)) {
+          sectionPositions.push({ top, bottom, element: wrapper as HTMLElement });
+        }
+      });
       sectionPositions.sort((a, b) => a.top - b.top);
-      
-      console.log(`Found ${sectionPositions.length} sections for page break detection`);
-      
-      // Get the actual rendered height - use the maximum of all possible measurements
-      const scrollHeight = clone.scrollHeight;
-      const offsetHeight = clone.offsetHeight;
-      const clientHeight = clone.clientHeight;
-      const actualHeight = Math.max(scrollHeight, offsetHeight, clientHeight);
-      
-      // Set explicit height to ensure html2canvas captures everything
-      clone.style.height = `${actualHeight}px`;
-      clone.style.minHeight = `${actualHeight}px`;
-
-      // Wait for height to apply and content to stabilize
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Verify height one more time
-      const finalHeight = Math.max(clone.scrollHeight, clone.offsetHeight, actualHeight);
-      if (finalHeight > actualHeight) {
-        clone.style.height = `${finalHeight}px`;
-        clone.style.minHeight = `${finalHeight}px`;
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
 
       const canvas = await html2canvas(clone, {
-        scale: 2,
+        scale: 3,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
         allowTaint: false,
         removeContainer: false,
-        onclone: (clonedDoc) => {
-          // Ensure cloned element has correct height
-          const clonedElement = clonedDoc.querySelector('.resume-paper') as HTMLElement;
-          if (clonedElement) {
-            clonedElement.style.height = `${finalHeight}px`;
-            clonedElement.style.minHeight = `${finalHeight}px`;
-            clonedElement.style.overflow = 'visible';
+        windowWidth: PDF_WIDTH_PX,
+        windowHeight: finalHeight,
+        onclone: (clonedDoc, clonedElement) => {
+          const root = (clonedElement as HTMLElement);
+          root.style.height = `${finalHeight}px`;
+          root.style.minHeight = `${finalHeight}px`;
+          root.style.overflow = 'visible';
+          root.style.width = `${PDF_WIDTH_PX}px`;
+          root.style.visibility = 'visible';
+          root.style.opacity = '1';
+          root.querySelectorAll('*').forEach((el) => {
+            (el as HTMLElement).style.visibility = 'visible';
+            (el as HTMLElement).style.opacity = '1';
+          });
+
+          // Inject PDF-safe styles: readable spacing, no overlapping text
+          const style = clonedDoc.createElement('style');
+          style.textContent = `
+            .pdf-export-clone { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            .pdf-export-clone * { box-sizing: border-box; word-spacing: normal !important; letter-spacing: 0.02em !important; font-kerning: normal !important; }
+            .pdf-export-clone p,
+            .pdf-export-clone span,
+            .pdf-export-clone li,
+            .pdf-export-clone div[class*="text-"] { white-space: normal !important; word-spacing: normal !important; letter-spacing: 0.02em !important; font-kerning: normal !important; }
+            .pdf-export-clone > div { padding: 18px 22px !important; }
+            .pdf-export-clone .resume-layout-grid { align-items: start !important; }
+            .pdf-export-clone [class*="col-span"] { gap: 0.3rem !important; }
+            .pdf-export-clone .skills-section-content--two-cols { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 0 0.5rem !important; }
+            .pdf-export-clone section {
+              margin-bottom: 0.25rem !important;
+              padding-bottom: 0 !important;
+              min-height: 0 !important;
+              overflow: visible !important;
+            }
+            .pdf-export-clone section h2 {
+              margin-top: 0 !important;
+              margin-bottom: 0.35rem !important;
+              padding-bottom: 0.25rem !important;
+            }
+            .pdf-export-clone p,
+            .pdf-export-clone div[class*="text-"] {
+              line-height: 1.5 !important;
+              margin-top: 0.25em !important;
+              margin-bottom: 0.4em !important;
+            }
+            .pdf-export-clone h1, .pdf-export-clone h2 {
+              line-height: 1.3 !important;
+              margin-top: 0 !important;
+              margin-bottom: 0.35rem !important;
+              padding-bottom: 0.25rem !important;
+            }
+            .pdf-export-clone .leading-normal, .pdf-export-clone .leading-relaxed { line-height: 1.5 !important; }
+            .pdf-export-clone .space-y-1 > * + * { margin-top: 0.35rem !important; }
+            .pdf-export-clone .space-y-2 > * + * { margin-top: 0.5rem !important; }
+            .pdf-export-clone .space-y-3 > * + * { margin-top: 0.5rem !important; }
+            .pdf-export-clone .space-y-4 > * + * { margin-top: 0.65rem !important; }
+            .pdf-export-clone .space-y-6 > * + * { margin-top: 0.75rem !important; }
+            .pdf-export-clone [class*="gap-"] { gap: 0.5rem !important; }
+            .pdf-export-clone .border-b { padding-bottom: 0.4rem !important; margin-bottom: 0.35rem !important; }
+            .pdf-export-clone .mb-2 { margin-bottom: 0.35rem !important; }
+            .pdf-export-clone .clean-impact-section h2 { padding-bottom: 0.2rem !important; margin-bottom: 0.25rem !important; }
+            .pdf-export-clone .clean-impact-section { margin-top: 0.25rem !important; }
+            .pdf-export-clone header,
+            .pdf-export-clone header .header-inner,
+            .pdf-export-clone header * { border: none !important; border-bottom: none !important; box-shadow: none !important; }
+            .pdf-export-clone .header-inner { padding-bottom: 0.2rem !important; margin-bottom: 0.2rem !important; }
+            .pdf-export-clone .header-contact-line,
+            .pdf-export-clone .header-contact-line * { word-break: break-word !important; overflow-wrap: break-word !important; line-height: 1.5 !important; overflow: visible !important; color: #000000 !important; }
+            .pdf-export-clone .header-contact-line { padding-right: 0.5rem !important; padding-bottom: 0.25rem !important; gap: 0.5rem 0.25rem !important; }
+            .pdf-export-clone .header-contact-value { color: #000000 !important; isolation: isolate !important; }
+            .pdf-export-clone header .grid.grid-cols-2 * { word-break: break-word !important; overflow-wrap: break-word !important; }
+            .pdf-export-clone .header-contact-grid > div { min-width: 0 !important; word-break: break-word !important; overflow-wrap: break-word !important; overflow: visible !important; padding-right: 0.35rem !important; }
+            .pdf-export-clone .header-contact-grid { padding-bottom: 0.25rem !important; overflow: visible !important; border: none !important; border-bottom: none !important; }
+          `;
+          root.appendChild(style);
+
+          // Override inline margins/padding to match resume UI (tighter contact / summary / work spacing)
+          const rootEl = clonedElement as HTMLElement;
+          rootEl.querySelectorAll('section').forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            htmlEl.style.marginBottom = '0.25rem';
+            htmlEl.style.paddingBottom = '0';
+          });
+          rootEl.querySelectorAll('section h2').forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            htmlEl.style.marginTop = '0';
+            htmlEl.style.marginBottom = '0.35rem';
+            htmlEl.style.paddingBottom = '0.25rem';
+          });
+          rootEl.querySelectorAll('[class*="col-span"]').forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            htmlEl.style.gap = '0.3rem';
+          });
+
+          // Remove all borders/lines under header and contact so no whitish lines show
+          const headerEl = rootEl.querySelector('header');
+          if (headerEl) {
+            (headerEl as HTMLElement).style.border = 'none';
+            (headerEl as HTMLElement).style.borderBottom = 'none';
+            (headerEl as HTMLElement).style.boxShadow = 'none';
+            headerEl.querySelectorAll('*').forEach((el) => {
+              const h = el as HTMLElement;
+              h.style.border = 'none';
+              h.style.borderBottom = 'none';
+              h.style.boxShadow = 'none';
+            });
           }
-          
-          // Force all text to use standard colors to avoid oklch issues
-          const allElements = clonedDoc.querySelectorAll('*');
-          allElements.forEach((el: Element) => {
+
+          // Preserve word/letter spacing so html2canvas doesn't jumble text (known bug: zero letter-spacing drops spaces)
+          rootEl.querySelectorAll('*').forEach((el) => {
+            const htmlEl = el as HTMLElement;
+            htmlEl.style.wordSpacing = 'normal';
+            htmlEl.style.letterSpacing = '0.02em';
+            htmlEl.style.fontKerning = 'normal';
+            htmlEl.style.whiteSpace = 'normal';
+          });
+
+          // Normalize colors that may not render (oklch, etc.)
+          clonedDoc.querySelectorAll('*').forEach((el: Element) => {
             const htmlEl = el as HTMLElement;
             const computed = window.getComputedStyle(htmlEl);
-            // Only override if color contains oklch
-            if (computed.color.includes('oklch') || computed.color.includes('color(')) {
+            if (computed.color?.includes('oklch') || computed.color?.includes('color(')) {
               htmlEl.style.color = '#000000';
             }
-            if (computed.backgroundColor.includes('oklch') || computed.backgroundColor.includes('color(')) {
-              htmlEl.style.backgroundColor = '#ffffff';
+            if (computed.backgroundColor?.includes('oklch') || computed.backgroundColor?.includes('color(')) {
+              htmlEl.style.backgroundColor = 'transparent';
             }
           });
         }
       });
 
-      // Remove clone
-      document.body.removeChild(clone);
+      // Measure LinkedIn link in clone for PDF link annotation (before removing clone)
+      let linkedInLink: { url: string; left: number; top: number; width: number; height: number } | null = null;
+      const linkEl = clone.querySelector('a[href*="linkedin"], a[href*="linkedin.com"]') as HTMLAnchorElement | null;
+      if (linkEl && linkEl.href) {
+        const cloneRect = clone.getBoundingClientRect();
+        const linkRect = linkEl.getBoundingClientRect();
+        let url = (linkEl.getAttribute('href') || linkEl.href || '').trim();
+        if (url && !url.startsWith('http')) url = `https://${url}`;
+        if (url) {
+          linkedInLink = {
+            url,
+            left: linkRect.left - cloneRect.left,
+            top: linkRect.top - cloneRect.top,
+            width: linkRect.width,
+            height: linkRect.height
+          };
+        }
+      }
+
+      // Remove off-screen wrapper (and clone)
+      document.body.removeChild(wrapper);
 
       // Verify canvas captured full content
       console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
       console.log('Expected height:', finalHeight);
-      console.log('Canvas height matches:', Math.abs(canvas.height - (finalHeight * 2)) < 10); // Account for scale factor
+      const PDF_SCALE = 3;
+      console.log('Canvas height matches:', Math.abs(canvas.height - (finalHeight * PDF_SCALE)) < 15); // Account for scale factor
 
       const pdf = new jsPDF({
         unit: 'in',
@@ -578,12 +778,25 @@ export function ResumeEditPage() {
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       
       console.log('Total image height in inches:', imgHeight);
-      console.log('Pages needed:', Math.ceil(imgHeight / pageHeight));
-      
-      // Multi-page support: split image across pages if needed
-      if (imgHeight <= pageHeight) {
-        // Single page - fits on one page
-        pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, imgWidth, imgHeight);
+      // Only use multiple pages when content is clearly more than one page (avoid blank 2nd page)
+      const singlePageMaxHeight = pageHeight + 0.4; // Up to 11.4" → fit on one page by scaling
+      const useSinglePage = imgHeight <= singlePageMaxHeight;
+      if (useSinglePage) {
+        // Single page: fit content on one page (scale down if slightly over 11")
+        const drawHeight = imgHeight <= pageHeight ? imgHeight : pageHeight;
+        pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, imgWidth, drawHeight);
+        // Clickable LinkedIn link on page 1 (coordinates in inches)
+        if (linkedInLink) {
+          const scaleX = 8.5 / 816;
+          const scaleY = drawHeight / finalHeight;
+          pdf.link(
+            linkedInLink.left * scaleX,
+            linkedInLink.top * scaleY,
+            linkedInLink.width * scaleX,
+            linkedInLink.height * scaleY,
+            { url: linkedInLink.url }
+          );
+        }
       } else {
         // Multi-page - split across multiple pages with intelligent section breaks
         // Calculate how many pixels represent one inch in the canvas
@@ -592,21 +805,27 @@ export function ResumeEditPage() {
         
         // Convert section positions to canvas coordinates (accounting for scale factor)
         const canvasSectionPositions = sectionPositions.map(s => ({
-          top: s.top * 2, // Scale factor is 2
-          bottom: s.bottom * 2,
-          height: (s.bottom - s.top) * 2
+          top: s.top * PDF_SCALE,
+          bottom: s.bottom * PDF_SCALE,
+          height: (s.bottom - s.top) * PDF_SCALE
         }));
         
         let sourceY = 0; // Start from top of canvas (in pixels)
         let pageNumber = 0;
+        const minPageHeightInches = 0.5; // Only add a new page if remainder is at least 0.5" (avoids blank 2nd page)
+        const minPageHeightPixels = minPageHeightInches * pixelsPerInch;
         
         while (sourceY < canvas.height) {
+          const remainingHeight = canvas.height - sourceY;
+          // Add a new page only when there's enough content for it (avoids blank last page)
+          if (pageNumber > 0 && remainingHeight < minPageHeightPixels) {
+            break;
+          }
           if (pageNumber > 0) {
-            pdf.addPage(); // Add new A4 page
+            pdf.addPage(); // Add new page
           }
           
           // Calculate how much content fits on this page
-          const remainingHeight = canvas.height - sourceY;
           let sourceHeight = Math.min(pageHeightInPixels, remainingHeight);
           
           // Check if we would cut through a section
@@ -675,6 +894,20 @@ export function ResumeEditPage() {
         }
         
         console.log(`PDF generation complete. Total pages: ${pageNumber}`);
+        // Clickable LinkedIn link on page 1 (first page shows top 11" of content)
+        if (linkedInLink) {
+          pdf.setPage(1);
+          const scaleX = 8.5 / 816;
+          const firstPageClonePx = 11 * (816 / 8.5);
+          const scaleY = 11 / firstPageClonePx;
+          pdf.link(
+            linkedInLink.left * scaleX,
+            linkedInLink.top * scaleY,
+            linkedInLink.width * scaleX,
+            linkedInLink.height * scaleY,
+            { url: linkedInLink.url }
+          );
+        }
       }
 
       const personName = localData?.personalInfo 
@@ -747,7 +980,7 @@ export function ResumeEditPage() {
   };
 
   const generateWorkDescription = async (experienceId: string) => {
-    if (!localData || !questionnaireAnswers.whatDidYouDo) {
+    if (!localData || !jobDescriptionInput.trim()) {
       return;
     }
     
@@ -774,8 +1007,8 @@ export function ResumeEditPage() {
         body: JSON.stringify({
           job_title: experience.title,
           company: experience.company,
-          what_did_you_do: questionnaireAnswers.whatDidYouDo,
-          impact_results: questionnaireAnswers.impactResults || undefined,
+          what_did_you_do: jobDescriptionInput.trim(),
+          impact_results: undefined,
         }),
       });
       
@@ -788,7 +1021,7 @@ export function ResumeEditPage() {
       if (data.description) {
         updateWorkExperience(experienceId, 'description', data.description);
         setShowQuestionnaireDialog(null);
-        setQuestionnaireAnswers({ whatDidYouDo: '', impactResults: '' });
+        setJobDescriptionInput('');
       }
     } catch (error) {
       console.error('Error generating description:', error);
@@ -799,64 +1032,6 @@ export function ResumeEditPage() {
     }
   };
 
-  const tailorResumeWithAI = async () => {
-    if (!localData) {
-      alert('Please fill out your resume first');
-      return;
-    }
-
-    if (!jobDescription || jobDescription.trim().length < 50) {
-      alert('Please provide a job description (at least 50 characters) to tailor your resume');
-      return;
-    }
-
-    if (!targetRole || targetRole.trim().length < 2) {
-      alert('Please provide a target role to tailor your resume');
-      return;
-    }
-
-    setIsTailoringResume(true);
-    try {
-      const token = await getAuthToken();
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-        (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      const response = await fetch(`${API_BASE_URL}/api/ai/tailor-resume`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          resumeData: localData,
-          targetRole: targetRole,
-          jobDescription: jobDescription,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
-        throw new Error(errorData.detail || 'Failed to tailor resume');
-      }
-      
-      const data = await response.json();
-      if (data.resumeData) {
-        // Update the resume with tailored data
-        replaceResumeData(data.resumeData);
-        setLocalData(data.resumeData);
-        alert('Resume tailored successfully! Your resume has been updated to match the job description.');
-      }
-    } catch (error) {
-      console.error('Error tailoring resume:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to tailor resume. Please try again.';
-      alert(errorMessage);
-    } finally {
-      setIsTailoringResume(false);
-    }
-  };
 
   if (!localData) {
     return (
@@ -875,7 +1050,6 @@ export function ResumeEditPage() {
     { id: 'education', label: 'Education', icon: GraduationCap, color: 'orange', count: localData.education?.length || 0 },
     { id: 'skills', label: 'Skills', icon: Wrench, color: 'red', count: localData.skills?.length || 0 },
     { id: 'summary', label: 'Professional Summary', icon: FileText, color: 'purple' },
-    { id: 'targetRole', label: 'Target Role & Job Description', icon: Target, color: 'blue' },
   ];
 
   const colorClasses: Record<string, { bg: string; text: string }> = {
@@ -907,7 +1081,7 @@ export function ResumeEditPage() {
         <div className="w-[550px] bg-gradient-to-b from-slate-50 to-white border-r border-gray-200 flex flex-col flex-shrink-0 shadow-sm">
           {/* Sidebar Header */}
           <div className="px-5 py-4 bg-white border-b border-gray-100">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center mb-3">
               <button 
                 onClick={() => navigate('/resume-builder')}
                 className="flex items-center gap-2 text-gray-500 hover:text-[#295acf] transition-colors group"
@@ -915,21 +1089,6 @@ export function ResumeEditPage() {
                 <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
                 <span className="text-sm">Back</span>
               </button>
-              <Button 
-                size="sm" 
-                onClick={handleSave}
-                disabled={isSaving}
-                className="h-10 px-5 rounded-xl font-semibold bg-[#295acf] hover:bg-[#1f4ab8] text-white transition-all duration-200"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-white" />
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-1.5 text-white" />
-                    <span className="text-white">Save</span>
-                  </>
-                )}
-              </Button>
             </div>
           </div>
 
@@ -1031,7 +1190,7 @@ export function ResumeEditPage() {
                             <Input
                               value={localData.personalInfo?.jobTitle || ''}
                               onChange={(e) => updatePersonalInfo('jobTitle', e.target.value)}
-                              placeholder="e.g. Software Engineer"
+                              placeholder="e.g. Software Engineer, Data Analyst"
                               className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-[#295acf] focus:ring-[#295acf] focus:bg-white transition-colors placeholder:text-gray-300"
                             />
                           </div>
@@ -1058,9 +1217,13 @@ export function ResumeEditPage() {
                           <div>
                             <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Location</Label>
                             <Input
-                              value={localData.personalInfo?.location || ''}
+                              value={(() => {
+                                const loc = (localData.personalInfo?.location || '').trim();
+                                if (!loc || /^your\s+location$/i.test(loc) || loc.toLowerCase() === 'location') return '';
+                                return loc;
+                              })()}
                               onChange={(e) => updatePersonalInfo('location', e.target.value)}
-                              placeholder="City, Country"
+                              placeholder="Your location"
                               className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-[#295acf] focus:ring-[#295acf] focus:bg-white transition-colors placeholder:text-gray-300"
                             />
                           </div>
@@ -1120,63 +1283,6 @@ export function ResumeEditPage() {
                             <span className="inline-block w-1 h-1 bg-purple-400 rounded-full"></span>
                             Keep it concise, 2-4 sentences work best
                           </p>
-                        </div>
-                      )}
-
-                      {section.id === 'targetRole' && (
-                        <div className="space-y-6">
-                          <div>
-                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Target Role</Label>
-                            <Input
-                              value={targetRole}
-                              onChange={(e) => setTargetRole(e.target.value)}
-                              placeholder="e.g., Software Engineer, Product Manager, Marketing Specialist..."
-                              className="h-11 bg-gray-50/80 border-gray-200 rounded-xl focus:border-[#295acf] focus:ring-[#295acf] focus:bg-white transition-colors placeholder:text-gray-300"
-                            />
-                            <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                              <span className="inline-block w-1 h-1 bg-blue-400 rounded-full"></span>
-                              This helps AI tailor your resume for specific roles
-                            </p>
-                          </div>
-                          
-                          <div>
-                            <Label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Job Description (Required for Tailoring)</Label>
-                            <Textarea
-                              value={jobDescription}
-                              onChange={(e) => setJobDescription(e.target.value)}
-                              placeholder="Paste the full job description here to help AI tailor your resume structure, skills emphasis, and terminology to match the job requirements..."
-                              rows={8}
-                              className="resize-none bg-gray-50/80 border-gray-200 rounded-xl focus:border-[#295acf] focus:ring-[#295acf] focus:bg-white transition-colors placeholder:text-gray-300"
-                            />
-                            <p className="text-[11px] text-gray-400 mt-2 flex items-center gap-1">
-                              <span className="inline-block w-1 h-1 bg-blue-400 rounded-full"></span>
-                              Providing the job description helps AI better tailor your resume structure, highlight relevant skills, and use industry-specific terminology
-                            </p>
-                          </div>
-
-                          <div className="pt-4 border-t border-gray-200">
-                            <Button
-                              type="button"
-                              onClick={tailorResumeWithAI}
-                              disabled={isTailoringResume || !jobDescription || jobDescription.trim().length < 50 || !targetRole || targetRole.trim().length < 2}
-                              className="w-full h-12 bg-gradient-to-r from-[#295acf] to-[#1f4ab8] hover:from-[#1f4ab8] hover:to-[#295acf] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {isTailoringResume ? (
-                                <>
-                                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                  Tailoring Resume with AI...
-                                </>
-                              ) : (
-                                <>
-                                  <Sparkles className="w-5 h-5 mr-2" />
-                                  Tailor Resume with AI
-                                </>
-                              )}
-                            </Button>
-                            <p className="text-[11px] text-gray-500 mt-3 text-center">
-                              This will tailor your entire resume to 100% match the job description, using only skills you actually have
-                            </p>
-                          </div>
                         </div>
                       )}
 
@@ -1358,7 +1464,8 @@ export function ResumeEditPage() {
                       )}
 
                       {section.id === 'skills' && (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
+                          {/* Skills Display */}
                           <div className="flex flex-wrap gap-2">
                             {(localData.skills || []).map((skill: Skill) => (
                               <div 
@@ -1381,15 +1488,105 @@ export function ResumeEditPage() {
                               </div>
                             ))}
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={addSkill}
-                            className="w-full h-11 border-2 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:border-blue-400 hover:bg-blue-50 rounded-lg font-medium transition-all"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Add Skill
-                          </Button>
+
+                          {/* Input Mode Tabs */}
+                          <Tabs value={skillsInputMode} onValueChange={(value) => setSkillsInputMode(value as 'manual' | 'ai')} className="w-full">
+                            <TabsList className="grid w-full grid-cols-2 bg-gray-100">
+                              <TabsTrigger 
+                                value="manual" 
+                                className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+                              >
+                                <Wrench className="w-4 h-4 mr-2" />
+                                Manual
+                              </TabsTrigger>
+                              <TabsTrigger 
+                                value="ai" 
+                                className="data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm"
+                              >
+                                <Wand2 className="w-4 h-4 mr-2" />
+                                AI Generate
+                              </TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="manual" className="mt-4 space-y-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={addSkill}
+                                className="w-full h-11 border-2 border-dashed border-blue-300 text-blue-600 hover:text-blue-700 hover:border-blue-400 hover:bg-blue-50 rounded-lg font-medium transition-all"
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add Skill Manually
+                              </Button>
+                            </TabsContent>
+
+                            <TabsContent value="ai" className="mt-4 space-y-4">
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Label className="text-sm font-medium text-gray-700">Context</Label>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant={aiSkillsContext === 'resume' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => setAiSkillsContext('resume')}
+                                      className={aiSkillsContext === 'resume' ? 'bg-blue-600 text-white' : ''}
+                                    >
+                                      <UserCircle className="w-3.5 h-3.5 mr-1.5" />
+                                      About Me
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={aiSkillsContext === 'job' ? 'default' : 'outline'}
+                                      size="sm"
+                                      onClick={() => setAiSkillsContext('job')}
+                                      className={aiSkillsContext === 'job' ? 'bg-blue-600 text-white' : ''}
+                                    >
+                                      <Briefcase className="w-3.5 h-3.5 mr-1.5" />
+                                      Job/Role
+                                    </Button>
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="ai-skills-description" className="text-sm font-medium text-gray-700">
+                                    {aiSkillsContext === 'resume' 
+                                      ? 'Tell us about yourself, your experience, or your background'
+                                      : 'Describe the job, role, or requirements'}
+                                  </Label>
+                                  <Textarea
+                                    id="ai-skills-description"
+                                    value={aiSkillsDescription}
+                                    onChange={(e) => setAiSkillsDescription(e.target.value)}
+                                    placeholder={aiSkillsContext === 'resume' 
+                                      ? 'e.g., I am a software engineer with 5 years of experience building web applications using React, Node.js, and PostgreSQL. I have worked on microservices architecture and deployed applications on AWS...'
+                                      : 'e.g., We are looking for a Senior Software Engineer who can build scalable web applications using React and Node.js. Experience with AWS, Docker, and PostgreSQL is required...'}
+                                    className="min-h-[120px] border-gray-300 focus:border-blue-500 focus:ring-blue-500 resize-none"
+                                  />
+                                  <p className="text-xs text-gray-500">
+                                    AI will extract relevant skills and technologies from your description
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  onClick={generateSkillsWithAI}
+                                  disabled={isGeneratingSkills || !aiSkillsDescription.trim() || aiSkillsDescription.trim().length < 20}
+                                  className="w-full h-11 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium rounded-lg shadow-sm transition-all"
+                                >
+                                  {isGeneratingSkills ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Generating Skills...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Wand2 className="w-4 h-4 mr-2" />
+                                      Generate Skills with AI
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            </TabsContent>
+                          </Tabs>
                         </div>
                       )}
                     </div>
@@ -1451,10 +1648,16 @@ export function ResumeEditPage() {
             </div>
             <div className="flex items-center gap-3">
               <Button 
-                onClick={() => navigate('/resume-builder')}
+                onClick={handleSave}
+                disabled={isSaving}
                 className="bg-[#295acf] hover:bg-[#1f4ab8] text-white shadow-sm"
               >
-                Preview
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save
               </Button>
               <Button 
                 onClick={handleDownloadPDF}
@@ -1488,7 +1691,7 @@ export function ResumeEditPage() {
                   transformOrigin: 'top center',
                 }}
               >
-                <div style={{ padding: '16px' }}>
+                <div style={{ padding: '24px' }}>
                   <TemplateRenderer 
                     templateId={templateId}
                     data={localData}
@@ -1587,50 +1790,37 @@ export function ResumeEditPage() {
         </DialogContent>
       </Dialog>
 
-      {/* AI Work Experience Questionnaire Dialog */}
+      {/* AI Work Experience – single field */}
       <Dialog open={showQuestionnaireDialog !== null} onOpenChange={(open) => {
         if (!open) {
           setShowQuestionnaireDialog(null);
-          setQuestionnaireAnswers({ whatDidYouDo: '', impactResults: '' });
+          setJobDescriptionInput('');
         }
       }}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto bg-white">
           <DialogHeader>
             <DialogTitle>Help AI Generate Your Job Description</DialogTitle>
             <DialogDescription>
-              Answer these 2 questions to help AI create a professional description.
+              Describe your role and achievements. Include responsibilities and impact or metrics if you have them.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="whatDidYouDo">What did you do? (Key responsibilities and tasks)</Label>
-              <Textarea
-                id="whatDidYouDo"
-                value={questionnaireAnswers.whatDidYouDo}
-                onChange={(e) => setQuestionnaireAnswers({ ...questionnaireAnswers, whatDidYouDo: e.target.value })}
-                placeholder="e.g., Managed a team of 5 developers, implemented CI/CD pipelines, led sprint planning meetings..."
-                rows={4}
-                className="resize-none"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="impactResults">Impact/Results (Achievements and measurable outcomes)</Label>
-              <Textarea
-                id="impactResults"
-                value={questionnaireAnswers.impactResults}
-                onChange={(e) => setQuestionnaireAnswers({ ...questionnaireAnswers, impactResults: e.target.value })}
-                placeholder="e.g., Reduced deployment time by 50%, increased team productivity by 30%, delivered 3 major features on time..."
-                rows={4}
-                className="resize-none"
-              />
-            </div>
+          <div className="py-4">
+            <Label htmlFor="jobDescriptionInput">Your role & achievements *</Label>
+            <Textarea
+              id="jobDescriptionInput"
+              value={jobDescriptionInput}
+              onChange={(e) => setJobDescriptionInput(e.target.value)}
+              placeholder="e.g., Led the backend team, built APIs with Python and PostgreSQL. Reduced deployment time by 40%. Managed 3 engineers."
+              rows={5}
+              className="mt-1 resize-none"
+            />
           </div>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
                 setShowQuestionnaireDialog(null);
-                setQuestionnaireAnswers({ whatDidYouDo: '', impactResults: '' });
+                setJobDescriptionInput('');
               }}
             >
               Cancel
@@ -1641,7 +1831,7 @@ export function ResumeEditPage() {
                   generateWorkDescription(showQuestionnaireDialog);
                 }
               }}
-              disabled={!questionnaireAnswers.whatDidYouDo || isGeneratingDescription}
+              disabled={!jobDescriptionInput.trim() || isGeneratingDescription}
               className="bg-[#295acf] hover:bg-[#1f4ab8] text-white"
             >
               {isGeneratingDescription ? (

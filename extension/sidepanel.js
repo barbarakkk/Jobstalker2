@@ -60,6 +60,22 @@ async function init() {
   
   // Set up URL change detection
   setupUrlChangeDetection();
+  
+  // When token is saved (e.g. after sign-in in auth tab), refresh immediately so one click is enough
+  chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === 'tokenUpdated') {
+      console.log('Token updated, refreshing side panel...');
+      checkStatus();
+    }
+  });
+  
+  // Also refresh when storage changes (auth tab saved token)
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && changes.jobstalker_auth_token) {
+      console.log('Auth token changed, refreshing side panel...');
+      checkStatus();
+    }
+  });
 }
 
 async function checkStatus() {
@@ -422,14 +438,37 @@ async function handleSaveJob() {
     console.log('💾 STEP 3.10: Response from background script:', response);
     
     if (response && response.success) {
+      const data = response.data || {};
+      const isDuplicate = data.is_duplicate === true || data.status === 'duplicate';
+      
+      if (isDuplicate) {
+        console.log('ℹ️ Job already in dashboard (duplicate)');
+        if (saveJobBtn) {
+          saveJobBtn.textContent = '✓ Already in dashboard';
+          saveJobBtn.style.background = '#6b7280';
+        }
+        // Still reload dashboard so user sees the job in the list
+        setTimeout(() => {
+          if (saveJobBtn) {
+            saveJobBtn.textContent = 'Save Link to JobStalker AI';
+            saveJobBtn.style.background = '#0041C2';
+            saveJobBtn.disabled = false;
+          }
+        }, 2500);
+        return;
+      }
+      
       console.log('✅ STEP 3.11: Job saved successfully!');
       console.log('✅ STEP 3.11.1: Response data:', response.data);
       
-      // Show success message with job details if available
-      if (response.data && response.data.extracted_data) {
-        const jobData = response.data.extracted_data;
-        const jobTitle = jobData.job_title || 'Job';
-        const company = jobData.company || 'Company';
+      // Show success message with job details (from backend or page fallback)
+      const jobInfo = data.extracted_data || (pageData.fallback_data && {
+        job_title: pageData.fallback_data.job_title,
+        company: pageData.fallback_data.company
+      });
+      if (jobInfo && (jobInfo.job_title || jobInfo.company)) {
+        const jobTitle = jobInfo.job_title || 'Job';
+        const company = jobInfo.company || 'Company';
         if (saveJobBtn) saveJobBtn.textContent = `✅ Saved: ${jobTitle} at ${company}`;
         console.log('✅ STEP 3.11.2: Showing job details:', jobTitle, company);
       } else {
@@ -438,8 +477,8 @@ async function handleSaveJob() {
       if (saveJobBtn) saveJobBtn.style.background = '#10b981';
       console.log('✅ STEP 3.12: UI updated to success state');
       
-      // Show dashboard reload message with countdown
-      let countdown = 2; // Reduced to 2 seconds since we have the data
+      // Show dashboard reload message with countdown so new job appears
+      let countdown = 2;
       const countdownInterval = setInterval(() => {
         if (saveJobBtn) {
           saveJobBtn.textContent = `🔄 Reloading in ${countdown}s...`;
@@ -467,7 +506,7 @@ async function handleSaveJob() {
         currentRating = 1;
         highlightStars(1);
         console.log('✅ STEP 3.14: Form reset complete');
-      }, 4000); // Reduced to 4 seconds
+      }, 4000);
     } else {
       console.log('❌ STEP 3.15: Job save failed, handling error...');
       // Reset button state

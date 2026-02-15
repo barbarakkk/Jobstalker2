@@ -58,8 +58,12 @@ export function ResumeBuilderHome() {
   const [processingUpgrade, setProcessingUpgrade] = useState(false);
 
   useEffect(() => {
-    loadResumes();
-    loadSubscriptionInfo();
+    // Non-blocking data loading - page renders immediately
+    const timeoutId = setTimeout(() => {
+      loadResumes();
+      loadSubscriptionInfo();
+    }, 0);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const loadSubscriptionInfo = async () => {

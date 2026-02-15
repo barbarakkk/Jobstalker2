@@ -43,26 +43,26 @@ export function CleanImpactWorkSection({ data, config, style }: CleanImpactWorkS
     <section style={containerStyle} className={`clean-impact-section ${config?.className || ''}`}>
       {showTitle && (
         <h2 
-          className="text-xs font-bold mb-2 uppercase tracking-wider"
+          className="text-xs font-bold uppercase tracking-wider"
           style={{ 
             color: accentColor,
             fontSize: '12px',
             letterSpacing: '1.2px',
             borderBottom: `2px solid ${accentColor}`,
             paddingBottom: '4px',
-            marginBottom: '8px'
+            marginBottom: '6px'
           }}
         >
           {title}
         </h2>
       )}
-      <div className="space-y-4">
+      <div className="space-y-4" style={{ paddingTop: '0' }}>
         {workExperience.map((work) => {
           const bullets = parseBullets(work.description || '');
           
           return (
             <div key={work.id} className="clean-impact-work-entry">
-              <div className="flex items-start justify-between gap-4 mb-2">
+              <div className="flex items-start justify-between gap-4 mb-2.5">
                 <div className="flex-1">
                   <div 
                     className="font-bold text-base"
@@ -81,18 +81,18 @@ export function CleanImpactWorkSection({ data, config, style }: CleanImpactWorkS
               </div>
               
               {bullets.length > 0 && (
-                <ul className="list-none pl-0 space-y-0.5" style={{ marginLeft: '0' }}>
+                <ul className="list-none pl-0 space-y-1" style={{ marginLeft: '0', lineHeight: 1.5 }}>
                   {bullets.map((bullet, index) => (
                     <li 
                       key={index} 
                       className="text-sm flex items-start"
                       style={{ 
                         color: '#1c1e21',
-                        marginTop: '2px',
-                        marginBottom: '2px',
+                        marginTop: '4px',
+                        marginBottom: '4px',
                       }}
                     >
-                      <span className="mr-2" style={{ color: accentColor }}>•</span>
+                      <span className="mr-2 flex-shrink-0" style={{ color: accentColor }}>•</span>
                       <span>{bullet}</span>
                     </li>
                   ))}

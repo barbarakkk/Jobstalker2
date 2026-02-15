@@ -4,7 +4,7 @@ import { ChevronDown, HelpCircle, Sparkles } from 'lucide-react';
 const faqs = [
   {
     question: "Is Jobstalker free to use?",
-    answer: "Yes, Jobstalker offers a free plan with core features that will remain free forever. This includes our Job Tracker, Job Posting Saver, and Application Autofiller. We also have premium features like the ATS Resume Builder and advanced Job Matcher, which are part of a paid plan. Additionally, we charge companies a fee to post their jobs on our platform."
+    answer: "Yes, Jobstalker offers a free plan with core features that will remain free forever. This includes our Job Tracker, Job Posting Saver, and Application Autofiller. We also have premium features like the ATS Resume Builder, which are part of a paid plan. Additionally, we charge companies a fee to post their jobs on our platform."
   },
   {
     question: "How does Jobstalker work?",

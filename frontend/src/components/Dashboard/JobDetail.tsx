@@ -326,8 +326,8 @@ export default function JobDetail() {
         }
       }
       
-      // Navigate to edit page with job context
-      const editUrl = `/resume-builder/edit?resume=${resumeId}&template=modern-professional&targetRole=${encodeURIComponent(job.job_title || '')}&jobDescription=${encodeURIComponent(job.description || '')}`;
+      // Navigate to edit page
+      const editUrl = `/resume-builder/edit?resume=${resumeId}&template=modern-professional`;
       navigate(editUrl);
     } catch (error) {
       console.error('Failed to tailor resume:', error);

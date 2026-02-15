@@ -23,14 +23,14 @@ export function CleanImpactSummarySection({ data, config, style }: CleanImpactSu
     <section style={containerStyle} className={`clean-impact-section ${config?.className || ''}`}>
       {showTitle && (
         <h2 
-          className="text-xs font-bold mb-2 uppercase tracking-wider"
+          className="text-xs font-bold uppercase tracking-wider"
           style={{ 
             color: accentColor,
             fontSize: '12px',
             letterSpacing: '1.2px',
             borderBottom: `2px solid ${accentColor}`,
-            paddingBottom: '4px',
-            marginBottom: '8px'
+            paddingBottom: '3px',
+            marginBottom: '4px'
           }}
         >
           {title}
@@ -41,7 +41,9 @@ export function CleanImpactSummarySection({ data, config, style }: CleanImpactSu
         style={{ 
           color: '#1c1e21',
           fontSize: '14px',
-          lineHeight: '1.5'
+          lineHeight: '1.55',
+          marginTop: '0',
+          marginBottom: '0.15rem'
         }}
       >
         {data.summary.replace(/[\*\u2022\u2023\u25E6\u2043\u2219•]/g, '').replace(/^\s*[-]\s*/gm, '')}

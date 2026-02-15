@@ -35,8 +35,8 @@ def get_profile(user_id: str = Depends(get_current_user), authorization: Optiona
             default_profile = {
                 "user_id": user_id,
                 "full_name": "Your Name",
-                "job_title": "Your Role",
-                "location": "Your Location"
+                "job_title": "",
+                "location": ""
             }
             try:
                 insert_response = supabase.table("user_profile").insert(default_profile).execute()

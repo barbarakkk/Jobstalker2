@@ -295,7 +295,7 @@ export function JobModal({ isOpen, onClose, onJobSaved, jobToEdit, mode }: JobMo
                   handleInputChange('description', value);
                 }
               }}
-              placeholder="Drop the full job description here so the AI job matcher can analyze skills and requirements..."
+              placeholder="Drop the full job description here..."
               rows={6}
               maxLength={15000}
               className="border-gray-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500 resize-y min-h-[120px] max-h-[400px]"

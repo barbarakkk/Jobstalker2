@@ -200,7 +200,6 @@ export type SubscriptionStatus = 'free' | 'active' | 'canceled' | 'past_due' | '
 export interface SubscriptionLimits {
   max_resumes: number | null; // null means unlimited
   max_jobs_from_extension: number | null; // null means unlimited
-  job_matcher_enabled: boolean;
 }
 
 export interface SubscriptionUsage {

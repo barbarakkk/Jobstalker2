@@ -55,27 +55,27 @@ export function EducationSection({ data, config, style }: EducationSectionProps)
         ...containerStyle,
         fontFamily: bodyFont,
         fontSize: fontSize,
-        marginBottom: '0.75rem', // Reduced spacing between sections
+        marginBottom: '0.75rem',
       }} 
       className={config?.className}
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-1"
+          className="text-xl font-bold"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
-            paddingBottom: '0.25rem',
-            marginBottom: '0.25rem'
+            paddingBottom: '0.5rem',
+            marginBottom: '0.9rem'
           }}
         >
           {title}
         </h2>
       )}
-      <div className="space-y-1.5">
+      <div className="space-y-3" style={{ paddingTop: '0.125rem' }}>
         {education.map((edu) => (
-          <div key={edu.id} className="border-b border-gray-200 pb-1.5 last:border-b-0 last:pb-0">
-            <div className="flex items-start justify-between flex-wrap gap-2 mb-1">
+          <div key={edu.id} className="pb-3 last:pb-0">
+            <div className="flex items-start justify-between flex-wrap gap-2 mb-0.5">
               <div className="flex-1">
                 <div className="font-semibold text-sm text-gray-900" style={{ color: String(primaryColor) }}>{edu.degree}</div>
                 <div className="text-xs text-gray-600 mt-0.5">{edu.school}</div>

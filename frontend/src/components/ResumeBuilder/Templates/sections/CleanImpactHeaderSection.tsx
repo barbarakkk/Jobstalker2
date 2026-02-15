@@ -10,6 +10,8 @@ interface CleanImpactHeaderSectionProps {
 export function CleanImpactHeaderSection({ data, config, style }: CleanImpactHeaderSectionProps) {
   const personalInfo = data.personalInfo;
   const name = `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim().toUpperCase() || 'YOUR NAME';
+  const locationValue = personalInfo.location?.trim();
+  const showLocation = locationValue && !/^your\s+location$/i.test(locationValue) && locationValue.toLowerCase() !== 'location';
   
   const containerStyle: React.CSSProperties = {
     ...style,
@@ -34,7 +36,7 @@ export function CleanImpactHeaderSection({ data, config, style }: CleanImpactHea
         {/* Name and Contact Info */}
         <div className="flex-1">
           <h1 
-            className="text-3xl font-bold mb-2 tracking-tight"
+            className="text-3xl font-bold mb-1 tracking-tight"
             style={{ 
               color: accentColor,
               fontSize: '28px',
@@ -43,28 +45,32 @@ export function CleanImpactHeaderSection({ data, config, style }: CleanImpactHea
           >
             {name}
           </h1>
+          {personalInfo.jobTitle && (
+            <div className="text-base font-semibold mb-2" style={{ color: '#374151', fontSize: '16px' }}>
+              {personalInfo.jobTitle}
+            </div>
+          )}
           
-          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs" style={{ color: '#5a6b7a' }}>
-            {personalInfo.location && (
-              <div>
-                <span className="font-normal" style={{ color: '#5a6b7a' }}>Address:</span>{' '}
-                <span style={{ color: '#1c1e21' }}>{personalInfo.location}</span>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs header-contact-grid" style={{ color: '#5a6b7a' }}>
+            {showLocation && (
+              <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                <span style={{ color: '#1c1e21' }}>{locationValue}</span>
               </div>
             )}
             {personalInfo.phone && (
-              <div>
+              <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 <span className="font-normal" style={{ color: '#5a6b7a' }}>Phone:</span>{' '}
                 <span style={{ color: '#1c1e21' }}>{personalInfo.phone}</span>
               </div>
             )}
             {personalInfo.email && (
-              <div>
+              <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 <span className="font-normal" style={{ color: '#5a6b7a' }}>Email:</span>{' '}
                 <span style={{ color: '#1c1e21' }}>{personalInfo.email}</span>
               </div>
             )}
             {personalInfo.linkedin && (
-              <div>
+              <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 <span className="font-normal" style={{ color: '#5a6b7a' }}>LinkedIn:</span>{' '}
                 <a
                   href={personalInfo.linkedin.startsWith('http://') || personalInfo.linkedin.startsWith('https://') 
@@ -80,7 +86,7 @@ export function CleanImpactHeaderSection({ data, config, style }: CleanImpactHea
               </div>
             )}
             {personalInfo.website && (
-              <div>
+              <div className="min-w-0" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 <span className="font-normal" style={{ color: '#5a6b7a' }}>Website:</span>{' '}
                 <span style={{ color: '#1c1e21' }}>{personalInfo.website}</span>
               </div>

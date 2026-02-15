@@ -130,7 +130,7 @@ export function TemplateRenderer({
               key={`${sectionConfig.type}-${sectionConfig.position}`} 
               className="col-span-full"
               style={{
-                marginBottom: '0.3rem',
+                marginBottom: '0.75rem',
                 paddingBottom: '0',
               }}
             >

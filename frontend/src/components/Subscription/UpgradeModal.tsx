@@ -64,12 +64,6 @@ export function UpgradeModal({ open, onOpenChange, onActivate, processing = fals
               </div>
               <span className="text-gray-700 text-base">Unlimited jobs from extension</span>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Check className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="text-gray-700 text-base">AI Job Matcher included</span>
-            </div>
           </div>
         </div>
 

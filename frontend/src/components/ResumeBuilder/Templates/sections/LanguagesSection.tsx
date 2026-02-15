@@ -41,7 +41,7 @@ export function LanguagesSection({ data, config, style }: LanguagesSectionProps)
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem',
-            marginBottom: '0.5rem' // Explicit smaller margin
+            marginBottom: '0.6rem'
           }}
         >
           {title}

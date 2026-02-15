@@ -13,10 +13,10 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
   const containerStyle: React.CSSProperties = {
     ...style,
     ...config?.style,
-    marginBottom: '0.15rem', // Minimized spacing to bring sections closer
-    marginTop: '0', // Remove top margin completely
-    paddingBottom: '0', // Remove any padding
-    paddingTop: '0', // Remove any padding
+    marginBottom: '0.25rem',
+    marginTop: '0.1rem',
+    paddingBottom: '0.05rem',
+    paddingTop: '0',
   };
 
   const showTitle = config?.showTitle !== false;
@@ -37,23 +37,24 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-1"
+          className="text-xl font-bold"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.25rem',
-            marginBottom: '0.25rem'
+            marginBottom: '0.35rem'
           }}
         >
           {title}
         </h2>
       )}
       <p 
-        className="text-sm leading-normal whitespace-pre-line"
+        className="text-sm leading-relaxed whitespace-pre-line"
         style={{ 
           color: style?.color || config?.style?.color,
-          marginTop: '0',
-          marginBottom: '0'
+          marginTop: '0.125rem',
+          marginBottom: '0',
+          lineHeight: '1.55'
         }}
       >
         {data.summary.replace(/[\*\u2022\u2023\u25E6\u2043\u2219•]/g, '').replace(/^\s*[-]\s*/gm, '')}

@@ -94,12 +94,6 @@ export function Pricing() {
                   </div>
                   <span className="text-gray-700">Unlimited jobs from web app</span>
                 </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <span className="w-3.5 h-3.5 text-gray-400 text-xs">✕</span>
-                  </div>
-                  <span className="text-gray-500 line-through">AI Job Matcher</span>
-                </li>
               </ul>
               <Button
                 onClick={handleGetStarted}
@@ -158,12 +152,6 @@ export function Pricing() {
                     <Check className="w-3.5 h-3.5 text-white" />
                   </div>
                   <span className="text-gray-700 font-medium">Unlimited jobs from web app</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Sparkles className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  <span className="text-gray-700 font-medium">AI Job Matcher included</span>
                 </li>
               </ul>
               <Button

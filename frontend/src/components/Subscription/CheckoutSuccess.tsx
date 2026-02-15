@@ -72,10 +72,6 @@ export function CheckoutSuccess() {
                       <span className="text-blue-600 mt-1">✓</span>
                       <span>Save unlimited jobs from extension</span>
                     </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-blue-600 mt-1">✓</span>
-                      <span>Access AI Job Matcher</span>
-                    </li>
                   </ul>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">

@@ -6,8 +6,32 @@ import { supabase } from './supabaseClient';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
   (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
 
-// Helper function to get auth token
+// Extension token passed when opening dashboard from extension (same user's jobs)
+const EXTENSION_TOKEN_KEY = 'jobstalker_extension_token';
+
+function readExtensionTokenFromHash(): string | null {
+  if (typeof window === 'undefined') return null;
+  const hash = window.location.hash?.replace(/^#/, '') || '';
+  const params = new URLSearchParams(hash);
+  const token = params.get('extension_token');
+  if (token) {
+    try {
+      sessionStorage.setItem(EXTENSION_TOKEN_KEY, token);
+      params.delete('extension_token');
+      const newHash = params.toString() ? '#' + params.toString() : '';
+      window.history.replaceState(null, '', window.location.pathname + window.location.search + newHash);
+    } catch (e) {}
+    return token;
+  }
+  return null;
+}
+
+// Helper function to get auth token (extension token first so dashboard shows same jobs as extension)
 const getAuthToken = async (): Promise<string | null> => {
+  const fromStorage = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(EXTENSION_TOKEN_KEY) : null;
+  if (fromStorage) return fromStorage;
+  const fromHash = readExtensionTokenFromHash();
+  if (fromHash) return fromHash;
   const { data: { session } } = await supabase.auth.getSession();
   return session?.access_token || null;
 };
@@ -413,6 +437,17 @@ export const skillsApi = {
   // Get AI skill suggestions
   getSkillSuggestions: async (): Promise<string[]> => {
     return apiCall<string[]>('/api/skills/suggestions');
+  },
+};
+
+// AI API functions for resume builder
+export const resumeAiApi = {
+  // Generate skills from user description
+  generateSkills: async (description: string, context: 'resume' | 'job' = 'resume'): Promise<{ skills: string[]; message: string }> => {
+    return apiCall<{ skills: string[]; message: string }>('/api/ai/generate-skills', {
+      method: 'POST',
+      body: JSON.stringify({ description, context }),
+    });
   },
 };
 

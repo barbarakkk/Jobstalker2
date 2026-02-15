@@ -10,13 +10,11 @@ SubscriptionTier = Literal['free', 'pro']
 FREE_TIER_LIMITS = {
     'max_resumes': None,  # Unlimited
     'max_jobs_from_extension': None,  # Unlimited
-    'job_matcher_enabled': True,
 }
 
 PRO_TIER_LIMITS = {
     'max_resumes': None,  # Unlimited
     'max_jobs_from_extension': None,  # Unlimited
-    'job_matcher_enabled': True,
 }
 
 async def get_user_subscription_tier(user_id: str) -> SubscriptionTier:
@@ -52,7 +50,6 @@ def get_subscription_limits(tier: SubscriptionTier) -> dict:
     return {
         'max_resumes': None,  # Unlimited
         'max_jobs_from_extension': None,  # Unlimited
-        'job_matcher_enabled': True,
     }
 
 async def check_resume_limit(user_id: str) -> tuple[bool, int, Optional[int]]:
@@ -87,11 +84,6 @@ async def check_job_limit_from_extension(user_id: str) -> tuple[bool, int, Optio
     # Always allow unlimited jobs
     return (True, current_count, None)
 
-async def check_job_matcher_access(user_id: str) -> bool:
-    """Check if user has access to job matcher feature - Always enabled"""
-    # Always return True - job matcher is enabled for everyone
-    return True
-
 async def require_pro_tier(user_id: str, feature_name: str = "This feature") -> None:
     """No longer requires pro tier - all features are free"""
     # Do nothing - all features are free
@@ -115,7 +107,6 @@ async def get_subscription_info(user_id: str) -> dict:
         limits = {
             'max_resumes': None,  # Unlimited
             'max_jobs_from_extension': None,  # Unlimited
-            'job_matcher_enabled': True,
         }
         
         # Get current usage
@@ -153,7 +144,6 @@ async def get_subscription_info(user_id: str) -> dict:
             "limits": {
                 'max_resumes': None,
                 'max_jobs_from_extension': None,
-                'job_matcher_enabled': True,
             },
             "usage": {
                 "resumes": 0,

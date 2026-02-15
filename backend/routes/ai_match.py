@@ -1,5 +1,6 @@
 """AI job match analysis routes"""
 from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
 from supabase_client import supabase
 from uuid import UUID
 from utils.dependencies import get_current_user
@@ -14,14 +15,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 router = APIRouter()
 
+class GenerateSkillsRequest(BaseModel):
+    description: str
+    context: str = "resume"  # "resume" or "job"
+
 @router.post("/api/ai/job-match/{job_id}")
 async def analyze_job_match(job_id: UUID, user_id: str = Depends(get_current_user)):
     """Analyze how well user's profile matches the job requirements"""
     try:
-        # Check if user has pro tier (job matcher is pro-only)
-        from utils.subscription import require_pro_tier
-        await require_pro_tier(user_id, "Job Matcher")
-        
         # Get job details
         job_response = supabase.table("jobs").select("*").eq("id", str(job_id)).eq("user_id", user_id).single().execute()
         if not job_response.data:
@@ -319,4 +320,108 @@ Return ONLY a valid JSON array, no other text or markdown formatting. Example fo
     except Exception as e:
         print(f"Error extracting resume keywords: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to extract keywords: {str(e)}")
+
+@router.post("/api/ai/generate-skills")
+async def generate_skills_from_description(
+    request: GenerateSkillsRequest,
+    user_id: str = Depends(get_current_user)
+):
+    """Generate skills from user description (about themselves or their job)"""
+    try:
+        if not request.description or len(request.description.strip()) < 20:
+            raise HTTPException(status_code=400, detail="Description must be at least 20 characters")
+        
+        # Use OpenAI to extract skills from description
+        client = get_openai_client()
+        
+        # Limit description to 5000 chars
+        desc_text = request.description[:5000]
+        
+        context_prompt = ""
+        if request.context == "job":
+            context_prompt = "This is a job description or role description. Extract the skills and technologies required or mentioned."
+        else:
+            context_prompt = "This is a description about a person, their experience, or their background. Extract the skills and technologies they have or use."
+        
+        prompt = f"""Analyze the following description and extract ALL relevant SKILLS and TECHNOLOGIES. {context_prompt}
+
+DESCRIPTION:
+{desc_text}
+
+INSTRUCTIONS:
+1. Extract skills, technologies, tools, frameworks, programming languages, and technical competencies mentioned
+2. Include:
+   - Programming languages (e.g., "Python", "JavaScript", "Java", "C++")
+   - Frameworks and libraries (e.g., "React", "Django", "Spring Boot", "Angular")
+   - Tools and platforms (e.g., "AWS", "Docker", "Git", "Jenkins", "Kubernetes")
+   - Databases (e.g., "PostgreSQL", "MongoDB", "MySQL", "Redis")
+   - Methodologies (e.g., "Agile", "Scrum", "CI/CD", "DevOps")
+   - Technical skills (e.g., "Machine Learning", "REST APIs", "Microservices", "Cloud Computing")
+   - Software and applications (e.g., "Figma", "Tableau", "Salesforce", "Jira")
+   - Soft skills ONLY if they are technical competencies (e.g., "Project Management", "Technical Writing")
+3. DO NOT include generic soft skills like "communication", "teamwork", "leadership" unless specifically mentioned as technical competencies
+4. Prioritize specific technical terms over generic ones
+5. Return a JSON array of skills (strings only, no duplicates)
+6. Limit to 40 most important skills
+7. Format each skill in a professional, resume-appropriate way (e.g., "React.js" not "react" or "REACT", "Node.js" not "node")
+8. Include both explicit skills mentioned AND skills that can be inferred from the description
+
+Return ONLY a valid JSON array, no other text or markdown formatting. Example format:
+["JavaScript", "React", "Node.js", "AWS", "PostgreSQL", "Docker", "Agile", "REST APIs", "Git", "TypeScript"]"""
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert resume writer and career advisor. Extract relevant skills from descriptions. Always return only valid JSON arrays without any markdown formatting or additional text."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=1500,
+            temperature=0.3
+        )
+        
+        content = response.choices[0].message.content.strip()
+        print(f"AI Skills Generation response: {content[:200]}...")
+        
+        # Extract JSON array from response
+        json_match = re.search(r'\[.*\]', content, re.DOTALL)
+        if json_match:
+            try:
+                skills = json.loads(json_match.group())
+                # Ensure it's a list and clean up
+                if isinstance(skills, list):
+                    skills = [str(s).strip() for s in skills if s and str(s).strip()]
+                    skills = list(dict.fromkeys(skills))  # Remove duplicates while preserving order
+                    print(f"Generated {len(skills)} skills: {skills[:10]}...")
+                else:
+                    skills = []
+                    print("Warning: OpenAI returned non-list response")
+            except json.JSONDecodeError as e:
+                print(f"JSON decode error: {e}")
+                skills = []
+        else:
+            print("Warning: No JSON array found in OpenAI response")
+            skills = []
+        
+        # Log AI event
+        try:
+            supabase.table("ai_events").insert({
+                "user_id": user_id,
+                "event_type": "skill_generation",
+                "model": "gpt-4o-mini",
+                "tokens_used": getattr(response.usage, 'total_tokens', 0) if hasattr(response, 'usage') else 0,
+                "metadata": {"context": request.context, "description_length": len(request.description)}
+            }).execute()
+        except Exception as e:
+            print(f"Warning: Could not log AI event: {str(e)}")
+        
+        return {
+            "skills": skills[:40],  # Limit to 40
+            "message": f"Successfully generated {len(skills)} skills"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating skills: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate skills: {str(e)}")
 

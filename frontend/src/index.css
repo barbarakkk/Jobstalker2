@@ -674,7 +674,7 @@ html {
 }
 
 .clean-impact-section {
-  margin-top: 18px;
+  margin-top: 4px;
 }
 
 .clean-impact-section h2 {
@@ -714,8 +714,22 @@ html {
   color: #1c1e21;
 }
 
-/* Print styles for Clean Impact template */
+/* Print styles for resume and Clean Impact template */
 @media print {
+  body * {
+    word-spacing: normal !important;
+    letter-spacing: normal !important;
+    font-kerning: normal !important;
+    white-space: normal !important;
+  }
+  
+  .resume-paper,
+  .resume-preview-container {
+    transform: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
   .clean-impact-header .w-22 {
     width: 88px;
     height: 88px;
