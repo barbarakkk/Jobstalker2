@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login, ProtectedRoute, AuthCallback } from './components/Auth';
 import { ExtensionAuth } from './components/Auth/ExtensionAuth';
 import { LandingPage } from './components/LandingPage';
-import { RegistrationComplete } from './components/Auth/RegistrationComplete';
 
 // Eager load frequently used pages for instant navigation
 import { Dashboard } from './components/Dashboard';
@@ -34,14 +33,6 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/auth/extension" element={<ExtensionAuth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route 
-            path="/register/complete" 
-            element={
-              <ProtectedRoute>
-                <RegistrationComplete />
-              </ProtectedRoute>
-            } 
-          />
           <Route 
             path="/dashboard" 
             element={

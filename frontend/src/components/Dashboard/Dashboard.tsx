@@ -228,7 +228,7 @@ export function Dashboard({ }: DashboardProps) {
                 (profile.first_name && profile.last_name && profile.email && profile.phone && profile.professional_summary);
               
               if (!isProfileComplete) {
-                navigate('/register/complete');
+                navigate('/profile');
                 return;
               }
             }

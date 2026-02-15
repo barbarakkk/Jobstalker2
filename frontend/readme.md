@@ -176,7 +176,6 @@ The application uses React Router DOM for client-side routing:
 ```typescript
 /                    → LandingPage
 /login               → Login
-/register            → Register
 /auth/extension       → ExtensionAuth
 /auth/callback        → AuthCallback
 /dashboard           → Dashboard (protected)

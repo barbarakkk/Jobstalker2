@@ -54,7 +54,7 @@ export function AuthCallback() {
               const isProfileComplete = profile.profile_completed === true;
               
               if (!isProfileComplete) {
-                navigate('/register/complete');
+                navigate('/profile');
                 return;
               }
             }
