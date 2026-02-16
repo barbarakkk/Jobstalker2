@@ -722,16 +722,119 @@ export function ResumeEditPage() {
             htmlEl.style.whiteSpace = 'normal';
           });
 
-          // Normalize colors that may not render (oklch, etc.)
+          // Convert oklch colors to RGB/hex for PDF compatibility
+          // html2canvas and jsPDF don't support oklch color format
+          // We'll use the browser's built-in conversion by creating temporary elements
+          const convertOklchToRgb = (oklchValue: string, property: string = 'color'): string => {
+            if (!oklchValue || (!oklchValue.includes('oklch') && !oklchValue.includes('color('))) {
+              return oklchValue;
+            }
+            
+            try {
+              // Ensure body exists
+              if (!clonedDoc.body) {
+                clonedDoc.appendChild(clonedDoc.createElement('body'));
+              }
+              
+              // Create a temporary element to use browser's color conversion
+              const tempEl = clonedDoc.createElement('div');
+              tempEl.style.setProperty(property, oklchValue);
+              tempEl.style.position = 'absolute';
+              tempEl.style.visibility = 'hidden';
+              tempEl.style.pointerEvents = 'none';
+              clonedDoc.body.appendChild(tempEl);
+              
+              const computed = clonedDoc.defaultView?.getComputedStyle(tempEl);
+              const rgbValue = computed?.getPropertyValue(property) || computed?.[property as keyof CSSStyleDeclaration];
+              
+              clonedDoc.body.removeChild(tempEl);
+              
+              // If conversion succeeded and doesn't contain oklch, return it
+              if (rgbValue && typeof rgbValue === 'string' && !rgbValue.includes('oklch') && !rgbValue.includes('color(')) {
+                return rgbValue;
+              }
+            } catch (e) {
+              // Conversion failed, fall through to defaults
+            }
+            
+            // Fallback defaults
+            if (property === 'color') return '#000000';
+            if (property === 'backgroundColor') return 'transparent';
+            return '#000000';
+          };
+
+          // Override CSS variables that contain oklch values
+          const cssVariableOverrides: Record<string, string> = {
+            '--background': '#ffffff',
+            '--foreground': '#252525',
+            '--card': '#ffffff',
+            '--card-foreground': '#252525',
+            '--popover': '#ffffff',
+            '--popover-foreground': '#252525',
+            '--primary': '#295acf',
+            '--primary-foreground': '#fafafa',
+            '--secondary': '#f7f7f7',
+            '--secondary-foreground': '#343434',
+            '--muted': '#f7f7f7',
+            '--muted-foreground': '#8e8e8e',
+            '--accent': '#f7f7f7',
+            '--accent-foreground': '#343434',
+            '--destructive': '#dc2626',
+            '--border': '#ebebeb',
+            '--input': '#ebebeb',
+            '--ring': '#b5b5b5',
+            '--chart-1': '#e67e22',
+            '--chart-2': '#3498db',
+            '--chart-3': '#9b59b6',
+            '--chart-4': '#f39c12',
+            '--chart-5': '#c0392b',
+            '--sidebar': '#fbfbfb',
+            '--sidebar-foreground': '#252525',
+            '--sidebar-primary': '#343434',
+            '--sidebar-primary-foreground': '#fbfbfb',
+            '--sidebar-accent': '#f7f7f7',
+            '--sidebar-accent-foreground': '#343434',
+            '--sidebar-border': '#ebebeb',
+            '--sidebar-ring': '#b5b5b5'
+          };
+
+          // Inject CSS variable overrides
+          const cssVarStyle = clonedDoc.createElement('style');
+          cssVarStyle.textContent = `
+            :root {
+              ${Object.entries(cssVariableOverrides).map(([varName, value]) => 
+                `${varName}: ${value} !important;`
+              ).join('\n              ')}
+            }
+          `;
+          root.appendChild(cssVarStyle);
+
+          // Process all elements and convert oklch colors in computed styles
+          const colorProperties = [
+            'color',
+            'backgroundColor',
+            'borderColor',
+            'borderTopColor',
+            'borderRightColor',
+            'borderBottomColor',
+            'borderLeftColor',
+            'outlineColor',
+            'textDecorationColor',
+            'columnRuleColor'
+          ];
+
           clonedDoc.querySelectorAll('*').forEach((el: Element) => {
             const htmlEl = el as HTMLElement;
-            const computed = window.getComputedStyle(htmlEl);
-            if (computed.color?.includes('oklch') || computed.color?.includes('color(')) {
-              htmlEl.style.color = '#000000';
-            }
-            if (computed.backgroundColor?.includes('oklch') || computed.backgroundColor?.includes('color(')) {
-              htmlEl.style.backgroundColor = 'transparent';
-            }
+            const computed = clonedDoc.defaultView?.getComputedStyle(htmlEl);
+            if (!computed) return;
+
+            colorProperties.forEach(prop => {
+              const value = computed.getPropertyValue(prop) || (computed as any)[prop];
+              if (value && typeof value === 'string' && (value.includes('oklch') || value.includes('color('))) {
+                const normalized = convertOklchToRgb(value, prop);
+                (htmlEl.style as any)[prop] = normalized;
+              }
+            });
           });
         }
       });
