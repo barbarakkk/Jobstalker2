@@ -764,36 +764,54 @@ export function ResumeEditPage() {
             }
             
             try {
-              // Ensure body exists
-              if (!clonedDoc.body) {
-                clonedDoc.appendChild(clonedDoc.createElement('body'));
+              // Use the main document window for conversion (more reliable)
+              const mainDoc = document;
+              if (!mainDoc.body) {
+                // Fallback to defaults if body doesn't exist
+                throw new Error('No document body');
               }
               
-              // Create a temporary element to use browser's color conversion
-              const tempEl = clonedDoc.createElement('div');
+              // Create a temporary element in the main document to use browser's color conversion
+              const tempEl = mainDoc.createElement('div');
               tempEl.style.setProperty(property, oklchValue);
               tempEl.style.position = 'absolute';
               tempEl.style.visibility = 'hidden';
               tempEl.style.pointerEvents = 'none';
-              clonedDoc.body.appendChild(tempEl);
+              tempEl.style.top = '-9999px';
+              tempEl.style.left = '-9999px';
+              mainDoc.body.appendChild(tempEl);
               
-              const computed = clonedDoc.defaultView?.getComputedStyle(tempEl);
-              const rgbValue = computed?.getPropertyValue(property) || computed?.[property as keyof CSSStyleDeclaration];
+              // Get computed style from main window
+              const computed = window.getComputedStyle(tempEl);
+              const rgbValue = computed.getPropertyValue(property) || (computed as any)[property];
               
-              clonedDoc.body.removeChild(tempEl);
+              // Clean up
+              mainDoc.body.removeChild(tempEl);
               
               // If conversion succeeded and doesn't contain oklch, return it
               if (rgbValue && typeof rgbValue === 'string' && !rgbValue.includes('oklch') && !rgbValue.includes('color(')) {
-                return rgbValue;
+                return rgbValue.trim();
               }
             } catch (e) {
               // Conversion failed, fall through to defaults
             }
             
-            // Fallback defaults
-            if (property === 'color') return '#000000';
-            if (property === 'backgroundColor') return 'transparent';
-            return '#000000';
+            // Fallback defaults based on property type
+            if (property === 'color' || property.includes('color')) {
+              return '#000000';
+            }
+            if (property === 'backgroundColor' || property === 'background') {
+              return 'transparent';
+            }
+            if (property.includes('border')) {
+              // For border properties, try to preserve the border style but change color
+              if (oklchValue.includes('solid') || oklchValue.includes('dashed') || oklchValue.includes('dotted')) {
+                return oklchValue.replace(/oklch\([^)]+\)/g, '#000000').replace(/color\([^)]+\)/g, '#000000');
+              }
+              return '#000000';
+            }
+            // For other properties, try to extract and replace oklch values
+            return oklchValue.replace(/oklch\([^)]+\)/g, '#000000').replace(/color\([^)]+\)/g, '#000000');
           };
 
           // Override CSS variables that contain oklch values
@@ -831,7 +849,8 @@ export function ResumeEditPage() {
             '--sidebar-ring': '#b5b5b5'
           };
 
-          // Inject CSS variable overrides
+          // Inject CSS variable overrides FIRST (before processing elements)
+          // Also inject a global style that replaces all oklch usage
           const cssVarStyle = clonedDoc.createElement('style');
           cssVarStyle.textContent = `
             :root {
@@ -839,35 +858,154 @@ export function ResumeEditPage() {
                 `${varName}: ${value} !important;`
               ).join('\n              ')}
             }
+            /* Force conversion of any remaining oklch colors */
+            * {
+              /* This will be overridden by inline styles below */
+            }
           `;
           root.appendChild(cssVarStyle);
 
+          // Also inject a style that processes all text content in style tags
+          const styleTags = clonedDoc.querySelectorAll('style');
+          styleTags.forEach(styleTag => {
+            if (styleTag.textContent) {
+              // Replace oklch() and color() functions in CSS text
+              styleTag.textContent = styleTag.textContent
+                .replace(/oklch\([^)]+\)/g, (match) => {
+                  // Try to convert using browser
+                  try {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.style.color = match;
+                    document.body.appendChild(tempDiv);
+                    const converted = window.getComputedStyle(tempDiv).color;
+                    document.body.removeChild(tempDiv);
+                    if (converted && !converted.includes('oklch')) {
+                      return converted;
+                    }
+                  } catch (e) {
+                    // Fallback
+                  }
+                  return '#000000';
+                })
+                .replace(/color\([^)]+\)/g, '#000000');
+            }
+          });
+
+          // Process stylesheets to replace oklch values in CSS rules
+          try {
+            const styleSheets = Array.from(clonedDoc.styleSheets);
+            styleSheets.forEach(sheet => {
+              try {
+                const rules = Array.from(sheet.cssRules || []);
+                rules.forEach((rule, index) => {
+                  if (rule instanceof CSSStyleRule) {
+                    const style = rule.style;
+                    // Process all style properties
+                    for (let i = 0; i < style.length; i++) {
+                      const prop = style[i];
+                      const value = style.getPropertyValue(prop);
+                      if (value && (value.includes('oklch') || value.includes('color('))) {
+                        const normalized = convertOklchToRgb(value, prop);
+                        if (normalized !== value) {
+                          style.setProperty(prop, normalized, style.getPropertyPriority(prop));
+                        }
+                      }
+                    }
+                  } else if (rule instanceof CSSKeyframesRule) {
+                    // Process keyframe rules
+                    Array.from(rule.cssRules).forEach(keyframeRule => {
+                      if (keyframeRule instanceof CSSKeyframeRule) {
+                        const style = keyframeRule.style;
+                        for (let i = 0; i < style.length; i++) {
+                          const prop = style[i];
+                          const value = style.getPropertyValue(prop);
+                          if (value && (value.includes('oklch') || value.includes('color('))) {
+                            const normalized = convertOklchToRgb(value, prop);
+                            if (normalized !== value) {
+                              style.setProperty(prop, normalized, style.getPropertyPriority(prop));
+                            }
+                          }
+                        }
+                      }
+                    });
+                  }
+                });
+              } catch (e) {
+                // Cross-origin stylesheets may throw errors, ignore them
+              }
+            });
+          } catch (e) {
+            // Stylesheet processing failed, continue with element processing
+          }
+
           // Process all elements and convert oklch colors in computed styles
+          // Use a more comprehensive list of color properties
           const colorProperties = [
             'color',
             'backgroundColor',
+            'background',
             'borderColor',
             'borderTopColor',
             'borderRightColor',
             'borderBottomColor',
             'borderLeftColor',
+            'border',
+            'borderTop',
+            'borderRight',
+            'borderBottom',
+            'borderLeft',
             'outlineColor',
+            'outline',
             'textDecorationColor',
-            'columnRuleColor'
+            'textDecoration',
+            'columnRuleColor',
+            'columnRule',
+            'boxShadow',
+            'textShadow',
+            'fill',
+            'stroke',
+            'stopColor'
           ];
 
+          // Process all elements twice - once for computed styles, once to force inline styles
           clonedDoc.querySelectorAll('*').forEach((el: Element) => {
             const htmlEl = el as HTMLElement;
             const computed = clonedDoc.defaultView?.getComputedStyle(htmlEl);
             if (!computed) return;
 
             colorProperties.forEach(prop => {
-              const value = computed.getPropertyValue(prop) || (computed as any)[prop];
-              if (value && typeof value === 'string' && (value.includes('oklch') || value.includes('color('))) {
-                const normalized = convertOklchToRgb(value, prop);
-                (htmlEl.style as any)[prop] = normalized;
+              try {
+                const value = computed.getPropertyValue(prop) || (computed as any)[prop];
+                if (value && typeof value === 'string' && (value.includes('oklch') || value.includes('color('))) {
+                  const normalized = convertOklchToRgb(value, prop);
+                  // Force inline style to override any CSS rules
+                  htmlEl.style.setProperty(prop, normalized, 'important');
+                }
+              } catch (e) {
+                // Property might not be valid for this element, skip it
               }
             });
+          });
+
+          // Second pass: Force conversion of any remaining oklch values by reading all styles
+          clonedDoc.querySelectorAll('*').forEach((el: Element) => {
+            const htmlEl = el as HTMLElement;
+            const computed = clonedDoc.defaultView?.getComputedStyle(htmlEl);
+            if (!computed) return;
+
+            // Check all CSS properties, not just color-related ones
+            for (let i = 0; i < computed.length; i++) {
+              const prop = computed[i];
+              const value = computed.getPropertyValue(prop);
+              if (value && typeof value === 'string' && (value.includes('oklch') || value.includes('color('))) {
+                try {
+                  const normalized = convertOklchToRgb(value, prop);
+                  htmlEl.style.setProperty(prop, normalized, 'important');
+                } catch (e) {
+                  // Skip if conversion fails
+                }
+              }
+            }
           });
         }
       });
