@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Login, ProtectedRoute, AuthCallback } from './components/Auth';
 import { ExtensionAuth } from './components/Auth/ExtensionAuth';
 import { LandingPage } from './components/LandingPage';
+import { AboutPage } from './components/Landing/AboutPage';
 
 // Eager load frequently used pages for instant navigation
 import { Dashboard } from './components/Dashboard';
@@ -30,6 +31,7 @@ function App() {
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
+          <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/auth/extension" element={<ExtensionAuth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

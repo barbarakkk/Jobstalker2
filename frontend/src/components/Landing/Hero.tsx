@@ -27,7 +27,7 @@ export function Hero() {
               className="space-y-4 max-w-xl"
             >
               <h1 className="text-4xl sm:text-5xl lg:text-[3.1rem] font-semibold tracking-tight text-slate-900 leading-tight">
-                Organize your job search in one smart workspace
+                JobStalker – Organize your job search in one smart workspace
               </h1>
               <p className="text-lg sm:text-xl text-slate-700 max-w-xl">
                 Track roles, tailor your resume to each posting, and stay on top of every

@@ -4,18 +4,26 @@
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
   
-  <!-- Homepage -->
+  <!-- Homepage - primary target for "jobstalker" search -->
   <url>
     <loc>https://jobstalker-ai.com</loc>
-    <lastmod>2025-01-15</lastmod>
-    <changefreq>daily</changefreq>
+    <lastmod>2025-02-16</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+  
+  <!-- About Page - SEO-rich content for JobStalker / jobstalker -->
+  <url>
+    <loc>https://jobstalker-ai.com/about</loc>
+    <lastmod>2025-02-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
   </url>
   
   <!-- Login Page -->
   <url>
     <loc>https://jobstalker-ai.com/login</loc>
-    <lastmod>2025-01-15</lastmod>
+    <lastmod>2025-02-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>

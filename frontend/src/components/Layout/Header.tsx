@@ -6,7 +6,7 @@ import ColoredLogoHorizontal from '@/assets/ColoredLogoHorizontal.svg';
 
 const navLinks = [
   { label: 'Features', href: '#features' },
-  { label: 'About us', href: '#about' },
+  { label: 'About', href: '/about' },
   { label: 'FAQ', href: '#faq' },
   { label: 'Contacts', href: '#contacts' },
 ];

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Mail, Instagram } from 'lucide-react';
 
 export function Footer() {
@@ -40,11 +41,14 @@ export function Footer() {
     <footer className="w-full bg-white text-gray-600 py-12 border-t border-gray-200">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-          {/* Copyright */}
-          <div className="text-center md:text-left">
+          {/* Copyright + About link */}
+          <div className="text-center md:text-left flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <p className="text-sm">
               © {new Date().getFullYear()} JobStalker AI. All rights reserved.
             </p>
+            <Link to="/about" className="text-sm text-gray-600 hover:text-blue-600 transition-colors font-medium">
+              About JobStalker
+            </Link>
           </div>
 
           {/* Social Media Icons */}

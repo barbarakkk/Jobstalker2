@@ -73,7 +73,7 @@ export function Features() {
           className="text-center mb-24 max-w-4xl mx-auto"
         >
           <h2 className="text-5xl lg:text-6xl font-bold text-blue-900 mb-6 leading-tight">
-            Everything You Need to{' '}
+            Everything You Need with JobStalker to{' '}
             <span className="text-blue-900">
               Land Your Dream Job
             </span>

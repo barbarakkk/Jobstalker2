@@ -34,7 +34,7 @@ export function HowItWorks() {
           className="text-center mb-16 max-w-3xl mx-auto"
         >
           <h2 className="text-4xl lg:text-5xl font-bold text-blue-900 mb-4 leading-tight">
-            How It Works
+            How JobStalker Works
           </h2>
           <p className="text-xl text-blue-800/90 leading-relaxed">
             Create perfectly tailored resumes in three simple steps
