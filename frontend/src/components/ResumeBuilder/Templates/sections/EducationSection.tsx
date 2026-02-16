@@ -66,7 +66,8 @@ export function EducationSection({ data, config, style }: EducationSectionProps)
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem',
-            marginBottom: '0.9rem'
+            marginBottom: '0.5rem',
+            lineHeight: '1.2'
           }}
         >
           {title}

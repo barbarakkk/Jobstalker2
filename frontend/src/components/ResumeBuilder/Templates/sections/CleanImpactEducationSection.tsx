@@ -32,7 +32,8 @@ export function CleanImpactEducationSection({ data, config, style }: CleanImpact
             letterSpacing: '1.2px',
             borderBottom: `2px solid ${accentColor}`,
             paddingBottom: '6px',
-            marginBottom: '12px'
+            marginBottom: '8px',
+            lineHeight: '1.2'
           }}
         >
           {title}

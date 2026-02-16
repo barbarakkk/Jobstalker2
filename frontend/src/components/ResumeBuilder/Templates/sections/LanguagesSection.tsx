@@ -36,12 +36,13 @@ export function LanguagesSection({ data, config, style }: LanguagesSectionProps)
     >
       {showTitle && (
         <h2 
-          className="text-xl font-bold mb-2" // Reduced from mb-4 to mb-2
+          className="text-xl font-bold mb-2"
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
             paddingBottom: '0.5rem',
-            marginBottom: '0.6rem'
+            marginBottom: '0.5rem',
+            lineHeight: '1.2'
           }}
         >
           {title}

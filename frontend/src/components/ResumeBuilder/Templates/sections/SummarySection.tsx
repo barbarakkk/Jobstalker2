@@ -41,8 +41,9 @@ export function SummarySection({ data, config, style }: SummarySectionProps) {
           style={{ 
             color: String(style?.color || config?.style?.color || primaryColor),
             borderBottom: `2px solid ${primaryColor}`,
-            paddingBottom: '0.25rem',
-            marginBottom: '0.35rem'
+            paddingBottom: '0.5rem',
+            marginBottom: '0.5rem',
+            lineHeight: '1.2'
           }}
         >
           {title}

@@ -49,8 +49,9 @@ export function CleanImpactWorkSection({ data, config, style }: CleanImpactWorkS
             fontSize: '12px',
             letterSpacing: '1.2px',
             borderBottom: `2px solid ${accentColor}`,
-            paddingBottom: '4px',
-            marginBottom: '6px'
+            paddingBottom: '6px',
+            marginBottom: '8px',
+            lineHeight: '1.2'
           }}
         >
           {title}
