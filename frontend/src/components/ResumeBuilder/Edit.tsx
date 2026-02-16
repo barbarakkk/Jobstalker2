@@ -632,7 +632,7 @@ export function ResumeEditPage() {
       sectionPositions.sort((a, b) => a.top - b.top);
 
       const canvas = await html2canvas(clone, {
-        scale: 3,
+        scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
@@ -1050,7 +1050,8 @@ export function ResumeEditPage() {
       // Verify canvas captured full content
       console.log('Canvas dimensions:', canvas.width, 'x', canvas.height);
       console.log('Expected height:', finalHeight);
-      const PDF_SCALE = 3;
+      const PDF_SCALE = 2;
+      const JPEG_QUALITY = 0.85;
       console.log('Canvas height matches:', Math.abs(canvas.height - (finalHeight * PDF_SCALE)) < 15); // Account for scale factor
 
       const pdf = new jsPDF({
@@ -1073,7 +1074,7 @@ export function ResumeEditPage() {
       if (useSinglePage) {
         // Single page: fit content on one page (scale down if slightly over 11")
         const drawHeight = imgHeight <= pageHeight ? imgHeight : pageHeight;
-        pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', 0, 0, imgWidth, drawHeight);
+        pdf.addImage(canvas.toDataURL('image/jpeg', JPEG_QUALITY), 'JPEG', 0, 0, imgWidth, drawHeight);
         // Clickable LinkedIn link on page 1 (coordinates in inches)
         if (linkedInLink) {
           const scaleX = 8.5 / 816;
@@ -1161,14 +1162,14 @@ export function ResumeEditPage() {
               canvas.width, sourceHeight     // Dest width, height
             );
             
-            const pageImgData = pageCanvas.toDataURL('image/png', 1.0);
+            const pageImgData = pageCanvas.toDataURL('image/jpeg', JPEG_QUALITY);
             // Calculate the height in inches for PDF (should be pageHeight for full pages, or remaining for last page)
             const pageImgHeight = sourceHeight / pixelsPerInch;
             
             console.log(`Adding page ${pageNumber + 1} with height ${pageImgHeight} inches`);
             
             // Add image to PDF page
-            pdf.addImage(pageImgData, 'PNG', 0, 0, imgWidth, pageImgHeight);
+            pdf.addImage(pageImgData, 'JPEG', 0, 0, imgWidth, pageImgHeight);
           }
           
           // Move to next page position
