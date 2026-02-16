@@ -675,15 +675,15 @@ export function ResumeEditPage() {
             .pdf-export-clone section h2 {
               margin-top: 0 !important;
               margin-bottom: 0.5rem !important;
-              padding-bottom: 0.5rem !important;
-              line-height: 1.2 !important;
+              padding-bottom: 0.75rem !important;
+              line-height: 1.3 !important;
             }
             /* Ensure any h2 with border-bottom has proper spacing */
             .pdf-export-clone h2[style*="border-bottom"],
             .pdf-export-clone h2[style*="borderBottom"] {
-              padding-bottom: 0.5rem !important;
+              padding-bottom: 0.75rem !important;
               margin-bottom: 0.5rem !important;
-              line-height: 1.2 !important;
+              line-height: 1.3 !important;
             }
             .pdf-export-clone p,
             .pdf-export-clone div[class*="text-"] {
@@ -692,10 +692,10 @@ export function ResumeEditPage() {
               margin-bottom: 0.4em !important;
             }
             .pdf-export-clone h1, .pdf-export-clone h2 {
-              line-height: 1.2 !important;
+              line-height: 1.3 !important;
               margin-top: 0 !important;
               margin-bottom: 0.5rem !important;
-              padding-bottom: 0.5rem !important;
+              padding-bottom: 0.75rem !important;
             }
             .pdf-export-clone .leading-normal, .pdf-export-clone .leading-relaxed { line-height: 1.5 !important; }
             .pdf-export-clone .space-y-1 > * + * { margin-top: 0.35rem !important; }
@@ -706,7 +706,7 @@ export function ResumeEditPage() {
             .pdf-export-clone [class*="gap-"] { gap: 0.5rem !important; }
             .pdf-export-clone .border-b { padding-bottom: 0.4rem !important; margin-bottom: 0.35rem !important; }
             .pdf-export-clone .mb-2 { margin-bottom: 0.35rem !important; }
-            .pdf-export-clone .clean-impact-section h2 { padding-bottom: 0.375rem !important; margin-bottom: 0.5rem !important; line-height: 1.2 !important; }
+            .pdf-export-clone .clean-impact-section h2 { padding-bottom: 0.75rem !important; margin-bottom: 0.5rem !important; line-height: 1.3 !important; }
             .pdf-export-clone .clean-impact-section { margin-top: 0.25rem !important; }
             .pdf-export-clone header,
             .pdf-export-clone header .header-inner,
@@ -733,13 +733,14 @@ export function ResumeEditPage() {
             const htmlEl = el as HTMLElement;
             htmlEl.style.marginTop = '0';
             htmlEl.style.marginBottom = '0.5rem';
-            htmlEl.style.paddingBottom = '0.5rem';
-            htmlEl.style.lineHeight = '1.2';
+            htmlEl.style.paddingBottom = '0.75rem';
+            htmlEl.style.lineHeight = '1.3';
             // Ensure border-bottom headers have proper spacing
             const computedStyle = clonedDoc.defaultView?.getComputedStyle(htmlEl);
             if (computedStyle && (computedStyle.borderBottomWidth !== '0px' || htmlEl.style.borderBottom)) {
-              htmlEl.style.paddingBottom = '0.5rem';
+              htmlEl.style.paddingBottom = '0.75rem';
               htmlEl.style.marginBottom = '0.5rem';
+              htmlEl.style.lineHeight = '1.3';
             }
           });
           rootEl.querySelectorAll('[class*="col-span"]').forEach((el) => {
