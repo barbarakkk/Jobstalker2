@@ -1055,8 +1055,9 @@ export function ResumeEditPage() {
       // This method creates a blob URL and triggers download via a temporary link element
       // It's less likely to trigger browser extension message listeners
       try {
-        // Generate PDF as blob
-        const pdfBlob = pdf.output('blob', { type: 'application/pdf' });
+        // Generate PDF as arraybuffer and convert to blob
+        const arrayBuffer = pdf.output('arraybuffer');
+        const pdfBlob = new Blob([arrayBuffer], { type: 'application/pdf' });
         
         // Create blob URL
         const blobUrl = URL.createObjectURL(pdfBlob);
