@@ -92,6 +92,39 @@ export function ResumeEditPage() {
   const locationPlaceholderRe = /^your\s+location$|^location$/i;
   const jobTitlePlaceholderRe = /^your\s+role$|^your\s+job\s+title$|^role$/i;
 
+  // Suppress extension-related errors during PDF download
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const errorMessage = event.reason?.message || event.reason?.toString() || '';
+      // Suppress extension-related message channel errors
+      if (errorMessage.includes('message channel closed') || 
+          errorMessage.includes('asynchronous response') ||
+          errorMessage.includes('Extension context invalidated')) {
+        event.preventDefault(); // Prevent error from showing in console
+        return;
+      }
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      const errorMessage = event.message || event.error?.toString() || '';
+      // Suppress extension-related errors
+      if (errorMessage.includes('message channel closed') || 
+          errorMessage.includes('asynchronous response') ||
+          errorMessage.includes('Extension context invalidated')) {
+        event.preventDefault(); // Prevent error from showing in console
+        return;
+      }
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+    };
+  }, []);
+
   // Sync local data when resumeData changes (e.g., on load)
   useEffect(() => {
     if (resumeIdFromUrl && resumeData) {
@@ -1016,10 +1049,95 @@ export function ResumeEditPage() {
       const personName = localData?.personalInfo 
         ? `${localData.personalInfo.firstName || ''}${localData.personalInfo.lastName ? '_' + localData.personalInfo.lastName : ''}`.trim().replace(/\s+/g, '_') || 'Resume'
         : 'Resume';
-      pdf.save(`${personName}_Resume.pdf`);
+      const fileName = `${personName}_Resume.pdf`;
+
+      // Use blob download method as primary approach (more reliable, less prone to extension interference)
+      // This method creates a blob URL and triggers download via a temporary link element
+      // It's less likely to trigger browser extension message listeners
+      try {
+        // Generate PDF as blob
+        const pdfBlob = pdf.output('blob', { type: 'application/pdf' });
+        
+        // Create blob URL
+        const blobUrl = URL.createObjectURL(pdfBlob);
+        
+        // Create temporary download link
+        const downloadLink = document.createElement('a');
+        downloadLink.href = blobUrl;
+        downloadLink.download = fileName;
+        downloadLink.style.display = 'none';
+        downloadLink.setAttribute('download', fileName); // Ensure download attribute is set
+        
+        // Append to body
+        document.body.appendChild(downloadLink);
+        
+        // Trigger download
+        // Use a small delay to ensure the link is properly attached to DOM
+        await new Promise(resolve => setTimeout(resolve, 10));
+        downloadLink.click();
+        
+        // Clean up after download starts
+        setTimeout(() => {
+          if (downloadLink.parentNode) {
+            document.body.removeChild(downloadLink);
+          }
+          URL.revokeObjectURL(blobUrl);
+        }, 200);
+      } catch (blobError) {
+        console.log('Blob download failed, trying jsPDF save method:', blobError);
+        
+        // Fallback to jsPDF's built-in save method
+        try {
+          // Suppress extension-related console errors temporarily
+          const originalError = console.error;
+          const errorFilter = (message: string) => {
+            return message.includes('message channel closed') || 
+                   message.includes('asynchronous response') ||
+                   message.includes('Extension context invalidated');
+          };
+          
+          console.error = (...args: any[]) => {
+            const message = args.join(' ');
+            if (!errorFilter(message)) {
+              originalError.apply(console, args);
+            }
+          };
+          
+          pdf.save(fileName);
+          
+          // Restore console.error after a delay
+          setTimeout(() => {
+            console.error = originalError;
+          }, 500);
+        } catch (saveError) {
+          console.error('jsPDF save also failed:', saveError);
+          
+          // Last resort: try data URI in new window
+          try {
+            const pdfDataUri = pdf.output('datauristring');
+            const newWindow = window.open('', '_blank');
+            if (newWindow) {
+              newWindow.document.write(`
+                <html>
+                  <head><title>${fileName}</title></head>
+                  <body style="margin:0;padding:0;">
+                    <iframe src="${pdfDataUri}" width="100%" height="100%" style="border:none;"></iframe>
+                  </body>
+                </html>
+              `);
+              newWindow.document.close();
+            } else {
+              throw new Error('Popup blocked');
+            }
+          } catch (finalError) {
+            console.error('All PDF download methods failed:', finalError);
+            alert('Failed to download PDF. This may be due to browser extensions interfering with downloads. Please try:\n\n1. Disabling browser extensions temporarily\n2. Checking your browser\'s download settings\n3. Using a different browser or incognito mode');
+          }
+        }
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF. Please try again.');
+      alert('Failed to generate PDF. Please try again. If the issue persists, try disabling browser extensions temporarily.');
     } finally {
       setIsDownloading(false);
     }
