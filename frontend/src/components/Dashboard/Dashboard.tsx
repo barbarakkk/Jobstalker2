@@ -203,41 +203,10 @@ export function Dashboard({ }: DashboardProps) {
     // Start loading immediately without blocking navigation
     loadJobs();
     
-    // Get current user and check profile completion (non-blocking)
+    // Get current user (non-blocking)
     const getUserAndCheckProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
-      
-      // Check if profile is complete
-      if (user) {
-        try {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
-            (import.meta.env.DEV ? 'http://localhost:8000' : 'https://jobstalker2-production.up.railway.app');
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            const response = await fetch(`${API_BASE_URL}/api/profile`, {
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`
-              }
-            });
-            
-            if (response.ok) {
-              const profile = await response.json();
-              // Check if profile has required fields filled and is marked as completed
-              const isProfileComplete = profile.profile_completed === true || 
-                (profile.first_name && profile.last_name && profile.email && profile.phone && profile.professional_summary);
-              
-              if (!isProfileComplete) {
-                navigate('/profile');
-                return;
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Error checking profile:', err);
-          // If profile check fails, still allow user to proceed (they can complete profile later)
-        }
-      }
     };
     getUserAndCheckProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps

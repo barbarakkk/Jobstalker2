@@ -15,7 +15,7 @@ export function Footer() {
     {
       name: 'Instagram',
       icon: <Instagram className="w-6 h-6" />,
-      url: 'https://instagram.com/jobstalker',
+      url: 'https://www.instagram.com/jobstalker1?igsh=MWo1bW93cHp4NTA5MA%3D%3D&utm_source=qr',
     },
     {
       name: 'TikTok',

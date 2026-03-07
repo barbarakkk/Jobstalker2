@@ -7,6 +7,7 @@ import { Hero } from './Landing/Hero';
 import { Features } from './Landing/Features';
 import { HowItWorks } from './Landing/HowItWorks';
 import { StatsSection } from './Landing/StatsSection';
+import { Testimonials } from './Landing/Testimonials';
 import { FAQ } from './Landing/FAQ';
 import { ChromeExtension } from './Landing/ChromeExtension';
 
@@ -58,6 +59,7 @@ export function LandingPage() {
       <ChromeExtension />
       <StatsSection />
       <FAQ />
+      <Testimonials />
       <Footer />
     </div>
   );

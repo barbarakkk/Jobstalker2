@@ -46,27 +46,32 @@ export function AuthCallback() {
                 'Authorization': `Bearer ${data.session.access_token}`
               }
             });
-            
+
             if (response.ok) {
               const profile = await response.json();
-              // Only consider profile complete if explicitly marked as completed
-              // Don't check for fields - user must complete the full wizard
+              // Keep profile data check for future use, but don't force-redirect
               const isProfileComplete = profile.profile_completed === true;
-              
+
               if (!isProfileComplete) {
-                // Only show welcome popup after registration (new account), not after login
+                // Optional place to show a one-time banner or store a flag,
+                // but do NOT navigate away from the user's desired page.
                 const createdAt = data.session?.user?.created_at;
                 const isNewUser = createdAt && (Date.now() - new Date(createdAt).getTime()) < 120000; // 2 minutes
-                navigate('/profile', { state: { fromRegistration: !!isNewUser } });
-                return;
+                if (isNewUser) {
+                  try {
+                    window.sessionStorage.setItem('jobstalker_show_profile_welcome', 'true');
+                  } catch (storageError) {
+                    console.warn('Unable to persist profile welcome flag:', storageError);
+                  }
+                }
               }
             }
           } catch (err) {
             console.error('Error checking profile:', err);
             // If profile check fails, still allow user to proceed (they can complete profile later)
           }
-          
-          // User is authenticated and profile is complete, redirect to resume builder
+
+          // User is authenticated – always redirect to resume builder.
           navigate('/resume-builder');
         } else {
           // No session found, redirect to login

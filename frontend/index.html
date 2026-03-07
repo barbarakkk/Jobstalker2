@@ -44,6 +44,7 @@
     
     <!-- Additional SEO -->
     <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="JobStalker AI" />
@@ -125,8 +126,14 @@
 
   </head>
   <body>
-    <!-- SEO: visible to crawlers in initial HTML so "jobstalker" / JobStalker is indexed -->
-    <div class="sr-only" aria-hidden="true">
+    <!-- Critical: prevent FOUC - root hidden until React mounts -->
+    <style>
+      #root { opacity: 0; transition: opacity 0.2s ease-out; }
+      #root.app-ready { opacity: 1; }
+      .seo-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    </style>
+    <!-- SEO: visible to crawlers, hidden from view before CSS loads -->
+    <div class="seo-sr-only sr-only" aria-hidden="true">
       <h1>JobStalker – AI job search and resume builder</h1>
       <p>JobStalker (jobstalker) is a free job application tracker and AI resume builder. Track applications, build resumes, and land your dream job. Use JobStalker for job search, resume building, and career tools.</p>
     </div>
@@ -147,5 +154,20 @@
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function() {
+        var root = document.getElementById('root');
+        if (root && !root.classList.contains('app-ready')) {
+          var observer = new MutationObserver(function() {
+            if (root.childElementCount > 0) {
+              root.classList.add('app-ready');
+              observer.disconnect();
+            }
+          });
+          observer.observe(root, { childList: true, subtree: true });
+          setTimeout(function() { root.classList.add('app-ready'); }, 500);
+        }
+      })();
+    </script>
   </body>
 </html>
