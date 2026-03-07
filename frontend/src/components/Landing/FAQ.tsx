@@ -63,28 +63,28 @@ export function FAQ() {
             >
               <button
                 onClick={() => toggleFAQ(index)}
-                className={`w-full px-8 py-6 flex items-center justify-between text-left transition-all duration-300 ${
+                className={`w-full px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6 flex items-center justify-between text-left transition-all duration-300 gap-3 min-h-[3.5rem] sm:min-h-0 ${
                   openIndex === index 
                     ? 'bg-gradient-to-r from-[#4169E1]/10 to-[#4169E1]/20' 
-                    : 'hover:bg-gray-50'
+                    : 'hover:bg-gray-50 active:bg-gray-100'
                 }`}
               >
-                <div className="flex items-start gap-4 flex-1">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
                     openIndex === index
                       ? 'bg-gradient-to-r from-[#4169E1] to-[#3A5BCE] text-white shadow-lg'
                       : 'bg-gradient-to-r from-[#4169E1]/20 to-[#4169E1]/30 text-[#4169E1] group-hover:from-[#4169E1]/30 group-hover:to-[#4169E1]/40'
                   }`}>
-                    <Sparkles className="w-5 h-5" />
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <h3 className={`text-lg lg:text-xl font-bold pr-8 transition-colors duration-300 ${
+                  <h3 className={`text-base sm:text-lg lg:text-xl font-bold pr-6 sm:pr-8 transition-colors duration-300 leading-snug ${
                     openIndex === index ? 'text-[#4169E1]' : 'text-gray-900 group-hover:text-[#4169E1]'
                   }`}>
                     {faq.question}
                   </h3>
                 </div>
                 <ChevronDown
-                  className={`w-6 h-6 flex-shrink-0 transition-all duration-300 ${
+                  className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 transition-all duration-300 ${
                     openIndex === index 
                       ? 'transform rotate-180 text-[#4169E1]' 
                       : 'text-gray-400 group-hover:text-gray-600'
@@ -93,14 +93,16 @@ export function FAQ() {
               </button>
               <div
                 className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                  openIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                  openIndex === index ? 'max-h-[70vh] sm:max-h-96 opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className="px-8 pb-4 pt-1">
-                  <div className="pl-14 border-l-2 border-[#4169E1]/30">
-                    <p className="text-gray-700 leading-relaxed text-base lg:text-lg">
-                      {faq.answer}
-                    </p>
+                <div className="px-4 pb-4 pt-1 sm:px-6 lg:px-8">
+                  <div className="pl-0 sm:pl-6 lg:pl-14 border-l-0 sm:border-l-2 border-[#4169E1]/30">
+                    <div className="max-h-[50vh] sm:max-h-none overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y pr-1 -mr-1 faq-answer-scroll">
+                      <p className="text-gray-700 leading-relaxed text-[15px] sm:text-base lg:text-lg leading-6 sm:leading-relaxed">
+                        {faq.answer}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
